@@ -1,0 +1,27 @@
+version: '3.8'
+services:
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: recipeuser
+      POSTGRES_PASSWORD: recipepass
+      POSTGRES_DB: recipebook
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+  app:
+    build: .
+    environment:
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_USER=recipeuser
+      - DB_PASSWORD=recipepass
+      - DB_NAME=recipebook
+      - PORT=8080
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+volumes:
+  pgdata:
