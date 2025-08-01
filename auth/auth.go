@@ -43,3 +43,20 @@ func GetUser(r *http.Request) (string, bool) {
 	username, ok := sessions[cookie.Value]
 	return username, ok
 }
+
+func InvalidateSession(w http.ResponseWriter, r *http.Request) {
+	cookie, err := r.Cookie("session")
+	if err != nil {
+		return
+	}
+	mu.Lock()
+	delete(sessions, cookie.Value)
+	mu.Unlock()
+	// Clear the cookie
+	http.SetCookie(w, &http.Cookie{Name: "session", Value: "", Path: "/", MaxAge: -1})
+}
+
+func IsSessionValid(r *http.Request) bool {
+	_, ok := GetUser(r)
+	return ok
+}
