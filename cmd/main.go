@@ -1,13 +1,19 @@
 package main
 
 import (
+	"database/sql"
 	"html/template"
 	"log"
 	"net/http"
 	"os"
 	"time"
 
+	"github.com/golang-migrate/migrate/v4"
+	"github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/yourusername/agent-coding-recipe-book/auth"
+	"github.com/yourusername/agent-coding-recipe-book/internal/handlers"
+	"github.com/yourusername/agent-coding-recipe-book/internal/models"
 )
 
 // importHandlersLogin calls the Login handler from internal/handlers
@@ -46,6 +52,34 @@ func importHandlersLogout(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
+func runMigrations(dataSourceName string) {
+	db, err := sql.Open("postgres", dataSourceName)
+	if err != nil {
+		log.Fatalf("Failed to connect to database: %v", err)
+	}
+	defer db.Close()
+
+	driver, err := postgres.WithInstance(db, &postgres.Config{})
+	if err != nil {
+		log.Fatalf("Failed to create migration driver: %v", err)
+	}
+
+	m, err := migrate.NewWithDatabaseInstance(
+		"file://db/migrations",
+		"postgres",
+		driver,
+	)
+	if err != nil {
+		log.Fatalf("Failed to initialize migrations: %v", err)
+	}
+
+	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
+		log.Fatalf("Failed to apply migrations: %v", err)
+	}
+
+ 	log.Println("Migrations applied successfully")
+}
+
 func main() {
 	addr := ":8080"
 	if port := os.Getenv("PORT"); port != "" {
@@ -53,12 +87,34 @@ func main() {
 	}
 	log.Printf("Starting server on %s", addr)
 
+	log.Print("Initializing database...")
+
+	dataSourceName := "host=localhost port=5432 user=local-recipe-user password=local-recipe-password dbname=recipe-book sslmode=disable"
+
+	err := models.InitializeDB(dataSourceName)
+	if err != nil {
+		log.Fatalf("Failed to initialize database: %v", err)
+		panic(err)
+	}
+
+	log.Print("Running migrations...")
+	// Run database migrations
+	runMigrations(dataSourceName)
+
 	// Home page
 	http.HandleFunc("/", importHandlersHome)
 
 	// Auth routes
 	http.HandleFunc("/login", importHandlersLogin)
 	http.HandleFunc("/logout", importHandlersLogout)
+
+	// Recipe routes
+	http.HandleFunc("/recipes", handlers.ListRecipesHandler)
+	http.HandleFunc("/recipes/create", handlers.CreateRecipeHandler)
+	http.HandleFunc("/recipes/update", handlers.UpdateRecipeHandler)
+	http.HandleFunc("/recipes/delete", handlers.DeleteRecipeHandler)
+
+	log.Print("Ready to serve!")
 
 	log.Fatal(http.ListenAndServe(addr, nil))
 }

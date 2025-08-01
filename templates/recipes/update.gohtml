@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Update Recipe</title>
+</head>
+<body>
+    <h1>Update Recipe</h1>
+    <form method="POST">
+        <input type="hidden" name="id" value="{{.ID}}">
+        <label>Title: <input name="title" value="{{.Title}}"></label><br>
+        <label>Ingredients: <textarea name="ingredients">{{.IngredientsMD}}</textarea></label><br>
+        <label>Instructions: <textarea name="instructions">{{.InstructionsMD}}</textarea></label><br>
+        <button type="submit">Update</button>
+    </form>
+</body>
+</html>

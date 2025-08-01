@@ -1,6 +1,8 @@
 package auth
 
 import (
+	"database/sql"
+	"fmt"
 	"net/http"
 	"sync"
 )
@@ -59,4 +61,36 @@ func InvalidateSession(w http.ResponseWriter, r *http.Request) {
 func IsSessionValid(r *http.Request) bool {
 	_, ok := GetUser(r)
 	return ok
+}
+
+// Middleware to enforce authentication
+func RequireAuth(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !IsSessionValid(r) {
+			http.Redirect(w, r, "/login", http.StatusSeeOther)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+// GetUserIDByUsername fetches the user ID for a given username from the database
+func GetUserIDByUsername(username string) (int, error) {
+	// Replace with actual database connection
+	db, err := sql.Open("postgres", "host=localhost port=5432 user=local-recipe-user password=local-recipe-password dbname=recipe-book sslmode=disable")
+	if err != nil {
+		return 0, fmt.Errorf("failed to connect to database: %v", err)
+	}
+	defer db.Close()
+
+	var userID int
+	err = db.QueryRow("SELECT id FROM users WHERE username = $1", username).Scan(&userID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return 0, fmt.Errorf("user not found")
+		}
+		return 0, fmt.Errorf("failed to fetch user ID: %v", err)
+	}
+
+	return userID, nil
 }

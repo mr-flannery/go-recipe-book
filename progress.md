@@ -28,3 +28,28 @@
 - Add htmx-powered dynamic content for recipe list and forms.
 
 **Paused here for user questions/clarifications.**
+
+## Date: 2025-08-01
+
+### Recent Progress
+- **Database Migrations**:
+  - Created `20250801_initial_schema.up.sql` to define the initial database schema.
+  - Created `20250801_insert_default_users.up.sql` to insert default users (`alice` and `bob`).
+  - Created `20250801_everything.down.sql` to revert all changes made by the initial schema and default users migrations.
+
+- **Authentication**:
+  - Implemented `auth.GetUserIDByUsername` to fetch user IDs from the database based on usernames.
+
+- **Recipe Handlers**:
+  - Updated `CreateRecipeHandler` to dynamically set the `AuthorID` based on the logged-in user.
+  - Updated `ListRecipesHandler` to fetch recipes from the database using the new `models.GetAllRecipes` function.
+
+- **Models**:
+  - Added `models.GetAllRecipes` to retrieve all recipes from the database.
+
+### Next Steps
+- Test the database migrations and ensure they work as expected.
+- Verify the updated handlers (`CreateRecipeHandler` and `ListRecipesHandler`) with real data.
+- Implement additional CRUD operations for recipes (update and delete).
+- Add unit tests for the new database functions and handlers.
+- Add htmx-powered dynamic content for recipe list and forms.

@@ -55,3 +55,5 @@ go-test-cache/
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+
+cmd/__debug_bin*
