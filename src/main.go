@@ -1,7 +1,7 @@
 package main
 
 import (
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
 
@@ -17,19 +17,19 @@ func main() {
 	if port := os.Getenv("PORT"); port != "" {
 		addr = ":" + port
 	}
-	log.Printf("Starting server on %s", addr)
+	slog.Info("Starting server", "address", addr)
 
-	log.Print("Initializing database...")
+	slog.Info("Initializing database...")
 
 	dataSourceName := "host=localhost port=5432 user=local-recipe-user password=local-recipe-password dbname=recipe-book sslmode=disable"
 
 	err := models.InitializeDB(dataSourceName)
 	if err != nil {
-		log.Fatalf("Failed to initialize database: %v", err)
+		slog.Error("Failed to initialize database", "error", err)
 		panic(err)
 	}
 
-	log.Print("Running migrations...")
+	slog.Info("Running migrations...")
 	// Run database migrations
 	db.RunMigrations(dataSourceName)
 
@@ -46,7 +46,7 @@ func main() {
 	http.HandleFunc("/recipes/update", handlers.UpdateRecipeHandler)
 	http.HandleFunc("/recipes/delete", handlers.DeleteRecipeHandler)
 
-	log.Print("Ready to serve!")
+	slog.Info("Ready to serve!")
 
-	log.Fatal(http.ListenAndServe(addr, nil))
+	slog.Error("Server failed to start", "error", http.ListenAndServe(addr, nil))
 }

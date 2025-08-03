@@ -3,7 +3,7 @@ package db
 import (
 	"database/sql"
 	"fmt"
-	"log"
+	"log/slog"
 	"os"
 
 	"github.com/golang-migrate/migrate/v4"
@@ -28,13 +28,13 @@ func Connect() (*sql.DB, error) {
 func RunMigrations(dataSourceName string) {
 	db, err := sql.Open("postgres", dataSourceName)
 	if err != nil {
-		log.Fatalf("Failed to connect to database: %v", err)
+		slog.Error("Failed to connect to database", "error", err)
 	}
 	defer db.Close()
 
 	driver, err := postgres.WithInstance(db, &postgres.Config{})
 	if err != nil {
-		log.Fatalf("Failed to create migration driver: %v", err)
+		slog.Error("Failed to create migration driver", "error", err)
 	}
 
 	m, err := migrate.NewWithDatabaseInstance(
@@ -43,12 +43,12 @@ func RunMigrations(dataSourceName string) {
 		driver,
 	)
 	if err != nil {
-		log.Fatalf("Failed to initialize migrations: %v", err)
+		slog.Error("Failed to initialize migrations", "error", err)
 	}
 
 	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
-		log.Fatalf("Failed to apply migrations: %v", err)
+		slog.Error("Failed to apply migrations", "error", err)
 	}
 
-	log.Println("Migrations applied successfully")
+	slog.Info("Migrations applied successfully")
 }
