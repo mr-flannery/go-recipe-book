@@ -1,4 +1,4 @@
-module github.com/yourusername/agent-coding-recipe-book
+module github.com/mr-flannery/go-recipe-book
 
 go 1.23.0
 

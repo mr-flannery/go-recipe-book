@@ -48,6 +48,8 @@
   - Added `models.GetAllRecipes` to retrieve all recipes from the database.
 
 ### Next Steps
+- add browser tests for existing functionality
+- refactor!!!
 - Test the database migrations and ensure they work as expected.
 - Verify the updated handlers (`CreateRecipeHandler` and `ListRecipesHandler`) with real data.
 - Implement additional CRUD operations for recipes (update and delete).
