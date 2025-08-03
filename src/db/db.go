@@ -3,8 +3,11 @@ package db
 import (
 	"database/sql"
 	"fmt"
+	"log"
 	"os"
 
+	"github.com/golang-migrate/migrate/v4"
+	"github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/lib/pq"
 )
 
@@ -20,4 +23,32 @@ func Connect() (*sql.DB, error) {
 	}
 	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s", host, port, user, password, dbname, sslmode)
 	return sql.Open("postgres", dsn)
+}
+
+func RunMigrations(dataSourceName string) {
+	db, err := sql.Open("postgres", dataSourceName)
+	if err != nil {
+		log.Fatalf("Failed to connect to database: %v", err)
+	}
+	defer db.Close()
+
+	driver, err := postgres.WithInstance(db, &postgres.Config{})
+	if err != nil {
+		log.Fatalf("Failed to create migration driver: %v", err)
+	}
+
+	m, err := migrate.NewWithDatabaseInstance(
+		"file://db/migrations",
+		"postgres",
+		driver,
+	)
+	if err != nil {
+		log.Fatalf("Failed to initialize migrations: %v", err)
+	}
+
+	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
+		log.Fatalf("Failed to apply migrations: %v", err)
+	}
+
+	log.Println("Migrations applied successfully")
 }
