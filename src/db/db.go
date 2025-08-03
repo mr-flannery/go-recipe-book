@@ -4,31 +4,38 @@ import (
 	"database/sql"
 	"fmt"
 	"log/slog"
-	"os"
 
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/lib/pq"
+	"github.com/mr-flannery/go-recipe-book/src/config"
 )
 
-func Connect() (*sql.DB, error) {
-	host := os.Getenv("DB_HOST")
-	port := os.Getenv("DB_PORT")
-	user := os.Getenv("DB_USER")
-	password := os.Getenv("DB_PASSWORD")
-	dbname := os.Getenv("DB_NAME")
-	sslmode := os.Getenv("DB_SSLMODE")
-	if sslmode == "" {
-		sslmode = "disable"
+// implement connection pool at some point in time?
+func GetConnection() (*sql.DB, error) {
+	config, err := config.GetConfig()
+	if err != nil {
+		slog.Error("Failed to get configuration", "error", err)
+		panic(err)
 	}
-	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s", host, port, user, password, dbname, sslmode)
-	return sql.Open("postgres", dsn)
+
+	connectionString := fmt.Sprintf(
+		"host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
+		config.DB.Host,
+		config.DB.Port,
+		config.DB.User,
+		config.DB.Password,
+		config.DB.Name,
+		config.DB.SSLMode,
+	)
+	return sql.Open("postgres", connectionString)
 }
 
-func RunMigrations(dataSourceName string) {
-	db, err := sql.Open("postgres", dataSourceName)
+func RunMigrations() error {
+	db, err := GetConnection()
 	if err != nil {
 		slog.Error("Failed to connect to database", "error", err)
+		return err
 	}
 	defer db.Close()
 
@@ -51,4 +58,5 @@ func RunMigrations(dataSourceName string) {
 	}
 
 	slog.Info("Migrations applied successfully")
+	return nil
 }

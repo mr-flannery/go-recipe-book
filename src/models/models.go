@@ -1,11 +1,12 @@
 package models
 
 import (
-	"database/sql"
 	"fmt"
 	"time"
 
 	_ "github.com/lib/pq"
+
+	"github.com/mr-flannery/go-recipe-book/src/db"
 )
 
 // User represents a user in the system
@@ -70,61 +71,81 @@ type ProposedChange struct {
 	Status         string // pending, accepted, rejected
 }
 
-// TODO: this is probably garbage...
-var db *sql.DB
-
-// InitializeDB initializes the database connection
-func InitializeDB(dataSourceName string) error {
-	var err error
-
-	db, err = sql.Open("postgres", dataSourceName)
-	if err != nil {
-		return err
-	}
-	return db.Ping()
-}
-
 // SaveRecipe saves a recipe to the database
 func SaveRecipe(recipe Recipe) error {
+	// this is probably vulnerable to SQL injection...
 	query := `INSERT INTO recipes (title, ingredients_md, instructions_md, prep_time, cook_time, calories, author_id, image, parent_id, created_at, updated_at) 
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`
-	_, err := db.Exec(query, recipe.Title, recipe.IngredientsMD, recipe.InstructionsMD, recipe.PrepTime, recipe.CookTime, recipe.Calories, recipe.AuthorID, recipe.Image, recipe.ParentID, time.Now(), time.Now())
+
+	dbConnection, err := db.GetConnection()
+	if err != nil {
+		return fmt.Errorf("failed to connect to database: %v", err)
+	}
+	defer dbConnection.Close()
+
+	_, err = dbConnection.Exec(query, recipe.Title, recipe.IngredientsMD, recipe.InstructionsMD, recipe.PrepTime, recipe.CookTime, recipe.Calories, recipe.AuthorID, recipe.Image, recipe.ParentID, time.Now(), time.Now())
+
 	return err
 }
 
 // GetRecipeByID retrieves a recipe by its ID
 func GetRecipeByID(id string) (Recipe, error) {
 	var recipe Recipe
-	err := db.QueryRow("SELECT id, title, ingredients_md, instructions_md FROM recipes WHERE id = $1", id).
-		Scan(&recipe.ID, &recipe.Title, &recipe.IngredientsMD, &recipe.InstructionsMD)
+
+	dbConnection, err := db.GetConnection()
+	if err != nil {
+		return Recipe{}, fmt.Errorf("failed to connect to database: %v", err)
+	}
+	defer dbConnection.Close()
+
+	err =
+		dbConnection.
+			QueryRow("SELECT id, title, ingredients_md, instructions_md FROM recipes WHERE id = $1", id).
+			Scan(&recipe.ID, &recipe.Title, &recipe.IngredientsMD, &recipe.InstructionsMD)
+
 	if err != nil {
 		return Recipe{}, err
 	}
+
 	return recipe, nil
 }
 
 // UpdateRecipe updates an existing recipe in the database
 func UpdateRecipe(recipe Recipe) error {
-	_, err := db.Exec("UPDATE recipes SET title = $1, ingredients_md = $2, instructions_md = $3 WHERE id = $4",
+	dbConnection, err := db.GetConnection()
+	if err != nil {
+		return fmt.Errorf("failed to connect to database: %v", err)
+	}
+	defer dbConnection.Close()
+
+	_, err = dbConnection.Exec("UPDATE recipes SET title = $1, ingredients_md = $2, instructions_md = $3 WHERE id = $4",
 		recipe.Title, recipe.IngredientsMD, recipe.InstructionsMD, recipe.ID)
+
 	return err
 }
 
 // DeleteRecipe deletes a recipe from the database
 func DeleteRecipe(id string) error {
-	_, err := db.Exec("DELETE FROM recipes WHERE id = $1", id)
+	dbConnection, err := db.GetConnection()
+	if err != nil {
+		return fmt.Errorf("failed to connect to database: %v", err)
+	}
+	defer dbConnection.Close()
+
+	_, err = dbConnection.Exec("DELETE FROM recipes WHERE id = $1", id)
 	return err
 }
 
 // GetAllRecipes fetches all recipes from the database
 func GetAllRecipes() ([]Recipe, error) {
-	db, err := sql.Open("postgres", "host=localhost port=5432 user=local-recipe-user password=local-recipe-password dbname=recipe-book sslmode=disable")
+	dbConnection, err := db.GetConnection()
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to database: %v", err)
 	}
-	defer db.Close()
+	defer dbConnection.Close()
 
-	rows, err := db.Query("SELECT id, title, ingredients_md, instructions_md, prep_time, cook_time, calories, author_id, created_at, updated_at FROM recipes")
+	rows, err := dbConnection.Query("SELECT id, title, ingredients_md, instructions_md, prep_time, cook_time, calories, author_id, created_at, updated_at FROM recipes")
+
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch recipes: %v", err)
 	}

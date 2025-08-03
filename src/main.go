@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/mr-flannery/go-recipe-book/src/config"
 	"github.com/mr-flannery/go-recipe-book/src/db"
 	"github.com/mr-flannery/go-recipe-book/src/handlers"
-	"github.com/mr-flannery/go-recipe-book/src/models"
 
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 )
@@ -18,20 +18,17 @@ func main() {
 		addr = ":" + port
 	}
 	slog.Info("Starting server", "address", addr)
-
-	slog.Info("Initializing database...")
-
-	dataSourceName := "host=localhost port=5432 user=local-recipe-user password=local-recipe-password dbname=recipe-book sslmode=disable"
-
-	err := models.InitializeDB(dataSourceName)
+	
+	slog.Info("Loading configuration...")
+	_, err := config.GetConfig()
 	if err != nil {
-		slog.Error("Failed to initialize database", "error", err)
+		slog.Error("Failed to load configuration", "error", err)
 		panic(err)
 	}
 
 	slog.Info("Running migrations...")
 	// Run database migrations
-	db.RunMigrations(dataSourceName)
+	db.RunMigrations()
 
 	// Home page
 	http.HandleFunc("/", handlers.HomeHandler)

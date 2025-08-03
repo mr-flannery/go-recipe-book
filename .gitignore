@@ -57,3 +57,5 @@ go-test-cache/
 /playwright/.cache/
 
 **/__debug_bin*
+
+config.yaml
