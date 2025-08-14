@@ -67,7 +67,13 @@ func IsSessionValid(r *http.Request) bool {
 func RequireAuth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !IsSessionValid(r) {
-			http.Redirect(w, r, "/login", http.StatusSeeOther)
+			// Include the current URL as redirect parameter
+			currentURL := r.URL.Path
+			if r.URL.RawQuery != "" {
+				currentURL += "?" + r.URL.RawQuery
+			}
+			redirectURL := "/login?redirect=" + currentURL
+			http.Redirect(w, r, redirectURL, http.StatusSeeOther)
 			return
 		}
 		next.ServeHTTP(w, r)

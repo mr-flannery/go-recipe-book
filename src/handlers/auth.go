@@ -8,31 +8,85 @@ import (
 	"github.com/mr-flannery/go-recipe-book/src/auth"
 )
 
+type LoginData struct {
+	RedirectURL string
+	Error       string
+}
+
 func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	templates := template.Must(template.ParseGlob("templates/*.gohtml"))
+	
 	if r.Method == http.MethodGet {
+		redirectURL := r.URL.Query().Get("redirect")
+		data := LoginData{
+			RedirectURL: redirectURL,
+		}
+		
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		err := templates.ExecuteTemplate(w, "login.gohtml", nil)
+		err := templates.ExecuteTemplate(w, "login.gohtml", data)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 		return
 	}
+	
 	if r.Method == http.MethodPost {
 		r.ParseForm()
 		username := r.FormValue("username")
 		password := r.FormValue("password")
+		redirectURL := r.FormValue("redirect")
 
 		ok := auth.Authenticate(username, password)
 
 		if !ok {
-			w.Write([]byte("<p>Invalid credentials</p>"))
-			return
+			// Check if this is an HTMX request
+			if r.Header.Get("HX-Request") == "true" {
+				// Return just the form with error message for HTMX
+				data := LoginData{
+					RedirectURL: redirectURL,
+					Error:       "Invalid username or password. Please try again.",
+				}
+				w.Header().Set("Content-Type", "text/html; charset=utf-8")
+				err := templates.ExecuteTemplate(w, "login-form", data)
+				if err != nil {
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+				}
+				return
+			} else {
+				// Regular form submission - redirect back to login with error
+				data := LoginData{
+					RedirectURL: redirectURL,
+					Error:       "Invalid username or password. Please try again.",
+				}
+				w.Header().Set("Content-Type", "text/html; charset=utf-8")
+				err := templates.ExecuteTemplate(w, "login.gohtml", data)
+				if err != nil {
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+				}
+				return
+			}
 		}
 
+		// Authentication successful
 		auth.SetSession(w, username)
-		http.Redirect(w, r, "/", http.StatusSeeOther)
-		return
+		
+		// Determine redirect URL
+		finalRedirectURL := "/"
+		if redirectURL != "" {
+			finalRedirectURL = redirectURL
+		}
+		
+		// Check if this is an HTMX request
+		if r.Header.Get("HX-Request") == "true" {
+			// For HTMX, send a redirect header
+			w.Header().Set("HX-Redirect", finalRedirectURL)
+			w.WriteHeader(http.StatusOK)
+			return
+		} else {
+			// Regular form submission
+			http.Redirect(w, r, finalRedirectURL, http.StatusSeeOther)
+			return
+		}
 	}
 }
 

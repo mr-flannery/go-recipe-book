@@ -185,7 +185,20 @@
 
     <div class="comments-section">
         <h2>Comments (<span id="comment-count">{{len .Comments}}</span>)</h2>
-        
+
+        <div id="comments-list">
+            {{range .Comments}}
+            <div class="comment">
+                <div class="comment-header">
+                    {{.Username}} • {{.CreatedAt.Format "Jan 2, 2006 at 3:04 PM"}}
+                </div>
+                <div class="comment-content">{{.ContentMD}}</div>
+            </div>
+            {{else}}
+            <p id="no-comments">No comments yet. Be the first to comment!</p>
+            {{end}}
+        </div>
+
         {{if .IsLoggedIn}}
         <div class="comment-form">
             <h3>Add a Comment</h3>
@@ -201,19 +214,6 @@
         {{else}}
         <p><a href="/login">Login</a> to add a comment.</p>
         {{end}}
-
-        <div id="comments-list">
-            {{range .Comments}}
-            <div class="comment">
-                <div class="comment-header">
-                    {{.Username}} • {{.CreatedAt.Format "Jan 2, 2006 at 3:04 PM"}}
-                </div>
-                <div class="comment-content">{{.ContentMD}}</div>
-            </div>
-            {{else}}
-            <p id="no-comments">No comments yet. Be the first to comment!</p>
-            {{end}}
-        </div>
     </div>
 </body>
 </html>

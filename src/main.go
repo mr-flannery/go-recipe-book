@@ -6,6 +6,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/mr-flannery/go-recipe-book/src/auth"
 	"github.com/mr-flannery/go-recipe-book/src/config"
 	"github.com/mr-flannery/go-recipe-book/src/db"
 	"github.com/mr-flannery/go-recipe-book/src/handlers"
@@ -37,17 +38,19 @@ func main() {
 	http.HandleFunc("/login", handlers.LoginHandler)
 	http.HandleFunc("/logout", handlers.LogoutHandler)
 
-	// Recipe routes
+	// Recipe routes - order matters! More specific routes first
+	http.Handle("/recipes/create", auth.RequireAuth(http.HandlerFunc(handlers.CreateRecipeHandler)))
+	http.Handle("/recipes/update", auth.RequireAuth(http.HandlerFunc(handlers.UpdateRecipeHandler)))
+	http.Handle("/recipes/delete", auth.RequireAuth(http.HandlerFunc(handlers.DeleteRecipeHandler)))
 	http.HandleFunc("/recipes", handlers.ListRecipesHandler)
-	http.HandleFunc("/recipes/create", handlers.CreateRecipeHandler)
-	http.HandleFunc("/recipes/update", handlers.UpdateRecipeHandler)
-	http.HandleFunc("/recipes/delete", handlers.DeleteRecipeHandler)
 
 	// Recipe view and comment routes - handle /recipes/{id}, /recipes/{id}/comments, and /recipes/{id}/comments/htmx
 	http.HandleFunc("/recipes/", func(w http.ResponseWriter, r *http.Request) {
 		if strings.HasSuffix(r.URL.Path, "/comments/htmx") {
-			handlers.CommentHTMXHandler(w, r)
+			// Comments require authentication
+			auth.RequireAuth(http.HandlerFunc(handlers.CommentHTMXHandler)).ServeHTTP(w, r)
 		} else {
+			// Recipe viewing doesn't require authentication
 			handlers.ViewRecipeHandler(w, r)
 		}
 	})

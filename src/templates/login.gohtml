@@ -4,14 +4,81 @@
 <head>
     <meta charset="UTF-8">
     <title>Login</title>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <style>
+        .error {
+            color: red;
+            margin-top: 10px;
+        }
+        .form-container {
+            max-width: 400px;
+            margin: 50px auto;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            box-sizing: border-box;
+        }
+        button {
+            width: 100%;
+            padding: 10px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
 </head>
 <body>
-    <h1>Login</h1>
-    <form method="POST" action="/login">
-        <input name="username" placeholder="Username">
-        <input name="password" type="password" placeholder="Password">
-        <button type="submit">Login</button>
-    </form>
+    <div class="form-container">
+        <h1>Login</h1>
+        <form hx-post="/login" hx-target="#login-form" hx-swap="outerHTML">
+            <div id="login-form">
+                <div class="form-group">
+                    <input name="username" placeholder="Username" required>
+                </div>
+                <div class="form-group">
+                    <input name="password" type="password" placeholder="Password" required>
+                </div>
+                {{if .RedirectURL}}
+                <input type="hidden" name="redirect" value="{{.RedirectURL}}">
+                {{end}}
+                <button type="submit">Login</button>
+                {{if .Error}}
+                <div class="error">{{.Error}}</div>
+                {{end}}
+            </div>
+        </form>
+    </div>
 </body>
 </html>
+{{end}}
+{{define "login-form"}}
+<div id="login-form">
+    <div class="form-group">
+        <input name="username" placeholder="Username" required>
+    </div>
+    <div class="form-group">
+        <input name="password" type="password" placeholder="Password" required>
+    </div>
+    {{if .RedirectURL}}
+    <input type="hidden" name="redirect" value="{{.RedirectURL}}">
+    {{end}}
+    <button type="submit">Login</button>
+    {{if .Error}}
+    <div class="error">{{.Error}}</div>
+    {{end}}
+</div>
 {{end}}
