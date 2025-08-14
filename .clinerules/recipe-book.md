@@ -1,0 +1,1 @@
+- this project's working directory is `src/`
