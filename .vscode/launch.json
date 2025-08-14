@@ -1,0 +1,43 @@
+{
+  // Use IntelliSense to learn about possible attributes.
+  // Hover to view descriptions of existing attributes.
+  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Launch Package",
+      "type": "go",
+      "request": "launch",
+      "mode": "auto",
+      "program": "${fileDirname}"
+    },
+    {
+      "name": "Launch Server",
+      "type": "go",
+      "request": "launch",
+      "mode": "debug",
+      "program": "${workspaceFolder}/src/main.go",
+      "cwd": "${workspaceFolder}/src",
+      "env": {
+          "DB_HOST": "localhost",
+          "DB_PORT": "5432",
+          "DB_USER": "recipeuser",
+          "DB_PASSWORD": "recipepass",
+          "DB_NAME": "recipebook",
+          "PORT": "8080"
+      },
+      "args": []
+    },
+    {
+      "name": "Launch Server with Live Reload (Air)",
+      "type": "go",
+      "request": "launch",
+      "mode": "exec",
+      "program": "/Users/d069022/go/bin/air",
+      "cwd": "${workspaceFolder}/src",
+      "console": "integratedTerminal",
+      "env": {},
+      "args": []
+    }
+  ]
+}

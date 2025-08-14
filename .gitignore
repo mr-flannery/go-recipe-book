@@ -18,6 +18,7 @@
 
 # IDE/editor files
 .vscode/
+!.vscode/launch.json
 .idea/
 *.swp
 *.swo
@@ -57,5 +58,9 @@ go-test-cache/
 /playwright/.cache/
 
 **/__debug_bin*
+
+# Air live reload
+tmp/
+build-errors.log
 
 config.yaml
