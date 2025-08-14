@@ -11,7 +11,6 @@ import (
 	"github.com/mr-flannery/go-recipe-book/src/models"
 )
 
-
 var recipeTemplates = template.Must(template.ParseGlob("templates/recipes/*.gohtml"))
 
 // CreateRecipeHandler handles the creation of a new recipe
@@ -170,24 +169,24 @@ func ViewRecipeHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// CommentHandler handles adding comments to recipes
-func CommentHandler(w http.ResponseWriter, r *http.Request) {
+// CommentHTMXHandler handles adding comments via HTMX and returns HTML fragment
+func CommentHTMXHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	// Extract recipe ID from URL path like /recipes/123/comments
+	// Extract recipe ID from URL path like /recipes/123/comments/htmx
 	path := r.URL.Path
-	if !strings.HasSuffix(path, "/comments") {
+	if !strings.HasSuffix(path, "/comments/htmx") {
 		http.Error(w, "Invalid URL", http.StatusBadRequest)
 		return
 	}
-	
-	// Remove "/comments" suffix and extract recipe ID
-	recipePath := path[:len(path)-len("/comments")]
+
+	// Remove "/comments/htmx" suffix and extract recipe ID
+	recipePath := path[:len(path)-len("/comments/htmx")]
 	recipeID := recipePath[len("/recipes/"):]
-	
+
 	if recipeID == "" {
 		http.Error(w, "Recipe ID is required", http.StatusBadRequest)
 		return
@@ -196,7 +195,7 @@ func CommentHandler(w http.ResponseWriter, r *http.Request) {
 	// Check authentication
 	username, isLoggedIn := auth.GetUser(r)
 	if !isLoggedIn {
-		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
@@ -233,8 +232,30 @@ func CommentHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Redirect back to recipe view
-	http.Redirect(w, r, fmt.Sprintf("/recipes/%s", recipeID), http.StatusSeeOther)
+	// Get the saved comment with timestamp
+	savedComment, err := models.GetLatestCommentByUserAndRecipe(userID, recipeIDInt)
+	if err != nil {
+		http.Error(w, "Failed to retrieve saved comment", http.StatusInternalServerError)
+		return
+	}
+
+	// Create comment data with username for template
+	type CommentWithUsername struct {
+		models.Comment
+		Username string
+	}
+
+	commentData := CommentWithUsername{
+		Comment:  savedComment,
+		Username: username,
+	}
+
+	// Return HTML fragment
+	w.Header().Set("Content-Type", "text/html")
+	err = recipeTemplates.ExecuteTemplate(w, "comment.gohtml", commentData)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 }
 
 // DeleteRecipeHandler handles deleting a recipe

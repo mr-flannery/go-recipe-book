@@ -43,10 +43,10 @@ func main() {
 	http.HandleFunc("/recipes/update", handlers.UpdateRecipeHandler)
 	http.HandleFunc("/recipes/delete", handlers.DeleteRecipeHandler)
 
-	// Recipe view and comment routes - handle both /recipes/{id} and /recipes/{id}/comments
+	// Recipe view and comment routes - handle /recipes/{id}, /recipes/{id}/comments, and /recipes/{id}/comments/htmx
 	http.HandleFunc("/recipes/", func(w http.ResponseWriter, r *http.Request) {
-		if strings.HasSuffix(r.URL.Path, "/comments") {
-			handlers.CommentHandler(w, r)
+		if strings.HasSuffix(r.URL.Path, "/comments/htmx") {
+			handlers.CommentHTMXHandler(w, r)
 		} else {
 			handlers.ViewRecipeHandler(w, r)
 		}

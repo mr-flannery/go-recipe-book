@@ -237,3 +237,25 @@ func GetUsernameByID(userID int) (string, error) {
 
 	return username, nil
 }
+
+// GetLatestCommentByUserAndRecipe retrieves the latest comment by a specific user for a specific recipe
+func GetLatestCommentByUserAndRecipe(userID int, recipeID int) (Comment, error) {
+	var comment Comment
+
+	dbConnection, err := db.GetConnection()
+	if err != nil {
+		return Comment{}, fmt.Errorf("failed to connect to database: %v", err)
+	}
+	defer dbConnection.Close()
+
+	err = dbConnection.QueryRow(
+		"SELECT id, recipe_id, author_id, content_md, created_at, updated_at FROM comments WHERE author_id = $1 AND recipe_id = $2 ORDER BY created_at DESC LIMIT 1",
+		userID, recipeID,
+	).Scan(&comment.ID, &comment.RecipeID, &comment.AuthorID, &comment.ContentMD, &comment.CreatedAt, &comment.UpdatedAt)
+
+	if err != nil {
+		return Comment{}, err
+	}
+
+	return comment, nil
+}

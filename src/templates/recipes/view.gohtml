@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{.Recipe.Title}} - Recipe View</title>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -183,12 +184,15 @@
     </div>
 
     <div class="comments-section">
-        <h2>Comments ({{len .Comments}})</h2>
+        <h2>Comments (<span id="comment-count">{{len .Comments}}</span>)</h2>
         
         {{if .IsLoggedIn}}
         <div class="comment-form">
             <h3>Add a Comment</h3>
-            <form method="POST" action="/recipes/{{.Recipe.ID}}/comments">
+            <form hx-post="/recipes/{{.Recipe.ID}}/comments/htmx" 
+                  hx-target="#comments-list" 
+                  hx-swap="afterbegin"
+                  hx-on::after-request="this.reset(); document.getElementById('comment-count').textContent = parseInt(document.getElementById('comment-count').textContent) + 1; const noComments = document.getElementById('no-comments'); if (noComments) noComments.style.display = 'none';">
                 <textarea name="comment" placeholder="Share your thoughts about this recipe..." required></textarea>
                 <br>
                 <button type="submit" class="btn">Post Comment</button>
@@ -198,16 +202,18 @@
         <p><a href="/login">Login</a> to add a comment.</p>
         {{end}}
 
-        {{range .Comments}}
-        <div class="comment">
-            <div class="comment-header">
-                {{.Username}} • {{.CreatedAt.Format "Jan 2, 2006 at 3:04 PM"}}
+        <div id="comments-list">
+            {{range .Comments}}
+            <div class="comment">
+                <div class="comment-header">
+                    {{.Username}} • {{.CreatedAt.Format "Jan 2, 2006 at 3:04 PM"}}
+                </div>
+                <div class="comment-content">{{.ContentMD}}</div>
             </div>
-            <div class="comment-content">{{.ContentMD}}</div>
+            {{else}}
+            <p id="no-comments">No comments yet. Be the first to comment!</p>
+            {{end}}
         </div>
-        {{else}}
-        <p>No comments yet. Be the first to comment!</p>
-        {{end}}
     </div>
 </body>
 </html>
