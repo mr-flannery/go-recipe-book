@@ -5,7 +5,6 @@ import (
 	"html/template"
 	"net/http"
 	"strconv"
-	"strings"
 
 	"github.com/mr-flannery/go-recipe-book/src/auth"
 	"github.com/mr-flannery/go-recipe-book/src/models"
@@ -13,44 +12,43 @@ import (
 
 var recipeTemplates = template.Must(template.ParseGlob("templates/recipes/*.gohtml"))
 
-// CreateRecipeHandler handles the creation of a new recipe
-func CreateRecipeHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method == http.MethodGet {
-		err := recipeTemplates.ExecuteTemplate(w, "create.gohtml", nil)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-		}
+// GetCreateRecipeHandler handles displaying the create recipe form
+func GetCreateRecipeHandler(w http.ResponseWriter, r *http.Request) {
+	err := recipeTemplates.ExecuteTemplate(w, "create.gohtml", nil)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+// PostCreateRecipeHandler handles the creation of a new recipe
+func PostCreateRecipeHandler(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
+
+	// Get the logged-in user
+	username, isLoggedIn := auth.GetUser(r)
+	if !isLoggedIn {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
 	}
-	if r.Method == http.MethodPost {
-		r.ParseForm()
 
-		// Get the logged-in user
-		username, isLoggedIn := auth.GetUser(r)
-		if !isLoggedIn {
-			http.Redirect(w, r, "/login", http.StatusSeeOther)
-			return
-		}
-
-		// Fetch the user ID from the database
-		userID, err := auth.GetUserIDByUsername(username)
-		if err != nil {
-			http.Error(w, "Failed to fetch user ID", http.StatusInternalServerError)
-			return
-		}
-
-		recipe := models.Recipe{
-			Title:          r.FormValue("title"),
-			IngredientsMD:  r.FormValue("ingredients"),
-			InstructionsMD: r.FormValue("instructions"),
-			AuthorID:       userID, // Set the correct AuthorID
-		}
-		if err := models.SaveRecipe(recipe); err != nil {
-			http.Error(w, fmt.Sprintf("Failed to save recipe: %v", err), http.StatusInternalServerError)
-			return
-		}
-		http.Redirect(w, r, "/recipes", http.StatusSeeOther)
+	// Fetch the user ID from the database
+	userID, err := auth.GetUserIDByUsername(username)
+	if err != nil {
+		http.Error(w, "Failed to fetch user ID", http.StatusInternalServerError)
+		return
 	}
+
+	recipe := models.Recipe{
+		Title:          r.FormValue("title"),
+		IngredientsMD:  r.FormValue("ingredients"),
+		InstructionsMD: r.FormValue("instructions"),
+		AuthorID:       userID, // Set the correct AuthorID
+	}
+	if err := models.SaveRecipe(recipe); err != nil {
+		http.Error(w, fmt.Sprintf("Failed to save recipe: %v", err), http.StatusInternalServerError)
+		return
+	}
+	http.Redirect(w, r, "/recipes", http.StatusSeeOther)
 }
 
 // ListRecipesHandler lists all recipes
@@ -67,52 +65,50 @@ func ListRecipesHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// UpdateRecipeHandler handles updating an existing recipe
-func UpdateRecipeHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method == http.MethodGet {
-		recipeID := r.URL.Query().Get("id")
-		recipe, err := models.GetRecipeByID(recipeID)
-		if err != nil {
-			http.Error(w, "Recipe not found", http.StatusNotFound)
-			return
-		}
-		err = recipeTemplates.ExecuteTemplate(w, "update.gohtml", recipe)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-		}
+// GetUpdateRecipeHandler handles displaying the update recipe form
+func GetUpdateRecipeHandler(w http.ResponseWriter, r *http.Request) {
+	recipeID := r.URL.Query().Get("id")
+	recipe, err := models.GetRecipeByID(recipeID)
+	if err != nil {
+		http.Error(w, "Recipe not found", http.StatusNotFound)
 		return
 	}
-	if r.Method == http.MethodPost {
-		r.ParseForm()
-
-		recipeID, err := strconv.Atoi(r.FormValue("id"))
-		if err != nil {
-			// ... handle error
-			http.Error(
-				w,
-				fmt.Sprintf("Failed to update recipe: failed to convert ID to int. %s", err.Error()),
-				http.StatusInternalServerError,
-			)
-		}
-
-		updatedRecipe := models.Recipe{
-			ID:             recipeID,
-			Title:          r.FormValue("title"),
-			IngredientsMD:  r.FormValue("ingredients"),
-			InstructionsMD: r.FormValue("instructions"),
-		}
-		if err := models.UpdateRecipe(updatedRecipe); err != nil {
-			http.Error(w, "Failed to update recipe", http.StatusInternalServerError)
-			return
-		}
-		http.Redirect(w, r, "/recipes", http.StatusSeeOther)
+	err = recipeTemplates.ExecuteTemplate(w, "update.gohtml", recipe)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
+}
+
+// PostUpdateRecipeHandler handles updating an existing recipe
+func PostUpdateRecipeHandler(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
+
+	recipeID, err := strconv.Atoi(r.FormValue("id"))
+	if err != nil {
+		// ... handle error
+		http.Error(
+			w,
+			fmt.Sprintf("Failed to update recipe: failed to convert ID to int. %s", err.Error()),
+			http.StatusInternalServerError,
+		)
+	}
+
+	updatedRecipe := models.Recipe{
+		ID:             recipeID,
+		Title:          r.FormValue("title"),
+		IngredientsMD:  r.FormValue("ingredients"),
+		InstructionsMD: r.FormValue("instructions"),
+	}
+	if err := models.UpdateRecipe(updatedRecipe); err != nil {
+		http.Error(w, "Failed to update recipe", http.StatusInternalServerError)
+		return
+	}
+	http.Redirect(w, r, "/recipes", http.StatusSeeOther)
 }
 
 // ViewRecipeHandler handles viewing a single recipe with comments
 func ViewRecipeHandler(w http.ResponseWriter, r *http.Request) {
-	path := r.URL.Path
-	recipeID := path[len("/recipes/"):]
+	recipeID := r.PathValue("id")
 	if recipeID == "" {
 		// TODO this should show a dedicated not found page with a link back to the overview page
 		http.Error(w, "Recipe ID is required", http.StatusBadRequest)
@@ -171,22 +167,7 @@ func ViewRecipeHandler(w http.ResponseWriter, r *http.Request) {
 
 // CommentHTMXHandler handles adding comments via HTMX and returns HTML fragment
 func CommentHTMXHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	// Extract recipe ID from URL path like /recipes/123/comments/htmx
-	path := r.URL.Path
-	if !strings.HasSuffix(path, "/comments/htmx") {
-		http.Error(w, "Invalid URL", http.StatusBadRequest)
-		return
-	}
-
-	// Remove "/comments/htmx" suffix and extract recipe ID
-	recipePath := path[:len(path)-len("/comments/htmx")]
-	recipeID := recipePath[len("/recipes/"):]
-
+	recipeID := r.PathValue("id")
 	if recipeID == "" {
 		http.Error(w, "Recipe ID is required", http.StatusBadRequest)
 		return
@@ -260,12 +241,10 @@ func CommentHTMXHandler(w http.ResponseWriter, r *http.Request) {
 
 // DeleteRecipeHandler handles deleting a recipe
 func DeleteRecipeHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method == http.MethodPost {
-		recipeID := r.FormValue("id")
-		if err := models.DeleteRecipe(recipeID); err != nil {
-			http.Error(w, "Failed to delete recipe", http.StatusInternalServerError)
-			return
-		}
-		http.Redirect(w, r, "/recipes", http.StatusSeeOther)
+	recipeID := r.FormValue("id")
+	if err := models.DeleteRecipe(recipeID); err != nil {
+		http.Error(w, "Failed to delete recipe", http.StatusInternalServerError)
+		return
 	}
+	http.Redirect(w, r, "/recipes", http.StatusSeeOther)
 }

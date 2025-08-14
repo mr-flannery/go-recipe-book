@@ -4,7 +4,6 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
-	"strings"
 
 	"github.com/mr-flannery/go-recipe-book/src/auth"
 	"github.com/mr-flannery/go-recipe-book/src/config"
@@ -31,31 +30,32 @@ func main() {
 	// Run database migrations
 	db.RunMigrations()
 
+	// Create a new ServeMux
+	mux := http.NewServeMux()
+
 	// Home page
-	http.HandleFunc("/", handlers.HomeHandler)
+	mux.HandleFunc("/", handlers.HomeHandler)
 
 	// Auth routes
-	http.HandleFunc("/login", handlers.LoginHandler)
-	http.HandleFunc("/logout", handlers.LogoutHandler)
+	mux.HandleFunc("GET /login", handlers.GetLoginHandler)
+	mux.HandleFunc("POST /login", handlers.PostLoginHandler)
+	mux.HandleFunc("POST /logout", handlers.LogoutHandler)
 
-	// Recipe routes - order matters! More specific routes first
-	http.Handle("/recipes/create", auth.RequireAuth(http.HandlerFunc(handlers.CreateRecipeHandler)))
-	http.Handle("/recipes/update", auth.RequireAuth(http.HandlerFunc(handlers.UpdateRecipeHandler)))
-	http.Handle("/recipes/delete", auth.RequireAuth(http.HandlerFunc(handlers.DeleteRecipeHandler)))
-	http.HandleFunc("/recipes", handlers.ListRecipesHandler)
+	// Recipe routes with parameters
+	mux.Handle("GET /recipes/create", auth.RequireAuth(http.HandlerFunc(handlers.GetCreateRecipeHandler)))
+	mux.Handle("POST /recipes/create", auth.RequireAuth(http.HandlerFunc(handlers.PostCreateRecipeHandler)))
+	mux.Handle("GET /recipes/update", auth.RequireAuth(http.HandlerFunc(handlers.GetUpdateRecipeHandler)))
+	mux.Handle("POST /recipes/update", auth.RequireAuth(http.HandlerFunc(handlers.PostUpdateRecipeHandler)))
+	mux.Handle("POST /recipes/delete", auth.RequireAuth(http.HandlerFunc(handlers.DeleteRecipeHandler)))
+	mux.HandleFunc("GET /recipes", handlers.ListRecipesHandler)
 
-	// Recipe view and comment routes - handle /recipes/{id}, /recipes/{id}/comments, and /recipes/{id}/comments/htmx
-	http.HandleFunc("/recipes/", func(w http.ResponseWriter, r *http.Request) {
-		if strings.HasSuffix(r.URL.Path, "/comments/htmx") {
-			// Comments require authentication
-			auth.RequireAuth(http.HandlerFunc(handlers.CommentHTMXHandler)).ServeHTTP(w, r)
-		} else {
-			// Recipe viewing doesn't require authentication
-			handlers.ViewRecipeHandler(w, r)
-		}
-	})
+	// Recipe view route with ID parameter - /recipes/{id}
+	mux.HandleFunc("GET /recipes/{id}", handlers.ViewRecipeHandler)
+
+	// Recipe comments route with ID parameter - /recipes/{id}/comments/htmx
+	mux.Handle("POST /recipes/{id}/comments/htmx", auth.RequireAuth(http.HandlerFunc(handlers.CommentHTMXHandler)))
 
 	slog.Info("Ready to serve!")
 
-	slog.Error("Server failed to start", "error", http.ListenAndServe(addr, nil))
+	slog.Error("Server failed to start", "error", http.ListenAndServe(addr, mux))
 }
