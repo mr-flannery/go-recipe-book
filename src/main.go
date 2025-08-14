@@ -19,7 +19,6 @@ func main() {
 		addr = ":" + port
 	}
 	slog.Info("Starting server", "address", addr)
-	
 	slog.Info("Loading configuration...")
 	_, err := config.GetConfig()
 	if err != nil {
@@ -43,7 +42,7 @@ func main() {
 	http.HandleFunc("/recipes/create", handlers.CreateRecipeHandler)
 	http.HandleFunc("/recipes/update", handlers.UpdateRecipeHandler)
 	http.HandleFunc("/recipes/delete", handlers.DeleteRecipeHandler)
-	
+
 	// Recipe view and comment routes - handle both /recipes/{id} and /recipes/{id}/comments
 	http.HandleFunc("/recipes/", func(w http.ResponseWriter, r *http.Request) {
 		if strings.HasSuffix(r.URL.Path, "/comments") {

@@ -29,15 +29,22 @@
       "args": []
     },
     {
-      "name": "Launch Server with Live Reload (Air)",
+      "name": "Launch Server with Live Reload (Reflex)",
       "type": "go",
       "request": "launch",
       "mode": "exec",
-      "program": "/Users/d069022/go/bin/air",
+      "program": "/Users/d069022/go/bin/reflex",
       "cwd": "${workspaceFolder}/src",
       "console": "integratedTerminal",
-      "env": {},
-      "args": []
+      "env": {
+          "DB_HOST": "localhost",
+          "DB_PORT": "5432",
+          "DB_USER": "recipeuser",
+          "DB_PASSWORD": "recipepass",
+          "DB_NAME": "recipebook",
+          "PORT": "8080"
+      },
+      "args": ["-r", "\\.go$|\\.gohtml$|\\.html$|\\.tmpl$|\\.tpl$", "-s", "--", "sh", "-c", "go run main.go"]
     }
   ]
 }

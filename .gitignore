@@ -59,8 +59,10 @@ go-test-cache/
 
 **/__debug_bin*
 
-# Air live reload
+# Live reload tools
 tmp/
+runner-build
+runner-build-errors.log
 build-errors.log
 
 config.yaml

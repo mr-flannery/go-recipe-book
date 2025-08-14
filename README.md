@@ -20,9 +20,33 @@ The app will be available at http://localhost:8080
 - `PORT` (default: 8080)
 
 ## Development
-- Go code is in `cmd/`, `internal/`, `db/`, `auth/`
-- Templates in `templates/`, static files in `static/`
-- Database schema in `db/schema.sql`
+
+### Live Reloading with Reflex
+For development with automatic server restarts on file changes:
+
+```sh
+# Using the dev script
+./dev.sh
+
+# Or directly with Reflex
+reflex -r '\.go$|\.gohtml$|\.html$|\.tmpl$|\.tpl$' -s -- sh -c 'cd src && go run main.go'
+
+# Or using VSCode launch configuration
+# Select "Launch Server with Live Reload (Reflex)" from the debug panel
+```
+
+### Project Structure
+- Go code is in `src/` directory
+- Templates in `src/templates/`
+- Database migrations in `src/db/migrations/`
+- Live reloading with Reflex watches Go and template files
+
+### Manual Development
+For development without live reloading:
+```sh
+cd src
+go run main.go
+```
 
 ## Users (Mock Auth)
 - Predefined users: `alice` (password: `password1`), `bob` (password: `password2`)
