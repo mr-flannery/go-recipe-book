@@ -1,6 +1,7 @@
 package models
 
 import (
+	"encoding/base64"
 	"fmt"
 	"time"
 
@@ -31,6 +32,14 @@ type Recipe struct {
 	ParentID       *int
 	CreatedAt      time.Time
 	UpdatedAt      time.Time
+}
+
+// ImageBase64 returns the base64 encoded image for display in templates
+func (r Recipe) ImageBase64() string {
+	if len(r.Image) == 0 {
+		return ""
+	}
+	return base64.StdEncoding.EncodeToString(r.Image)
 }
 
 // Label represents a label
@@ -88,7 +97,7 @@ func SaveRecipe(recipe Recipe) error {
 	return err
 }
 
-// GetRecipeByID retrieves a recipe by its ID
+// GetRecipeByID retrieves a recipe by its ID with all fields
 func GetRecipeByID(id string) (Recipe, error) {
 	var recipe Recipe
 
@@ -98,10 +107,9 @@ func GetRecipeByID(id string) (Recipe, error) {
 	}
 	defer dbConnection.Close()
 
-	err =
-		dbConnection.
-			QueryRow("SELECT id, title, ingredients_md, instructions_md FROM recipes WHERE id = $1", id).
-			Scan(&recipe.ID, &recipe.Title, &recipe.IngredientsMD, &recipe.InstructionsMD)
+	err = dbConnection.
+		QueryRow("SELECT id, title, ingredients_md, instructions_md, prep_time, cook_time, calories, author_id, image, parent_id, created_at, updated_at FROM recipes WHERE id = $1", id).
+		Scan(&recipe.ID, &recipe.Title, &recipe.IngredientsMD, &recipe.InstructionsMD, &recipe.PrepTime, &recipe.CookTime, &recipe.Calories, &recipe.AuthorID, &recipe.Image, &recipe.ParentID, &recipe.CreatedAt, &recipe.UpdatedAt)
 
 	if err != nil {
 		return Recipe{}, err
@@ -144,7 +152,7 @@ func GetAllRecipes() ([]Recipe, error) {
 	}
 	defer dbConnection.Close()
 
-	rows, err := dbConnection.Query("SELECT id, title, ingredients_md, instructions_md, prep_time, cook_time, calories, author_id, created_at, updated_at FROM recipes")
+	rows, err := dbConnection.Query("SELECT id, title, ingredients_md, instructions_md, prep_time, cook_time, calories, author_id, image, parent_id, created_at, updated_at FROM recipes")
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch recipes: %v", err)
@@ -154,7 +162,7 @@ func GetAllRecipes() ([]Recipe, error) {
 	var recipes []Recipe
 	for rows.Next() {
 		var recipe Recipe
-		if err := rows.Scan(&recipe.ID, &recipe.Title, &recipe.IngredientsMD, &recipe.InstructionsMD, &recipe.PrepTime, &recipe.CookTime, &recipe.Calories, &recipe.AuthorID, &recipe.CreatedAt, &recipe.UpdatedAt); err != nil {
+		if err := rows.Scan(&recipe.ID, &recipe.Title, &recipe.IngredientsMD, &recipe.InstructionsMD, &recipe.PrepTime, &recipe.CookTime, &recipe.Calories, &recipe.AuthorID, &recipe.Image, &recipe.ParentID, &recipe.CreatedAt, &recipe.UpdatedAt); err != nil {
 			return nil, fmt.Errorf("failed to scan recipe: %v", err)
 		}
 		recipes = append(recipes, recipe)
@@ -165,4 +173,67 @@ func GetAllRecipes() ([]Recipe, error) {
 	}
 
 	return recipes, nil
+}
+
+// GetCommentsByRecipeID fetches all comments for a specific recipe
+func GetCommentsByRecipeID(recipeID string) ([]Comment, error) {
+	dbConnection, err := db.GetConnection()
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to database: %v", err)
+	}
+	defer dbConnection.Close()
+
+	rows, err := dbConnection.Query("SELECT id, recipe_id, author_id, content_md, created_at, updated_at FROM comments WHERE recipe_id = $1 ORDER BY created_at DESC", recipeID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch comments: %v", err)
+	}
+	defer rows.Close()
+
+	var comments []Comment
+	for rows.Next() {
+		var comment Comment
+		if err := rows.Scan(&comment.ID, &comment.RecipeID, &comment.AuthorID, &comment.ContentMD, &comment.CreatedAt, &comment.UpdatedAt); err != nil {
+			return nil, fmt.Errorf("failed to scan comment: %v", err)
+		}
+		comments = append(comments, comment)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating over comments: %v", err)
+	}
+
+	return comments, nil
+}
+
+// SaveComment saves a comment to the database
+func SaveComment(comment Comment) error {
+	query := `INSERT INTO comments (recipe_id, author_id, content_md, created_at, updated_at) 
+		VALUES ($1, $2, $3, $4, $5)`
+
+	dbConnection, err := db.GetConnection()
+	if err != nil {
+		return fmt.Errorf("failed to connect to database: %v", err)
+	}
+	defer dbConnection.Close()
+
+	_, err = dbConnection.Exec(query, comment.RecipeID, comment.AuthorID, comment.ContentMD, time.Now(), time.Now())
+	return err
+}
+
+// GetUsernameByID retrieves a username by user ID
+func GetUsernameByID(userID int) (string, error) {
+	var username string
+
+	dbConnection, err := db.GetConnection()
+	if err != nil {
+		return "", fmt.Errorf("failed to connect to database: %v", err)
+	}
+	defer dbConnection.Close()
+
+	err = dbConnection.QueryRow("SELECT username FROM users WHERE id = $1", userID).Scan(&username)
+	if err != nil {
+		return "", err
+	}
+
+	return username, nil
 }

@@ -5,10 +5,12 @@ import (
 	"html/template"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/mr-flannery/go-recipe-book/src/auth"
 	"github.com/mr-flannery/go-recipe-book/src/models"
 )
+
 
 var recipeTemplates = template.Must(template.ParseGlob("templates/recipes/*.gohtml"))
 
@@ -106,6 +108,133 @@ func UpdateRecipeHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		http.Redirect(w, r, "/recipes", http.StatusSeeOther)
 	}
+}
+
+// ViewRecipeHandler handles viewing a single recipe with comments
+func ViewRecipeHandler(w http.ResponseWriter, r *http.Request) {
+	path := r.URL.Path
+	recipeID := path[len("/recipes/"):]
+	if recipeID == "" {
+		// TODO this should show a dedicated not found page with a link back to the overview page
+		http.Error(w, "Recipe ID is required", http.StatusBadRequest)
+		return
+	}
+
+	// Handle GET request - display recipe and comments
+	recipe, err := models.GetRecipeByID(recipeID)
+	if err != nil {
+		http.Error(w, "Recipe not found", http.StatusNotFound)
+		return
+	}
+
+	comments, err := models.GetCommentsByRecipeID(recipeID)
+	if err != nil {
+		http.Error(w, "Failed to fetch comments", http.StatusInternalServerError)
+		return
+	}
+
+	// Add usernames to comments
+	type CommentWithUsername struct {
+		models.Comment
+		Username string
+	}
+
+	var commentsWithUsernames []CommentWithUsername
+	for _, comment := range comments {
+		username, err := models.GetUsernameByID(comment.AuthorID)
+		if err != nil {
+			username = "Unknown User"
+		}
+		commentsWithUsernames = append(commentsWithUsernames, CommentWithUsername{
+			Comment:  comment,
+			Username: username,
+		})
+	}
+
+	// Check if user is logged in
+	_, isLoggedIn := auth.GetUser(r)
+
+	data := struct {
+		Recipe     models.Recipe
+		Comments   []CommentWithUsername
+		IsLoggedIn bool
+	}{
+		Recipe:     recipe,
+		Comments:   commentsWithUsernames,
+		IsLoggedIn: isLoggedIn,
+	}
+
+	err = recipeTemplates.ExecuteTemplate(w, "view.gohtml", data)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+// CommentHandler handles adding comments to recipes
+func CommentHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Extract recipe ID from URL path like /recipes/123/comments
+	path := r.URL.Path
+	if !strings.HasSuffix(path, "/comments") {
+		http.Error(w, "Invalid URL", http.StatusBadRequest)
+		return
+	}
+	
+	// Remove "/comments" suffix and extract recipe ID
+	recipePath := path[:len(path)-len("/comments")]
+	recipeID := recipePath[len("/recipes/"):]
+	
+	if recipeID == "" {
+		http.Error(w, "Recipe ID is required", http.StatusBadRequest)
+		return
+	}
+
+	// Check authentication
+	username, isLoggedIn := auth.GetUser(r)
+	if !isLoggedIn {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+
+	userID, err := auth.GetUserIDByUsername(username)
+	if err != nil {
+		http.Error(w, "Failed to fetch user ID", http.StatusInternalServerError)
+		return
+	}
+
+	// Parse form data
+	r.ParseForm()
+	commentContent := r.FormValue("comment")
+	if commentContent == "" {
+		http.Error(w, "Comment content is required", http.StatusBadRequest)
+		return
+	}
+
+	// Convert recipe ID to int
+	recipeIDInt, err := strconv.Atoi(recipeID)
+	if err != nil {
+		http.Error(w, "Invalid recipe ID", http.StatusBadRequest)
+		return
+	}
+
+	// Create and save comment
+	comment := models.Comment{
+		RecipeID:  recipeIDInt,
+		AuthorID:  userID,
+		ContentMD: commentContent,
+	}
+
+	if err := models.SaveComment(comment); err != nil {
+		http.Error(w, fmt.Sprintf("Failed to save comment: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	// Redirect back to recipe view
+	http.Redirect(w, r, fmt.Sprintf("/recipes/%s", recipeID), http.StatusSeeOther)
 }
 
 // DeleteRecipeHandler handles deleting a recipe

@@ -4,6 +4,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/mr-flannery/go-recipe-book/src/config"
 	"github.com/mr-flannery/go-recipe-book/src/db"
@@ -42,6 +43,15 @@ func main() {
 	http.HandleFunc("/recipes/create", handlers.CreateRecipeHandler)
 	http.HandleFunc("/recipes/update", handlers.UpdateRecipeHandler)
 	http.HandleFunc("/recipes/delete", handlers.DeleteRecipeHandler)
+	
+	// Recipe view and comment routes - handle both /recipes/{id} and /recipes/{id}/comments
+	http.HandleFunc("/recipes/", func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasSuffix(r.URL.Path, "/comments") {
+			handlers.CommentHandler(w, r)
+		} else {
+			handlers.ViewRecipeHandler(w, r)
+		}
+	})
 
 	slog.Info("Ready to serve!")
 

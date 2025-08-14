@@ -4,23 +4,169 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Recipe List</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .recipe-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        .recipe-card {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            overflow: hidden;
+            background-color: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .recipe-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+        .recipe-image {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+        }
+        .no-image {
+            width: 100%;
+            height: 200px;
+            background-color: #e9ecef;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #6c757d;
+        }
+        .recipe-content {
+            padding: 15px;
+        }
+        .recipe-title {
+            font-size: 1.2em;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        .recipe-meta {
+            display: flex;
+            gap: 15px;
+            margin: 10px 0;
+            font-size: 0.9em;
+            color: #666;
+        }
+        .recipe-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            text-decoration: none;
+            font-size: 0.9em;
+            display: inline-block;
+        }
+        .btn-primary {
+            background-color: #007bff;
+            color: white;
+        }
+        .btn-primary:hover {
+            background-color: #0056b3;
+        }
+        .btn-secondary {
+            background-color: #6c757d;
+            color: white;
+        }
+        .btn-secondary:hover {
+            background-color: #545b62;
+        }
+        .btn-danger {
+            background-color: #dc3545;
+            color: white;
+        }
+        .btn-danger:hover {
+            background-color: #c82333;
+        }
+        .create-button {
+            text-align: center;
+            margin: 30px 0;
+        }
+        .create-button .btn {
+            padding: 12px 24px;
+            font-size: 1.1em;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 20px;
+        }
+        .recipe-ingredients {
+            font-size: 0.85em;
+            color: #666;
+            margin: 8px 0;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+    </style>
 </head>
 <body>
-    <h1>Recipe List</h1>
-    <ul>
+    <div class="header">
+        <h1>Recipe Collection</h1>
+        <a href="/recipes/create" class="btn btn-primary">+ Create New Recipe</a>
+    </div>
+
+    {{if .}}
+    <div class="recipe-grid">
         {{range .}}
-        <li>
-            <strong>{{.Title}}</strong>
-            <form method="POST" action="/recipes/delete" style="display:inline;">
-                <input type="hidden" name="id" value="{{.ID}}">
-                <button type="submit">Delete</button>
-            </form>
-            <a href="/recipes/update?id={{.ID}}">Edit</a>
-        </li>
+        <div class="recipe-card">
+            {{if .ImageBase64}}
+                <img src="data:image/jpeg;base64,{{.ImageBase64}}" alt="{{.Title}}" class="recipe-image">
+            {{else}}
+                <div class="no-image">No image</div>
+            {{end}}
+            
+            <div class="recipe-content">
+                <div class="recipe-title">{{.Title}}</div>
+                
+                <div class="recipe-ingredients">{{.IngredientsMD}}</div>
+                
+                <div class="recipe-meta">
+                    {{if .PrepTime}}<span>⏱️ {{.PrepTime}}min prep</span>{{end}}
+                    {{if .CookTime}}<span>🔥 {{.CookTime}}min cook</span>{{end}}
+                    {{if .Calories}}<span>📊 {{.Calories}} cal</span>{{end}}
+                </div>
+                
+                <div class="recipe-actions">
+                    <a href="/recipes/{{.ID}}" class="btn btn-primary">View Recipe</a>
+                    <a href="/recipes/update?id={{.ID}}" class="btn btn-secondary">Edit</a>
+                    <form method="POST" action="/recipes/delete" style="display:inline;">
+                        <input type="hidden" name="id" value="{{.ID}}">
+                        <button type="submit" class="btn btn-danger" onclick="return confirm('Are you sure you want to delete this recipe?')">Delete</button>
+                    </form>
+                </div>
+            </div>
+        </div>
         {{end}}
-    </ul>
-    <a href="/recipes/create" style="display:block; margin-top:20px; text-align:center;">
-        <button type="button">Create New Recipe</button>
-    </a>
+    </div>
+    {{else}}
+    <div style="text-align: center; margin: 50px 0; color: #666;">
+        <h2>No recipes yet</h2>
+        <p>Create your first recipe to get started!</p>
+        <a href="/recipes/create" class="btn btn-primary">Create Your First Recipe</a>
+    </div>
+    {{end}}
 </body>
 </html>
