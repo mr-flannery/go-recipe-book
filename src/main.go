@@ -80,7 +80,7 @@ func main() {
 	mux.Handle("POST /recipes/create", requireAuth(http.HandlerFunc(handlers.PostCreateRecipeHandler)))
 	mux.Handle("GET /recipes/update", requireAuth(http.HandlerFunc(handlers.GetUpdateRecipeHandler)))
 	mux.Handle("POST /recipes/update", requireAuth(http.HandlerFunc(handlers.PostUpdateRecipeHandler)))
-	mux.Handle("POST /recipes/delete", requireAuth(http.HandlerFunc(handlers.DeleteRecipeHandler)))
+	mux.Handle("DELETE /recipes/{id}/delete", requireAuth(http.HandlerFunc(handlers.DeleteRecipeHandler)))
 	mux.HandleFunc("GET /recipes", handlers.ListRecipesHandler)
 
 	// Recipe view route with ID parameter - /recipes/{id}

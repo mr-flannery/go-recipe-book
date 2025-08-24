@@ -61,7 +61,41 @@ func ListRecipesHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = recipeTemplates.ExecuteTemplate(w, "list.gohtml", recipes)
+	// Get database connection to check user authentication
+	database, err := db.GetConnection()
+	if err != nil {
+		// If DB fails, assume not logged in
+		data := struct {
+			Recipes     []models.Recipe
+			IsLoggedIn  bool
+			CurrentUser *auth.User
+		}{
+			Recipes:     recipes,
+			IsLoggedIn:  false,
+			CurrentUser: nil,
+		}
+		err = recipeTemplates.ExecuteTemplate(w, "list.gohtml", data)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+		return
+	}
+	defer database.Close()
+
+	currentUser, err := auth.GetUserBySession(database, r)
+	isLoggedIn := err == nil
+
+	data := struct {
+		Recipes     []models.Recipe
+		IsLoggedIn  bool
+		CurrentUser *auth.User
+	}{
+		Recipes:     recipes,
+		IsLoggedIn:  isLoggedIn,
+		CurrentUser: currentUser,
+	}
+
+	err = recipeTemplates.ExecuteTemplate(w, "list.gohtml", data)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
@@ -148,7 +182,7 @@ func ViewRecipeHandler(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	// Check if user is logged in
+	// Check if user is logged in and get user info
 	database, err := db.GetConnection()
 	if err != nil {
 		// If DB fails, assume not logged in
@@ -156,10 +190,14 @@ func ViewRecipeHandler(w http.ResponseWriter, r *http.Request) {
 			Recipe     models.Recipe
 			Comments   []CommentWithUsername
 			IsLoggedIn bool
+			CurrentUser *auth.User
+			IsAuthor   bool
 		}{
-			Recipe:     recipe,
-			Comments:   commentsWithUsernames,
-			IsLoggedIn: false,
+			Recipe:      recipe,
+			Comments:    commentsWithUsernames,
+			IsLoggedIn:  false,
+			CurrentUser: nil,
+			IsAuthor:    false,
 		}
 		err = recipeTemplates.ExecuteTemplate(w, "view.gohtml", data)
 		if err != nil {
@@ -169,17 +207,22 @@ func ViewRecipeHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer database.Close()
 
-	_, err = auth.GetUserBySession(database, r)
+	currentUser, err := auth.GetUserBySession(database, r)
 	isLoggedIn := err == nil
+	isAuthor := isLoggedIn && currentUser.ID == recipe.AuthorID
 
 	data := struct {
 		Recipe     models.Recipe
 		Comments   []CommentWithUsername
 		IsLoggedIn bool
+		CurrentUser *auth.User
+		IsAuthor   bool
 	}{
-		Recipe:     recipe,
-		Comments:   commentsWithUsernames,
-		IsLoggedIn: isLoggedIn,
+		Recipe:      recipe,
+		Comments:    commentsWithUsernames,
+		IsLoggedIn:  isLoggedIn,
+		CurrentUser: currentUser,
+		IsAuthor:    isAuthor,
 	}
 
 	err = recipeTemplates.ExecuteTemplate(w, "view.gohtml", data)
@@ -266,10 +309,47 @@ func CommentHTMXHandler(w http.ResponseWriter, r *http.Request) {
 
 // DeleteRecipeHandler handles deleting a recipe
 func DeleteRecipeHandler(w http.ResponseWriter, r *http.Request) {
-	recipeID := r.FormValue("id")
+	recipeID := r.PathValue("id")
+	if recipeID == "" {
+		http.Error(w, "Recipe ID is required", http.StatusBadRequest)
+		return
+	}
+
+	// Get database connection
+	database, err := db.GetConnection()
+	if err != nil {
+		http.Error(w, "Database connection error", http.StatusInternalServerError)
+		return
+	}
+	defer database.Close()
+
+	// Get the current user
+	currentUser, err := auth.GetUserBySession(database, r)
+	if err != nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	// Get the recipe to check ownership
+	recipe, err := models.GetRecipeByID(recipeID)
+	if err != nil {
+		http.Error(w, "Recipe not found", http.StatusNotFound)
+		return
+	}
+
+	// Check if the current user is the author of the recipe
+	if currentUser.ID != recipe.AuthorID {
+		http.Error(w, "Forbidden: You can only delete your own recipes", http.StatusForbidden)
+		return
+	}
+
+	// Delete the recipe
 	if err := models.DeleteRecipe(recipeID); err != nil {
 		http.Error(w, "Failed to delete recipe", http.StatusInternalServerError)
 		return
 	}
-	http.Redirect(w, r, "/recipes", http.StatusSeeOther)
+
+	// For DELETE requests, return a success response instead of redirect
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("Recipe deleted successfully"))
 }
