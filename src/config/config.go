@@ -14,10 +14,18 @@ type Config struct {
 		Password string `yaml:"password"`
 		Name     string `yaml:"name"`
 		SSLMode  string `yaml:"sslmode"`
+		Admin    struct {
+			Username string `yaml:"username"`
+			Email    string `yaml:"email"`
+			Password string `yaml:"password"`
+		} `yaml:"admin"`
 	} `yaml:"db"`
 	Server struct {
 		Port int `yaml:"port"`
 	} `yaml:"server"`
+	Environment struct {
+		Mode string `yaml:"mode"`
+	} `yaml:"environment"`
 }
 
 var (

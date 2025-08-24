@@ -4,80 +4,117 @@ import (
 	"database/sql"
 	"fmt"
 	"net/http"
-	"sync"
+	"time"
+
+	"github.com/mr-flannery/go-recipe-book/src/db"
 )
 
-// Mock user store
-var (
-	users = map[string]string{ // username: password
-		"alice": "password1",
-		"bob":   "password2",
-	}
-	sessions = map[string]string{} // sessionID: username
-	mu       sync.Mutex
-)
-
-func Authenticate(username, password string) bool {
-	mu.Lock()
-	defer mu.Unlock()
-	if pw, ok := users[username]; ok && pw == password {
-		return true
-	}
-	return false
+// User represents a user in the system
+type User struct {
+	ID        int
+	Username  string
+	Email     string
+	IsAdmin   bool
+	IsActive  bool
+	LastLogin *time.Time
 }
 
-func SetSession(w http.ResponseWriter, username string) {
-	// TODO: Use secure random session IDs
-	cookie := &http.Cookie{Name: "session", Value: username, Path: "/"}
-	http.SetCookie(w, cookie)
-	mu.Lock()
-	sessions[username] = username
-	mu.Unlock()
-}
+// Authenticate verifies email and password against the database
+func Authenticate(email string, password string) (*User, error) {
+	var user User
+	var passwordHash string
 
-func GetUser(r *http.Request) (string, bool) {
-	cookie, err := r.Cookie("session")
+	query := `
+		SELECT id, username, email, password_hash, is_admin, is_active, last_login
+		FROM users 
+		WHERE email = $1 AND is_active = true`
+
+	// Get database connection
+	database, err := db.GetConnection()
 	if err != nil {
-		return "", false
+		return &user, err
 	}
-	mu.Lock()
-	defer mu.Unlock()
-	username, ok := sessions[cookie.Value]
-	return username, ok
-}
+	defer database.Close()
 
-func InvalidateSession(w http.ResponseWriter, r *http.Request) {
-	cookie, err := r.Cookie("session")
+	err = database.QueryRow(query, email).Scan(
+		&user.ID, &user.Username, &user.Email, &passwordHash,
+		&user.IsAdmin, &user.IsActive, &user.LastLogin)
+
 	if err != nil {
-		return
-	}
-	mu.Lock()
-	delete(sessions, cookie.Value)
-	mu.Unlock()
-	// Clear the cookie
-	http.SetCookie(w, &http.Cookie{Name: "session", Value: "", Path: "/", MaxAge: -1})
-}
-
-func IsSessionValid(r *http.Request) bool {
-	_, ok := GetUser(r)
-	return ok
-}
-
-// Middleware to enforce authentication
-func RequireAuth(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !IsSessionValid(r) {
-			// Include the current URL as redirect parameter
-			currentURL := r.URL.Path
-			if r.URL.RawQuery != "" {
-				currentURL += "?" + r.URL.RawQuery
-			}
-			redirectURL := "/login?redirect=" + currentURL
-			http.Redirect(w, r, redirectURL, http.StatusSeeOther)
-			return
+		if err == sql.ErrNoRows {
+			return nil, fmt.Errorf("invalid email or password")
 		}
-		next.ServeHTTP(w, r)
-	})
+		return nil, fmt.Errorf("authentication error: %w", err)
+	}
+
+	// Verify password using Argon2id
+	if err := VerifyPassword(password, passwordHash); err != nil {
+		return nil, fmt.Errorf("invalid email or password")
+	}
+
+	// Update last login time
+	updateQuery := `UPDATE users SET last_login = NOW() WHERE id = $1`
+	_, err = database.Exec(updateQuery, user.ID)
+	if err != nil {
+		// Log error but don't fail authentication
+		fmt.Printf("Warning: failed to update last login for user %d: %v\n", user.ID, err)
+	}
+
+	return &user, nil
+}
+
+// GetUserBySession retrieves user information from a session
+func GetUserBySession(db *sql.DB, r *http.Request) (*User, error) {
+	sessionID, err := GetSessionFromRequest(r)
+	if err != nil {
+		return nil, fmt.Errorf("no valid session: %w", err)
+	}
+
+	session, err := ValidateSession(db, sessionID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid session: %w", err)
+	}
+
+	var user User
+	query := `
+		SELECT id, username, email, is_admin, is_active, last_login
+		FROM users 
+		WHERE id = $1 AND is_active = true`
+
+	err = db.QueryRow(query, session.UserID).Scan(
+		&user.ID, &user.Username, &user.Email,
+		&user.IsAdmin, &user.IsActive, &user.LastLogin)
+
+	if err != nil {
+		return nil, fmt.Errorf("user not found: %w", err)
+	}
+
+	return &user, nil
+}
+
+// IsSessionValid checks if the current request has a valid session
+func IsSessionValid(db *sql.DB, r *http.Request) bool {
+	_, err := GetUserBySession(db, r)
+	return err == nil
+}
+
+// RequireAuth creates middleware to enforce authentication
+func RequireAuth(db *sql.DB) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if !IsSessionValid(db, r) {
+				// Include the current URL as redirect parameter
+				currentURL := r.URL.Path
+				if r.URL.RawQuery != "" {
+					currentURL += "?" + r.URL.RawQuery
+				}
+				redirectURL := "/login?redirect=" + currentURL
+				http.Redirect(w, r, redirectURL, http.StatusSeeOther)
+				return
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
 }
 
 // GetUserIDByUsername fetches the user ID for a given username from the database

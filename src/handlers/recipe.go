@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	"github.com/mr-flannery/go-recipe-book/src/auth"
+	"github.com/mr-flannery/go-recipe-book/src/db"
 	"github.com/mr-flannery/go-recipe-book/src/models"
 )
 
@@ -24,17 +25,18 @@ func GetCreateRecipeHandler(w http.ResponseWriter, r *http.Request) {
 func PostCreateRecipeHandler(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 
-	// Get the logged-in user
-	username, isLoggedIn := auth.GetUser(r)
-	if !isLoggedIn {
-		http.Redirect(w, r, "/login", http.StatusSeeOther)
+	// Get database connection
+	database, err := db.GetConnection()
+	if err != nil {
+		http.Error(w, "Database connection error", http.StatusInternalServerError)
 		return
 	}
+	defer database.Close()
 
-	// Fetch the user ID from the database
-	userID, err := auth.GetUserIDByUsername(username)
+	// Get the logged-in user
+	user, err := auth.GetUserBySession(database, r)
 	if err != nil {
-		http.Error(w, "Failed to fetch user ID", http.StatusInternalServerError)
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
 	}
 
@@ -42,7 +44,7 @@ func PostCreateRecipeHandler(w http.ResponseWriter, r *http.Request) {
 		Title:          r.FormValue("title"),
 		IngredientsMD:  r.FormValue("ingredients"),
 		InstructionsMD: r.FormValue("instructions"),
-		AuthorID:       userID, // Set the correct AuthorID
+		AuthorID:       user.ID, // Set the correct AuthorID
 	}
 	if err := models.SaveRecipe(recipe); err != nil {
 		http.Error(w, fmt.Sprintf("Failed to save recipe: %v", err), http.StatusInternalServerError)
@@ -147,7 +149,28 @@ func ViewRecipeHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Check if user is logged in
-	_, isLoggedIn := auth.GetUser(r)
+	database, err := db.GetConnection()
+	if err != nil {
+		// If DB fails, assume not logged in
+		data := struct {
+			Recipe     models.Recipe
+			Comments   []CommentWithUsername
+			IsLoggedIn bool
+		}{
+			Recipe:     recipe,
+			Comments:   commentsWithUsernames,
+			IsLoggedIn: false,
+		}
+		err = recipeTemplates.ExecuteTemplate(w, "view.gohtml", data)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+		return
+	}
+	defer database.Close()
+
+	_, err = auth.GetUserBySession(database, r)
+	isLoggedIn := err == nil
 
 	data := struct {
 		Recipe     models.Recipe
@@ -173,16 +196,18 @@ func CommentHTMXHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Check authentication
-	username, isLoggedIn := auth.GetUser(r)
-	if !isLoggedIn {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+	// Get database connection
+	database, err := db.GetConnection()
+	if err != nil {
+		http.Error(w, "Database connection error", http.StatusInternalServerError)
 		return
 	}
+	defer database.Close()
 
-	userID, err := auth.GetUserIDByUsername(username)
+	// Check authentication
+	user, err := auth.GetUserBySession(database, r)
 	if err != nil {
-		http.Error(w, "Failed to fetch user ID", http.StatusInternalServerError)
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
@@ -204,7 +229,7 @@ func CommentHTMXHandler(w http.ResponseWriter, r *http.Request) {
 	// Create and save comment
 	comment := models.Comment{
 		RecipeID:  recipeIDInt,
-		AuthorID:  userID,
+		AuthorID:  user.ID,
 		ContentMD: commentContent,
 	}
 
@@ -214,7 +239,7 @@ func CommentHTMXHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get the saved comment with timestamp
-	savedComment, err := models.GetLatestCommentByUserAndRecipe(userID, recipeIDInt)
+	savedComment, err := models.GetLatestCommentByUserAndRecipe(user.ID, recipeIDInt)
 	if err != nil {
 		http.Error(w, "Failed to retrieve saved comment", http.StatusInternalServerError)
 		return
@@ -228,7 +253,7 @@ func CommentHTMXHandler(w http.ResponseWriter, r *http.Request) {
 
 	commentData := CommentWithUsername{
 		Comment:  savedComment,
-		Username: username,
+		Username: user.Username,
 	}
 
 	// Return HTML fragment

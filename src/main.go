@@ -4,6 +4,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/mr-flannery/go-recipe-book/src/auth"
 	"github.com/mr-flannery/go-recipe-book/src/config"
@@ -20,7 +21,7 @@ func main() {
 	}
 	slog.Info("Starting server", "address", addr)
 	slog.Info("Loading configuration...")
-	_, err := config.GetConfig()
+	config, err := config.GetConfig()
 	if err != nil {
 		slog.Error("Failed to load configuration", "error", err)
 		panic(err)
@@ -28,7 +29,40 @@ func main() {
 
 	slog.Info("Running migrations...")
 	// Run database migrations
-	db.RunMigrations()
+	err = db.RunMigrations()
+	if err != nil {
+		slog.Error("Failed to run migrations", "error", err)
+		panic(err)
+	}
+
+	// Get database connection
+	database, err := db.GetConnection()
+	if err != nil {
+		slog.Error("Failed to connect to database", "error", err)
+		panic(err)
+	}
+	defer database.Close()
+
+	// Create seed admin account
+	slog.Info("Creating seed admin account...")
+	err = auth.CreateSeedAdmin(database, config.DB.Admin.Username, config.DB.Admin.Email, config.DB.Admin.Password)
+	if err != nil {
+		slog.Error("Failed to create seed admin", "error", err)
+		panic(err)
+	}
+
+	// Start session cleanup routine
+	go func() {
+		for {
+			time.Sleep(1 * time.Hour) // Run cleanup every hour
+			if err := auth.CleanupExpiredSessions(database); err != nil {
+				slog.Error("Failed to cleanup expired sessions", "error", err)
+			}
+		}
+	}()
+
+	// Create authentication middleware
+	requireAuth := auth.RequireAuth(database)
 
 	// Create a new ServeMux
 	mux := http.NewServeMux()
@@ -39,21 +73,21 @@ func main() {
 	// Auth routes
 	mux.HandleFunc("GET /login", handlers.GetLoginHandler)
 	mux.HandleFunc("POST /login", handlers.PostLoginHandler)
-	mux.HandleFunc("POST /logout", handlers.LogoutHandler)
+	mux.HandleFunc("GET /logout", handlers.LogoutHandler)
 
 	// Recipe routes with parameters
-	mux.Handle("GET /recipes/create", auth.RequireAuth(http.HandlerFunc(handlers.GetCreateRecipeHandler)))
-	mux.Handle("POST /recipes/create", auth.RequireAuth(http.HandlerFunc(handlers.PostCreateRecipeHandler)))
-	mux.Handle("GET /recipes/update", auth.RequireAuth(http.HandlerFunc(handlers.GetUpdateRecipeHandler)))
-	mux.Handle("POST /recipes/update", auth.RequireAuth(http.HandlerFunc(handlers.PostUpdateRecipeHandler)))
-	mux.Handle("POST /recipes/delete", auth.RequireAuth(http.HandlerFunc(handlers.DeleteRecipeHandler)))
+	mux.Handle("GET /recipes/create", requireAuth(http.HandlerFunc(handlers.GetCreateRecipeHandler)))
+	mux.Handle("POST /recipes/create", requireAuth(http.HandlerFunc(handlers.PostCreateRecipeHandler)))
+	mux.Handle("GET /recipes/update", requireAuth(http.HandlerFunc(handlers.GetUpdateRecipeHandler)))
+	mux.Handle("POST /recipes/update", requireAuth(http.HandlerFunc(handlers.PostUpdateRecipeHandler)))
+	mux.Handle("POST /recipes/delete", requireAuth(http.HandlerFunc(handlers.DeleteRecipeHandler)))
 	mux.HandleFunc("GET /recipes", handlers.ListRecipesHandler)
 
 	// Recipe view route with ID parameter - /recipes/{id}
 	mux.HandleFunc("GET /recipes/{id}", handlers.ViewRecipeHandler)
 
 	// Recipe comments route with ID parameter - /recipes/{id}/comments/htmx
-	mux.Handle("POST /recipes/{id}/comments/htmx", auth.RequireAuth(http.HandlerFunc(handlers.CommentHTMXHandler)))
+	mux.Handle("POST /recipes/{id}/comments/htmx", requireAuth(http.HandlerFunc(handlers.CommentHTMXHandler)))
 
 	slog.Info("Ready to serve!")
 
