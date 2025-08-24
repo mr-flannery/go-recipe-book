@@ -47,9 +47,3 @@ For development without live reloading:
 cd src
 go run main.go
 ```
-
-## Users (Mock Auth)
-- Predefined users: `alice` (password: `password1`), `bob` (password: `password2`)
-
-## TODO
-- Implement handlers, templates, and core features as described in `requirements.md` and `implementation-plan.md`.

@@ -1,0 +1,10 @@
+- [] fix deletion logic
+  - don't display delete button if recipe is not mine
+- [] implement registration logic
+  - currently, there's no way to create accounts
+  - it should be possible to create an account, and then the admin must activate it first
+  - then the user should receive an email
+  - the user must then activate their account, and only then it should be valid
+  - where do I get an smtp server from do to this? this might be annoying
+  - can I use my posteo account for this?
+    - if possible rather use some gmail crap account
