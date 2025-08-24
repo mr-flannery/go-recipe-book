@@ -1,6 +1,8 @@
-- [] fix deletion logic
-  - don't display delete button if recipe is not mine
-- [] implement registration logic
+- finish properly writing the core CRUD logic
+  - i.e. properly implement the create and update screen
+- then add some frigging tests
+- then deploy it somewhere
+- implement registration logic
   - currently, there's no way to create accounts
   - it should be possible to create an account, and then the admin must activate it first
   - then the user should receive an email
