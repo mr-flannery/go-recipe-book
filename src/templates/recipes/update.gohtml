@@ -2,16 +2,211 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Update Recipe</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Update Recipe - {{.Title}}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+            background-color: #f8f9fa;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .header {
+            border-bottom: 2px solid #eee;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-row {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .form-row .form-group {
+            flex: 1;
+            margin-bottom: 0;
+        }
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #333;
+        }
+        input[type="text"],
+        input[type="number"],
+        input[type="file"],
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: inherit;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        input[type="text"]:focus,
+        input[type="number"]:focus,
+        input[type="file"]:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 0 2px rgba(0,123,255,0.25);
+        }
+        textarea {
+            resize: vertical;
+            min-height: 120px;
+        }
+        .textarea-large {
+            min-height: 200px;
+        }
+        input[type="number"] {
+            max-width: 150px;
+        }
+        .btn {
+            background-color: #007bff;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            text-decoration: none;
+            font-size: 16px;
+            display: inline-block;
+            margin-right: 10px;
+        }
+        .btn:hover {
+            background-color: #0056b3;
+        }
+        .btn-secondary {
+            background-color: #6c757d;
+        }
+        .btn-secondary:hover {
+            background-color: #545b62;
+        }
+        .form-actions {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+        }
+        .help-text {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+        .navigation {
+            margin-bottom: 20px;
+        }
+        .current-image {
+            margin-bottom: 15px;
+        }
+        .current-image img {
+            max-width: 200px;
+            height: 150px;
+            object-fit: cover;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+        .no-image {
+            width: 200px;
+            height: 150px;
+            background-color: #e9ecef;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #6c757d;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+    </style>
 </head>
 <body>
-    <h1>Update Recipe</h1>
-    <form method="POST">
-        <input type="hidden" name="id" value="{{.ID}}">
-        <label>Title: <input name="title" value="{{.Title}}"></label><br>
-        <label>Ingredients: <textarea name="ingredients">{{.IngredientsMD}}</textarea></label><br>
-        <label>Instructions: <textarea name="instructions">{{.InstructionsMD}}</textarea></label><br>
-        <button type="submit">Update</button>
-    </form>
+    <div class="navigation">
+        <a href="/recipes/{{.ID}}" class="btn btn-secondary">← Back to Recipe</a>
+        <a href="/recipes" class="btn btn-secondary">All Recipes</a>
+    </div>
+
+    <div class="container">
+        <div class="header">
+            <h1>Update Recipe</h1>
+            <p>Make changes to your recipe</p>
+        </div>
+
+        <form method="POST" enctype="multipart/form-data">
+            <input type="hidden" name="id" value="{{.ID}}">
+            
+            <div class="form-group">
+                <label for="title">Recipe Title *</label>
+                <input type="text" id="title" name="title" value="{{.Title}}" required placeholder="Enter a descriptive title for your recipe">
+            </div>
+
+            <div class="form-group">
+                <label for="image">Recipe Image</label>
+                <div class="current-image">
+                    {{if .ImageBase64}}
+                        <img src="data:image/jpeg;base64,{{.ImageBase64}}" alt="Current recipe image">
+                        <div class="help-text">Current image (upload a new one to replace)</div>
+                    {{else}}
+                        <div class="no-image">No current image</div>
+                    {{end}}
+                </div>
+                <input type="file" id="image" name="image" accept="image/*">
+                <div class="help-text">Upload a new image to replace the current one (optional)</div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="preptime">Prep Time (minutes)</label>
+                    <input type="number" id="preptime" name="preptime" value="{{.PrepTime}}" min="0" placeholder="15">
+                </div>
+                <div class="form-group">
+                    <label for="cooktime">Cook Time (minutes)</label>
+                    <input type="number" id="cooktime" name="cooktime" value="{{.CookTime}}" min="0" placeholder="30">
+                </div>
+                <div class="form-group">
+                    <label for="calories">Calories (per serving)</label>
+                    <input type="number" id="calories" name="calories" value="{{.Calories}}" min="0" placeholder="350">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="ingredients">Ingredients (Markdown) *</label>
+                <textarea id="ingredients" name="ingredients" class="textarea-large" required placeholder="List your ingredients here. You can use Markdown formatting:
+
+- 2 cups all-purpose flour
+- 1 tsp baking powder
+- 1/2 cup sugar
+- **Optional:** 1 tsp vanilla extract">{{.IngredientsMD}}</textarea>
+                <div class="help-text">Use Markdown formatting for better presentation. Each ingredient on a new line.</div>
+            </div>
+
+            <div class="form-group">
+                <label for="instructions">Instructions (Markdown) *</label>
+                <textarea id="instructions" name="instructions" class="textarea-large" required placeholder="Provide step-by-step instructions. You can use Markdown formatting:
+
+1. **Preheat** oven to 350°F (175°C)
+2. In a large bowl, mix dry ingredients
+3. Add wet ingredients and stir until combined
+4. Bake for 25-30 minutes until golden brown
+
+*Tip: Let cool for 5 minutes before serving*">{{.InstructionsMD}}</textarea>
+                <div class="help-text">Use numbered lists, bold text, and other Markdown formatting to make instructions clear.</div>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn">Update Recipe</button>
+                <a href="/recipes/{{.ID}}" class="btn btn-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
 </body>
 </html>

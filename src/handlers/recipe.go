@@ -3,6 +3,8 @@ package handlers
 import (
 	"fmt"
 	"html/template"
+	"io"
+	"log/slog"
 	"net/http"
 	"strconv"
 
@@ -23,11 +25,18 @@ func GetCreateRecipeHandler(w http.ResponseWriter, r *http.Request) {
 
 // PostCreateRecipeHandler handles the creation of a new recipe
 func PostCreateRecipeHandler(w http.ResponseWriter, r *http.Request) {
-	r.ParseForm()
+	// Parse multipart form for file uploads
+	err := r.ParseMultipartForm(10 << 20) // 10 MB max
+	if err != nil {
+		slog.Error("Failed to parse multipart form", "error", err)
+		http.Error(w, "Failed to parse form data", http.StatusBadRequest)
+		return
+	}
 
 	// Get database connection
 	database, err := db.GetConnection()
 	if err != nil {
+		slog.Error("Database connection error", "error", err)
 		http.Error(w, "Database connection error", http.StatusInternalServerError)
 		return
 	}
@@ -40,16 +49,71 @@ func PostCreateRecipeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Parse numeric fields
+	var prepTime, cookTime, calories int
+	if prepTimeStr := r.FormValue("preptime"); prepTimeStr != "" {
+		prepTime, err = strconv.Atoi(prepTimeStr)
+		if err != nil {
+			slog.Error("Invalid prep time", "value", prepTimeStr, "error", err)
+			http.Error(w, "Invalid prep time", http.StatusBadRequest)
+			return
+		}
+	}
+
+	if cookTimeStr := r.FormValue("cooktime"); cookTimeStr != "" {
+		cookTime, err = strconv.Atoi(cookTimeStr)
+		if err != nil {
+			slog.Error("Invalid cook time", "value", cookTimeStr, "error", err)
+			http.Error(w, "Invalid cook time", http.StatusBadRequest)
+			return
+		}
+	}
+
+	if caloriesStr := r.FormValue("calories"); caloriesStr != "" {
+		calories, err = strconv.Atoi(caloriesStr)
+		if err != nil {
+			slog.Error("Invalid calories", "value", caloriesStr, "error", err)
+			http.Error(w, "Invalid calories", http.StatusBadRequest)
+			return
+		}
+	}
+
+	// Handle image upload
+	var imageData []byte
+	file, _, err := r.FormFile("image")
+	if err == nil {
+		defer file.Close()
+		imageData, err = io.ReadAll(file)
+		if err != nil {
+			slog.Error("Failed to read image file", "error", err)
+			http.Error(w, "Failed to read image file", http.StatusInternalServerError)
+			return
+		}
+		slog.Info("Image uploaded", "size", len(imageData))
+	} else if err != http.ErrMissingFile {
+		slog.Error("Error processing image file", "error", err)
+		http.Error(w, "Error processing image file", http.StatusBadRequest)
+		return
+	}
+
 	recipe := models.Recipe{
 		Title:          r.FormValue("title"),
 		IngredientsMD:  r.FormValue("ingredients"),
 		InstructionsMD: r.FormValue("instructions"),
-		AuthorID:       user.ID, // Set the correct AuthorID
+		PrepTime:       prepTime,
+		CookTime:       cookTime,
+		Calories:       calories,
+		Image:          imageData,
+		AuthorID:       user.ID,
 	}
+
 	if err := models.SaveRecipe(recipe); err != nil {
+		slog.Error("Failed to save recipe", "error", err)
 		http.Error(w, fmt.Sprintf("Failed to save recipe: %v", err), http.StatusInternalServerError)
 		return
 	}
+
+	slog.Info("Recipe created successfully", "title", recipe.Title, "author", user.Username)
 	http.Redirect(w, r, "/recipes", http.StatusSeeOther)
 }
 
@@ -117,16 +181,96 @@ func GetUpdateRecipeHandler(w http.ResponseWriter, r *http.Request) {
 
 // PostUpdateRecipeHandler handles updating an existing recipe
 func PostUpdateRecipeHandler(w http.ResponseWriter, r *http.Request) {
-	r.ParseForm()
+	// Parse multipart form for file uploads
+	err := r.ParseMultipartForm(10 << 20) // 10 MB max
+	if err != nil {
+		slog.Error("Failed to parse multipart form", "error", err)
+		http.Error(w, "Failed to parse form data", http.StatusBadRequest)
+		return
+	}
 
 	recipeID, err := strconv.Atoi(r.FormValue("id"))
 	if err != nil {
-		// ... handle error
-		http.Error(
-			w,
-			fmt.Sprintf("Failed to update recipe: failed to convert ID to int. %s", err.Error()),
-			http.StatusInternalServerError,
-		)
+		slog.Error("Failed to convert ID to int", "id", r.FormValue("id"), "error", err)
+		http.Error(w, fmt.Sprintf("Failed to update recipe: failed to convert ID to int. %s", err.Error()), http.StatusInternalServerError)
+		return
+	}
+
+	// Get database connection
+	database, err := db.GetConnection()
+	if err != nil {
+		slog.Error("Database connection error", "error", err)
+		http.Error(w, "Database connection error", http.StatusInternalServerError)
+		return
+	}
+	defer database.Close()
+
+	// Get the logged-in user
+	user, err := auth.GetUserBySession(database, r)
+	if err != nil {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+
+	// Get the existing recipe to check ownership and preserve existing image if no new one uploaded
+	existingRecipe, err := models.GetRecipeByID(strconv.Itoa(recipeID))
+	if err != nil {
+		slog.Error("Recipe not found", "id", recipeID, "error", err)
+		http.Error(w, "Recipe not found", http.StatusNotFound)
+		return
+	}
+
+	// Check if the current user is the author of the recipe
+	if user.ID != existingRecipe.AuthorID {
+		http.Error(w, "Forbidden: You can only edit your own recipes", http.StatusForbidden)
+		return
+	}
+
+	// Parse numeric fields
+	var prepTime, cookTime, calories int
+	if prepTimeStr := r.FormValue("preptime"); prepTimeStr != "" {
+		prepTime, err = strconv.Atoi(prepTimeStr)
+		if err != nil {
+			slog.Error("Invalid prep time", "value", prepTimeStr, "error", err)
+			http.Error(w, "Invalid prep time", http.StatusBadRequest)
+			return
+		}
+	}
+
+	if cookTimeStr := r.FormValue("cooktime"); cookTimeStr != "" {
+		cookTime, err = strconv.Atoi(cookTimeStr)
+		if err != nil {
+			slog.Error("Invalid cook time", "value", cookTimeStr, "error", err)
+			http.Error(w, "Invalid cook time", http.StatusBadRequest)
+			return
+		}
+	}
+
+	if caloriesStr := r.FormValue("calories"); caloriesStr != "" {
+		calories, err = strconv.Atoi(caloriesStr)
+		if err != nil {
+			slog.Error("Invalid calories", "value", caloriesStr, "error", err)
+			http.Error(w, "Invalid calories", http.StatusBadRequest)
+			return
+		}
+	}
+
+	// Handle image upload - preserve existing image if no new one uploaded
+	imageData := existingRecipe.Image // Start with existing image
+	file, _, err := r.FormFile("image")
+	if err == nil {
+		defer file.Close()
+		imageData, err = io.ReadAll(file)
+		if err != nil {
+			slog.Error("Failed to read image file", "error", err)
+			http.Error(w, "Failed to read image file", http.StatusInternalServerError)
+			return
+		}
+		slog.Info("New image uploaded", "size", len(imageData))
+	} else if err != http.ErrMissingFile {
+		slog.Error("Error processing image file", "error", err)
+		http.Error(w, "Error processing image file", http.StatusBadRequest)
+		return
 	}
 
 	updatedRecipe := models.Recipe{
@@ -134,12 +278,21 @@ func PostUpdateRecipeHandler(w http.ResponseWriter, r *http.Request) {
 		Title:          r.FormValue("title"),
 		IngredientsMD:  r.FormValue("ingredients"),
 		InstructionsMD: r.FormValue("instructions"),
+		PrepTime:       prepTime,
+		CookTime:       cookTime,
+		Calories:       calories,
+		Image:          imageData,
+		AuthorID:       user.ID,
 	}
+
 	if err := models.UpdateRecipe(updatedRecipe); err != nil {
+		slog.Error("Failed to update recipe", "error", err)
 		http.Error(w, "Failed to update recipe", http.StatusInternalServerError)
 		return
 	}
-	http.Redirect(w, r, "/recipes", http.StatusSeeOther)
+
+	slog.Info("Recipe updated successfully", "id", recipeID, "title", updatedRecipe.Title, "author", user.Username)
+	http.Redirect(w, r, fmt.Sprintf("/recipes/%d", recipeID), http.StatusSeeOther)
 }
 
 // ViewRecipeHandler handles viewing a single recipe with comments

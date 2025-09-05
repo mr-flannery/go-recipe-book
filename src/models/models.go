@@ -126,8 +126,8 @@ func UpdateRecipe(recipe Recipe) error {
 	}
 	defer dbConnection.Close()
 
-	_, err = dbConnection.Exec("UPDATE recipes SET title = $1, ingredients_md = $2, instructions_md = $3 WHERE id = $4",
-		recipe.Title, recipe.IngredientsMD, recipe.InstructionsMD, recipe.ID)
+	_, err = dbConnection.Exec("UPDATE recipes SET title = $1, ingredients_md = $2, instructions_md = $3, prep_time = $4, cook_time = $5, calories = $6, image = $7, updated_at = $8 WHERE id = $9",
+		recipe.Title, recipe.IngredientsMD, recipe.InstructionsMD, recipe.PrepTime, recipe.CookTime, recipe.Calories, recipe.Image, time.Now(), recipe.ID)
 
 	return err
 }
