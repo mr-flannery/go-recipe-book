@@ -2,6 +2,7 @@ package config
 
 import (
 	"os"
+	"reflect"
 
 	"gopkg.in/yaml.v3"
 )
@@ -26,6 +27,9 @@ type Config struct {
 	Environment struct {
 		Mode string `yaml:"mode"`
 	} `yaml:"environment"`
+	Api struct {
+		Keys []string `yaml:"keys"`
+	} `yaml:"api"`
 }
 
 var (
@@ -35,7 +39,7 @@ var (
 func GetConfig() (Config, error) {
 	var err error
 
-	if config != (Config{}) {
+	if !reflect.DeepEqual(config, Config{}) {
 		return config, nil
 	}
 

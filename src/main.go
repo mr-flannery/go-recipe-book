@@ -63,6 +63,7 @@ func main() {
 
 	// Create authentication middleware
 	requireAuth := auth.RequireAuth(database)
+	requireAPIKey := auth.RequireAPIKey()
 
 	// Create a new ServeMux
 	mux := http.NewServeMux()
@@ -88,6 +89,10 @@ func main() {
 
 	// Recipe comments route with ID parameter - /recipes/{id}/comments/htmx
 	mux.Handle("POST /recipes/{id}/comments/htmx", requireAuth(http.HandlerFunc(handlers.CommentHTMXHandler)))
+
+	// API routes - protected by API key authentication
+	mux.HandleFunc("GET /api/health", handlers.APIHealthHandler)
+	mux.Handle("POST /api/recipes", requireAPIKey(http.HandlerFunc(handlers.APICreateRecipeHandler)))
 
 	slog.Info("Ready to serve!")
 
