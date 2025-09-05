@@ -54,14 +54,29 @@
             transform: translateY(-2px);
             box-shadow: 0 4px 8px rgba(0,0,0,0.15);
         }
-        .recipe-image {
+        .recipe-image-container {
             width: 100%;
-            height: 200px;
+            height: 0;
+            padding-bottom: 56.25%; /* 16:9 aspect ratio */
+            position: relative;
+            overflow: hidden;
+            border-radius: 8px 8px 0 0;
+        }
+        .recipe-image {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
             object-fit: cover;
+            object-position: center;
         }
         .no-image {
+            position: absolute;
+            top: 0;
+            left: 0;
             width: 100%;
-            height: 200px;
+            height: 100%;
             background-color: #e9ecef;
             display: flex;
             align-items: center;
@@ -156,11 +171,13 @@
     <div class="recipe-grid">
         {{range .Recipes}}
         <div class="recipe-card">
-            {{if .ImageBase64}}
-                <img src="data:image/jpeg;base64,{{.ImageBase64}}" alt="{{.Title}}" class="recipe-image">
-            {{else}}
-                <div class="no-image">No image</div>
-            {{end}}
+            <div class="recipe-image-container">
+                {{if .ImageBase64}}
+                    <img src="data:image/jpeg;base64,{{.ImageBase64}}" alt="{{.Title}}" class="recipe-image">
+                {{else}}
+                    <div class="no-image">No image</div>
+                {{end}}
+            </div>
             
             <div class="recipe-content">
                 <div class="recipe-title">{{.Title}}</div>

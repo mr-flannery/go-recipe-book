@@ -42,12 +42,23 @@
             padding-bottom: 20px;
             margin-bottom: 30px;
         }
-        .recipe-image {
-            max-width: 100%;
-            height: 300px;
-            object-fit: cover;
+        .recipe-image-container {
+            width: 100%;
+            height: 0;
+            padding-bottom: 56.25%; /* 16:9 aspect ratio */
+            position: relative;
+            overflow: hidden;
             border-radius: 8px;
             margin-bottom: 20px;
+        }
+        .recipe-image {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: center;
         }
         .recipe-meta {
             display: flex;
@@ -166,7 +177,9 @@
         <h1>{{.Recipe.Title}}</h1>
         
         {{if .Recipe.ImageBase64}}
-            <img src="data:image/jpeg;base64,{{.Recipe.ImageBase64}}" alt="{{.Recipe.Title}}" class="recipe-image">
+            <div class="recipe-image-container">
+                <img src="data:image/jpeg;base64,{{.Recipe.ImageBase64}}" alt="{{.Recipe.Title}}" class="recipe-image">
+            </div>
         {{else}}
             <div class="no-image">No image available</div>
         {{end}}

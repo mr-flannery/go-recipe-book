@@ -1,12 +1,14 @@
 package handlers
 
 import (
+	"encoding/base64"
 	"fmt"
 	"html/template"
 	"io"
 	"log/slog"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/mr-flannery/go-recipe-book/src/auth"
 	"github.com/mr-flannery/go-recipe-book/src/db"
@@ -78,22 +80,46 @@ func PostCreateRecipeHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Handle image upload
+	// Handle image upload - prioritize cropped image data over original file
 	var imageData []byte
-	file, _, err := r.FormFile("image")
-	if err == nil {
-		defer file.Close()
-		imageData, err = io.ReadAll(file)
+	
+	// Check if cropped image data is provided
+	croppedImageData := r.FormValue("cropped_image_data")
+	if croppedImageData != "" {
+		// Remove the data URL prefix (e.g., "data:image/jpeg;base64,")
+		if strings.HasPrefix(croppedImageData, "data:image/") {
+			commaIndex := strings.Index(croppedImageData, ",")
+			if commaIndex != -1 {
+				croppedImageData = croppedImageData[commaIndex+1:]
+			}
+		}
+		
+		// Decode base64 image data
+		decodedData, err := base64.StdEncoding.DecodeString(croppedImageData)
 		if err != nil {
-			slog.Error("Failed to read image file", "error", err)
-			http.Error(w, "Failed to read image file", http.StatusInternalServerError)
+			slog.Error("Failed to decode cropped image data", "error", err)
+			http.Error(w, "Failed to process cropped image", http.StatusBadRequest)
 			return
 		}
-		slog.Info("Image uploaded", "size", len(imageData))
-	} else if err != http.ErrMissingFile {
-		slog.Error("Error processing image file", "error", err)
-		http.Error(w, "Error processing image file", http.StatusBadRequest)
-		return
+		imageData = decodedData
+		slog.Info("Cropped image processed", "size", len(imageData))
+	} else {
+		// Fall back to original file upload if no cropped data
+		file, _, err := r.FormFile("image")
+		if err == nil {
+			defer file.Close()
+			imageData, err = io.ReadAll(file)
+			if err != nil {
+				slog.Error("Failed to read image file", "error", err)
+				http.Error(w, "Failed to read image file", http.StatusInternalServerError)
+				return
+			}
+			slog.Info("Original image uploaded", "size", len(imageData))
+		} else if err != http.ErrMissingFile {
+			slog.Error("Error processing image file", "error", err)
+			http.Error(w, "Error processing image file", http.StatusBadRequest)
+			return
+		}
 	}
 
 	recipe := models.Recipe{

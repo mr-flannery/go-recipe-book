@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Create Recipe</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.css">
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -106,6 +108,118 @@
         .navigation {
             margin-bottom: 20px;
         }
+        
+        /* Image preview and cropping styles */
+        .image-preview-section {
+            margin: 20px 0;
+            border: 2px dashed #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            background-color: #f8f9fa;
+        }
+        
+        .image-preview-section.has-image {
+            border-color: #007bff;
+            background-color: #e7f3ff;
+        }
+        
+        .preview-container {
+            display: none;
+            margin-top: 20px;
+        }
+        
+        .preview-title {
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #333;
+        }
+        
+        .preview-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .crop-container {
+            max-height: 400px;
+            overflow: hidden;
+        }
+        
+        .crop-container img {
+            max-width: 100%;
+            display: block;
+        }
+        
+        .preview-result {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .preview-16-9 {
+            width: 100%;
+            height: 0;
+            padding-bottom: 56.25%; /* 16:9 aspect ratio */
+            position: relative;
+            overflow: hidden;
+            border-radius: 8px;
+            border: 2px solid #007bff;
+            background-color: white;
+        }
+        
+        .preview-16-9 img {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: center;
+        }
+        
+        .crop-controls {
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 14px;
+            background-color: #6c757d;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        .btn-small:hover {
+            background-color: #545b62;
+        }
+        
+        .btn-small.btn-primary {
+            background-color: #007bff;
+        }
+        
+        .btn-small.btn-primary:hover {
+            background-color: #0056b3;
+        }
+        
+        .preview-label {
+            margin-top: 10px;
+            font-size: 14px;
+            color: #666;
+            text-align: center;
+        }
+        
+        @media (max-width: 768px) {
+            .preview-grid {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
 </head>
 <body>
@@ -129,6 +243,36 @@
                 <label for="image">Recipe Image</label>
                 <input type="file" id="image" name="image" accept="image/*">
                 <div class="help-text">Upload an image of your finished dish (optional)</div>
+                
+                <!-- Image Preview and Cropping Section -->
+                <div id="image-preview-section" class="image-preview-section">
+                    <div id="preview-container" class="preview-container">
+                        <div class="preview-title">Image Preview & Cropping</div>
+                        <div class="preview-grid">
+                            <div>
+                                <div class="preview-label">Crop your image:</div>
+                                <div id="crop-container" class="crop-container">
+                                    <img id="crop-image" src="" alt="Crop preview">
+                                </div>
+                                <div class="crop-controls">
+                                    <button type="button" id="crop-16-9" class="btn-small btn-primary">Set 16:9 Crop</button>
+                                    <button type="button" id="reset-crop" class="btn-small">Reset</button>
+                                    <button type="button" id="zoom-in" class="btn-small">Zoom In</button>
+                                    <button type="button" id="zoom-out" class="btn-small">Zoom Out</button>
+                                </div>
+                            </div>
+                            <div class="preview-result">
+                                <div class="preview-label">16:9 Preview (how it will appear):</div>
+                                <div class="preview-16-9">
+                                    <img id="preview-result" src="" alt="16:9 preview">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Hidden input to store cropped image data -->
+                <input type="hidden" id="cropped-image-data" name="cropped_image_data">
             </div>
 
             <div class="form-row">
@@ -176,5 +320,118 @@
             </div>
         </form>
     </div>
+
+    <script>
+        let cropper = null;
+        const imageInput = document.getElementById('image');
+        const previewSection = document.getElementById('image-preview-section');
+        const previewContainer = document.getElementById('preview-container');
+        const cropImage = document.getElementById('crop-image');
+        const previewResult = document.getElementById('preview-result');
+        const croppedImageData = document.getElementById('cropped-image-data');
+
+        // Handle file input change
+        imageInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const imageUrl = e.target.result;
+                    
+                    // Show preview section
+                    previewSection.classList.add('has-image');
+                    previewContainer.style.display = 'block';
+                    
+                    // Set up cropper
+                    cropImage.src = imageUrl;
+                    previewResult.src = imageUrl;
+                    
+                    // Initialize cropper after image loads
+                    cropImage.onload = function() {
+                        if (cropper) {
+                            cropper.destroy();
+                        }
+                        
+                        cropper = new Cropper(cropImage, {
+                            aspectRatio: 16 / 9,
+                            viewMode: 1,
+                            autoCropArea: 1,
+                            responsive: true,
+                            restore: false,
+                            guides: true,
+                            center: true,
+                            highlight: false,
+                            cropBoxMovable: true,
+                            cropBoxResizable: true,
+                            toggleDragModeOnDblclick: false,
+                            crop: function(event) {
+                                updatePreview();
+                            }
+                        });
+                    };
+                };
+                reader.readAsDataURL(file);
+            } else {
+                // Hide preview section
+                previewSection.classList.remove('has-image');
+                previewContainer.style.display = 'none';
+                if (cropper) {
+                    cropper.destroy();
+                    cropper = null;
+                }
+            }
+        });
+
+        // Update preview with cropped image
+        function updatePreview() {
+            if (!cropper) return;
+            
+            const canvas = cropper.getCroppedCanvas({
+                width: 800,
+                height: 450, // 16:9 ratio
+                imageSmoothingEnabled: true,
+                imageSmoothingQuality: 'high'
+            });
+            
+            if (canvas) {
+                const croppedImageUrl = canvas.toDataURL('image/jpeg', 0.9);
+                previewResult.src = croppedImageUrl;
+                croppedImageData.value = croppedImageUrl;
+            }
+        }
+
+        // Control buttons
+        document.getElementById('crop-16-9').addEventListener('click', function() {
+            if (cropper) {
+                cropper.setAspectRatio(16 / 9);
+                cropper.reset();
+            }
+        });
+
+        document.getElementById('reset-crop').addEventListener('click', function() {
+            if (cropper) {
+                cropper.reset();
+            }
+        });
+
+        document.getElementById('zoom-in').addEventListener('click', function() {
+            if (cropper) {
+                cropper.zoom(0.1);
+            }
+        });
+
+        document.getElementById('zoom-out').addEventListener('click', function() {
+            if (cropper) {
+                cropper.zoom(-0.1);
+            }
+        });
+
+        // Form submission - ensure cropped data is included
+        document.querySelector('form').addEventListener('submit', function(e) {
+            if (cropper && imageInput.files[0]) {
+                updatePreview(); // Ensure latest crop is saved
+            }
+        });
+    </script>
 </body>
 </html>
