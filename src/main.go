@@ -92,7 +92,7 @@ func main() {
 
 	// API routes - protected by API key authentication
 	mux.HandleFunc("GET /api/health", handlers.APIHealthHandler)
-	mux.Handle("POST /api/recipes", requireAPIKey(http.HandlerFunc(handlers.APICreateRecipeHandler)))
+	mux.Handle("POST /api/recipe/upload", requireAPIKey(http.HandlerFunc(handlers.APICreateRecipeHandler)))
 
 	slog.Info("Ready to serve!")
 
