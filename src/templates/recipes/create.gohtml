@@ -255,7 +255,6 @@
                                     <img id="crop-image" src="" alt="Crop preview">
                                 </div>
                                 <div class="crop-controls">
-                                    <button type="button" id="crop-16-9" class="btn-small btn-primary">Set 16:9 Crop</button>
                                     <button type="button" id="reset-crop" class="btn-small">Reset</button>
                                     <button type="button" id="zoom-in" class="btn-small">Zoom In</button>
                                     <button type="button" id="zoom-out" class="btn-small">Zoom Out</button>
@@ -399,14 +398,6 @@
                 croppedImageData.value = croppedImageUrl;
             }
         }
-
-        // Control buttons
-        document.getElementById('crop-16-9').addEventListener('click', function() {
-            if (cropper) {
-                cropper.setAspectRatio(16 / 9);
-                cropper.reset();
-            }
-        });
 
         document.getElementById('reset-crop').addEventListener('click', function() {
             if (cropper) {
