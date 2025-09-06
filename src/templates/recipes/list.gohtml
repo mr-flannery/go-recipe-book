@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Recipe List</title>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
     <script>
         function deleteRecipe(recipeId) {
             if (confirm('Are you sure you want to delete this recipe? This action cannot be undone.')) {
@@ -159,6 +160,62 @@
             -webkit-box-orient: vertical;
             overflow: hidden;
         }
+        .filters {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+        .filters h3 {
+            margin-top: 0;
+            margin-bottom: 15px;
+            color: #333;
+        }
+        .filter-row {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .filter-group {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .filter-group label {
+            font-weight: 500;
+            color: #555;
+            min-width: 80px;
+        }
+        .filter-group input, .filter-group select {
+            padding: 6px 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .filter-group input[type="text"] {
+            width: 200px;
+        }
+        .filter-group input[type="number"] {
+            width: 80px;
+        }
+        .filter-group select {
+            width: 100px;
+        }
+        .clear-filters {
+            background-color: #6c757d;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .clear-filters:hover {
+            background-color: #545b62;
+        }
     </style>
 </head>
 <body>
@@ -167,46 +224,118 @@
         <a href="/recipes/create" class="btn btn-primary">+ Create New Recipe</a>
     </div>
 
-    {{if .Recipes}}
-    <div class="recipe-grid">
-        {{range .Recipes}}
-        <div class="recipe-card">
-            <div class="recipe-image-container">
-                {{if .ImageBase64}}
-                    <img src="data:image/jpeg;base64,{{.ImageBase64}}" alt="{{.Title}}" class="recipe-image">
-                {{else}}
-                    <div class="no-image">No image</div>
-                {{end}}
+    <!-- Filters -->
+    <div class="filters">
+        <h3>🔍 Filter Recipes</h3>
+        <form hx-post="/recipes/filter" hx-target="#recipe-results" hx-trigger="input delay:300ms, change">
+            <div class="filter-row">
+                <div class="filter-group">
+                    <label for="search">Search:</label>
+                    <input type="text" id="search" name="search" placeholder="Search title, ingredients, instructions...">
+                </div>
+                <button type="button" class="clear-filters" onclick="clearFilters()">Clear All</button>
             </div>
             
-            <div class="recipe-content">
-                <div class="recipe-title">{{.Title}}</div>
-                
-                <div class="recipe-ingredients">{{.IngredientsMD}}</div>
-                
-                <div class="recipe-meta">
-                    {{if .PrepTime}}<span>⏱️ {{.PrepTime}}min prep</span>{{end}}
-                    {{if .CookTime}}<span>🔥 {{.CookTime}}min cook</span>{{end}}
-                    {{if .Calories}}<span>📊 {{.Calories}} cal</span>{{end}}
+            <div class="filter-row">
+                <div class="filter-group">
+                    <label for="calories_op">Calories:</label>
+                    <select id="calories_op" name="calories_op">
+                        <option value="">Any</option>
+                        <option value="eq">=</option>
+                        <option value="lt">&lt;</option>
+                        <option value="lte">≤</option>
+                        <option value="gt">&gt;</option>
+                        <option value="gte">≥</option>
+                    </select>
+                    <input type="number" id="calories_value" name="calories_value" placeholder="0" min="0">
                 </div>
                 
-                <div class="recipe-actions">
-                    <a href="/recipes/{{.ID}}" class="btn btn-primary">View Recipe</a>
-                    {{if and $.IsLoggedIn (eq $.CurrentUser.ID .AuthorID)}}
-                        <a href="/recipes/update?id={{.ID}}" class="btn btn-secondary">Edit</a>
-                        <button onclick="deleteRecipe({{.ID}})" class="btn btn-danger">Delete</button>
-                    {{end}}
+                <div class="filter-group">
+                    <label for="prep_time_op">Prep Time:</label>
+                    <select id="prep_time_op" name="prep_time_op">
+                        <option value="">Any</option>
+                        <option value="eq">=</option>
+                        <option value="lt">&lt;</option>
+                        <option value="lte">≤</option>
+                        <option value="gt">&gt;</option>
+                        <option value="gte">≥</option>
+                    </select>
+                    <input type="number" id="prep_time_value" name="prep_time_value" placeholder="0" min="0"> min
+                </div>
+                
+                <div class="filter-group">
+                    <label for="cook_time_op">Cook Time:</label>
+                    <select id="cook_time_op" name="cook_time_op">
+                        <option value="">Any</option>
+                        <option value="eq">=</option>
+                        <option value="lt">&lt;</option>
+                        <option value="lte">≤</option>
+                        <option value="gt">&gt;</option>
+                        <option value="gte">≥</option>
+                    </select>
+                    <input type="number" id="cook_time_value" name="cook_time_value" placeholder="0" min="0"> min
                 </div>
             </div>
+        </form>
+    </div>
+
+    <div id="recipe-results">
+        {{if .Recipes}}
+        <div class="recipe-grid">
+            {{range .Recipes}}
+            <div class="recipe-card">
+                <div class="recipe-image-container">
+                    {{if .ImageBase64}}
+                        <img src="data:image/jpeg;base64,{{.ImageBase64}}" alt="{{.Title}}" class="recipe-image">
+                    {{else}}
+                        <div class="no-image">No image</div>
+                    {{end}}
+                </div>
+                
+                <div class="recipe-content">
+                    <div class="recipe-title">{{.Title}}</div>
+                    
+                    <div class="recipe-ingredients">{{.IngredientsMD}}</div>
+                    
+                    <div class="recipe-meta">
+                        {{if .PrepTime}}<span>⏱️ {{.PrepTime}}min prep</span>{{end}}
+                        {{if .CookTime}}<span>🔥 {{.CookTime}}min cook</span>{{end}}
+                        {{if .Calories}}<span>📊 {{.Calories}} cal</span>{{end}}
+                    </div>
+                    
+                    <div class="recipe-actions">
+                        <a href="/recipes/{{.ID}}" class="btn btn-primary">View Recipe</a>
+                        {{if and $.IsLoggedIn (eq $.CurrentUser.ID .AuthorID)}}
+                            <a href="/recipes/update?id={{.ID}}" class="btn btn-secondary">Edit</a>
+                            <button onclick="deleteRecipe({{.ID}})" class="btn btn-danger">Delete</button>
+                        {{end}}
+                    </div>
+                </div>
+            </div>
+            {{end}}
+        </div>
+        {{else}}
+        <div style="text-align: center; margin: 50px 0; color: #666;">
+            <h2>No recipes yet</h2>
+            <p>Create your first recipe to get started!</p>
+            <a href="/recipes/create" class="btn btn-primary">Create Your First Recipe</a>
         </div>
         {{end}}
     </div>
-    {{else}}
-    <div style="text-align: center; margin: 50px 0; color: #666;">
-        <h2>No recipes yet</h2>
-        <p>Create your first recipe to get started!</p>
-        <a href="/recipes/create" class="btn btn-primary">Create Your First Recipe</a>
-    </div>
-    {{end}}
+
+    <script>
+        function clearFilters() {
+            document.getElementById('search').value = '';
+            document.getElementById('calories_op').value = '';
+            document.getElementById('calories_value').value = '';
+            document.getElementById('prep_time_op').value = '';
+            document.getElementById('prep_time_value').value = '';
+            document.getElementById('cook_time_op').value = '';
+            document.getElementById('cook_time_value').value = '';
+            
+            // Trigger HTMX request to show all recipes
+            htmx.trigger(document.querySelector('form'), 'change');
+        }
+    </script>
 </body>
 </html>

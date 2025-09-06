@@ -3,6 +3,7 @@ package models
 import (
 	"encoding/base64"
 	"fmt"
+	"strings"
 	"time"
 
 	_ "github.com/lib/pq"
@@ -174,6 +175,116 @@ func GetAllRecipes() ([]Recipe, error) {
 
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("error iterating over recipes: %v", err)
+	}
+
+	return recipes, nil
+}
+
+// FilterParams represents the filtering parameters for recipes
+type FilterParams struct {
+	Search        string
+	CaloriesOp    string
+	CaloriesValue int
+	PrepTimeOp    string
+	PrepTimeValue int
+	CookTimeOp    string
+	CookTimeValue int
+}
+
+// GetFilteredRecipes fetches recipes based on filter parameters
+func GetFilteredRecipes(params FilterParams) ([]Recipe, error) {
+	dbConnection, err := db.GetConnection()
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to database: %v", err)
+	}
+	defer dbConnection.Close()
+
+	// Build the query dynamically based on filters
+	query := "SELECT id, title, ingredients_md, instructions_md, prep_time, cook_time, calories, author_id, image, parent_id, created_at, updated_at FROM recipes WHERE 1=1"
+	args := []interface{}{}
+	argIndex := 1
+
+	// Add fuzzy search filter
+	if params.Search != "" {
+		query += fmt.Sprintf(" AND (LOWER(title) LIKE $%d OR LOWER(ingredients_md) LIKE $%d OR LOWER(instructions_md) LIKE $%d)", argIndex, argIndex, argIndex)
+		searchPattern := "%" + strings.ToLower(params.Search) + "%"
+		args = append(args, searchPattern)
+		argIndex++
+	}
+
+	// Add calories filter
+	if params.CaloriesValue > 0 && params.CaloriesOp != "" {
+		switch params.CaloriesOp {
+		case "eq":
+			query += fmt.Sprintf(" AND calories = $%d", argIndex)
+		case "gt":
+			query += fmt.Sprintf(" AND calories > $%d", argIndex)
+		case "gte":
+			query += fmt.Sprintf(" AND calories >= $%d", argIndex)
+		case "lt":
+			query += fmt.Sprintf(" AND calories < $%d", argIndex)
+		case "lte":
+			query += fmt.Sprintf(" AND calories <= $%d", argIndex)
+		}
+		args = append(args, params.CaloriesValue)
+		argIndex++
+	}
+
+	// Add prep time filter
+	if params.PrepTimeValue > 0 && params.PrepTimeOp != "" {
+		switch params.PrepTimeOp {
+		case "eq":
+			query += fmt.Sprintf(" AND prep_time = $%d", argIndex)
+		case "gt":
+			query += fmt.Sprintf(" AND prep_time > $%d", argIndex)
+		case "gte":
+			query += fmt.Sprintf(" AND prep_time >= $%d", argIndex)
+		case "lt":
+			query += fmt.Sprintf(" AND prep_time < $%d", argIndex)
+		case "lte":
+			query += fmt.Sprintf(" AND prep_time <= $%d", argIndex)
+		}
+		args = append(args, params.PrepTimeValue)
+		argIndex++
+	}
+
+	// Add cook time filter
+	if params.CookTimeValue > 0 && params.CookTimeOp != "" {
+		switch params.CookTimeOp {
+		case "eq":
+			query += fmt.Sprintf(" AND cook_time = $%d", argIndex)
+		case "gt":
+			query += fmt.Sprintf(" AND cook_time > $%d", argIndex)
+		case "gte":
+			query += fmt.Sprintf(" AND cook_time >= $%d", argIndex)
+		case "lt":
+			query += fmt.Sprintf(" AND cook_time < $%d", argIndex)
+		case "lte":
+			query += fmt.Sprintf(" AND cook_time <= $%d", argIndex)
+		}
+		args = append(args, params.CookTimeValue)
+		argIndex++
+	}
+
+	query += " ORDER BY created_at DESC"
+
+	rows, err := dbConnection.Query(query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch filtered recipes: %v", err)
+	}
+	defer rows.Close()
+
+	var recipes []Recipe
+	for rows.Next() {
+		var recipe Recipe
+		if err := rows.Scan(&recipe.ID, &recipe.Title, &recipe.IngredientsMD, &recipe.InstructionsMD, &recipe.PrepTime, &recipe.CookTime, &recipe.Calories, &recipe.AuthorID, &recipe.Image, &recipe.ParentID, &recipe.CreatedAt, &recipe.UpdatedAt); err != nil {
+			return nil, fmt.Errorf("failed to scan recipe: %v", err)
+		}
+		recipes = append(recipes, recipe)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating over filtered recipes: %v", err)
 	}
 
 	return recipes, nil

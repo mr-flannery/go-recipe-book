@@ -10,3 +10,5 @@
   - nginx https stuff
   - buy domain
   - register domain with Maileroo
+- tagging!!!
+- 

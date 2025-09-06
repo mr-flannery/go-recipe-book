@@ -532,3 +532,91 @@ func DeleteRecipeHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("Recipe deleted successfully"))
 }
+
+// FilterRecipesHTMXHandler handles HTMX filtering requests and returns filtered recipe cards
+func FilterRecipesHTMXHandler(w http.ResponseWriter, r *http.Request) {
+	// Parse form data
+	r.ParseForm()
+
+	// Extract filter parameters
+	filterParams := models.FilterParams{
+		Search: strings.TrimSpace(r.FormValue("search")),
+	}
+
+	// Parse calories filter
+	if caloriesStr := r.FormValue("calories_value"); caloriesStr != "" {
+		if calories, err := strconv.Atoi(caloriesStr); err == nil && calories > 0 {
+			filterParams.CaloriesValue = calories
+			filterParams.CaloriesOp = r.FormValue("calories_op")
+		}
+	}
+
+	// Parse prep time filter
+	if prepTimeStr := r.FormValue("prep_time_value"); prepTimeStr != "" {
+		if prepTime, err := strconv.Atoi(prepTimeStr); err == nil && prepTime > 0 {
+			filterParams.PrepTimeValue = prepTime
+			filterParams.PrepTimeOp = r.FormValue("prep_time_op")
+		}
+	}
+
+	// Parse cook time filter
+	if cookTimeStr := r.FormValue("cook_time_value"); cookTimeStr != "" {
+		if cookTime, err := strconv.Atoi(cookTimeStr); err == nil && cookTime > 0 {
+			filterParams.CookTimeValue = cookTime
+			filterParams.CookTimeOp = r.FormValue("cook_time_op")
+		}
+	}
+
+	slog.Info("Filtering recipes", "params", filterParams)
+
+	// Get filtered recipes
+	recipes, err := models.GetFilteredRecipes(filterParams)
+	if err != nil {
+		slog.Error("Failed to fetch filtered recipes", "error", err)
+		http.Error(w, "Failed to fetch filtered recipes", http.StatusInternalServerError)
+		return
+	}
+
+	// Get database connection to check user authentication
+	database, err := db.GetConnection()
+	if err != nil {
+		// If DB fails, assume not logged in
+		data := struct {
+			Recipes     []models.Recipe
+			IsLoggedIn  bool
+			CurrentUser *auth.User
+		}{
+			Recipes:     recipes,
+			IsLoggedIn:  false,
+			CurrentUser: nil,
+		}
+		w.Header().Set("Content-Type", "text/html")
+		err = recipeTemplates.ExecuteTemplate(w, "recipe-cards.gohtml", data)
+		if err != nil {
+			slog.Error("Failed to execute template", "error", err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+		return
+	}
+	defer database.Close()
+
+	currentUser, err := auth.GetUserBySession(database, r)
+	isLoggedIn := err == nil
+
+	data := struct {
+		Recipes     []models.Recipe
+		IsLoggedIn  bool
+		CurrentUser *auth.User
+	}{
+		Recipes:     recipes,
+		IsLoggedIn:  isLoggedIn,
+		CurrentUser: currentUser,
+	}
+
+	w.Header().Set("Content-Type", "text/html")
+	err = recipeTemplates.ExecuteTemplate(w, "recipe-cards.gohtml", data)
+	if err != nil {
+		slog.Error("Failed to execute template", "error", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
