@@ -17,7 +17,6 @@ type RegistrationRequest struct {
 	Status       string // pending, approved, rejected
 	ReviewedBy   *int
 	ReviewedAt   *time.Time
-	Notes        string
 }
 
 // CreateRegistrationRequest creates a new registration request
@@ -68,7 +67,7 @@ func CreateRegistrationRequest(db *sql.DB, username, email, password string) err
 // GetPendingRegistrations returns all pending registration requests
 func GetPendingRegistrations(db *sql.DB) ([]RegistrationRequest, error) {
 	query := `
-		SELECT id, username, email, password_hash, requested_at, status, reviewed_by, reviewed_at, notes
+		SELECT id, username, email, password_hash, requested_at, status, reviewed_by, reviewed_at
 		FROM registration_requests 
 		WHERE status = 'pending'
 		ORDER BY requested_at ASC`
@@ -83,7 +82,7 @@ func GetPendingRegistrations(db *sql.DB) ([]RegistrationRequest, error) {
 	for rows.Next() {
 		var req RegistrationRequest
 		err := rows.Scan(&req.ID, &req.Username, &req.Email, &req.PasswordHash,
-			&req.RequestedAt, &req.Status, &req.ReviewedBy, &req.ReviewedAt, &req.Notes)
+			&req.RequestedAt, &req.Status, &req.ReviewedBy, &req.ReviewedAt)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan registration request: %w", err)
 		}
@@ -170,12 +169,12 @@ func RejectRegistration(db *sql.DB, requestID int, adminID int, reason string) e
 func GetRegistrationRequestByID(db *sql.DB, requestID int) (*RegistrationRequest, error) {
 	var req RegistrationRequest
 	query := `
-		SELECT id, username, email, password_hash, requested_at, status, reviewed_by, reviewed_at, notes
+		SELECT id, username, email, password_hash, requested_at, status, reviewed_by, reviewed_at
 		FROM registration_requests 
 		WHERE id = $1`
 
 	err := db.QueryRow(query, requestID).Scan(&req.ID, &req.Username, &req.Email, &req.PasswordHash,
-		&req.RequestedAt, &req.Status, &req.ReviewedBy, &req.ReviewedAt, &req.Notes)
+		&req.RequestedAt, &req.Status, &req.ReviewedBy, &req.ReviewedAt)
 
 	if err != nil {
 		if err == sql.ErrNoRows {

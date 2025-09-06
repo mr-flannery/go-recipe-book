@@ -1,12 +1,12 @@
-- finish properly writing the core CRUD logic
-  - i.e. properly implement the create and update screen
-- then add some frigging tests
-- then deploy it somewhere
-- implement registration logic
-  - currently, there's no way to create accounts
-  - it should be possible to create an account, and then the admin must activate it first
-  - then the user should receive an email
-  - the user must then activate their account, and only then it should be valid
-  - where do I get an smtp server from do to this? this might be annoying
-  - can I use my posteo account for this?
-    - if possible rather use some gmail crap account
+- add dynamic filtering
+- add random function
+- make the list recipes page the homepage
+- add a header and a navbar and stuff like that
+- add a footer with an impressum
+- prevent website from being crawled once it's live
+- write tests
+- refactor
+- deploy
+  - nginx https stuff
+  - buy domain
+  - register domain with Maileroo

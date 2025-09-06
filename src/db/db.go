@@ -13,11 +13,7 @@ import (
 
 // implement connection pool at some point in time?
 func GetConnection() (*sql.DB, error) {
-	config, err := config.GetConfig()
-	if err != nil {
-		slog.Error("Failed to get configuration", "error", err)
-		panic(err)
-	}
+	config := config.GetConfig()
 
 	connectionString := fmt.Sprintf(
 		"host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",

@@ -21,15 +21,11 @@ func main() {
 	}
 	slog.Info("Starting server", "address", addr)
 	slog.Info("Loading configuration...")
-	config, err := config.GetConfig()
-	if err != nil {
-		slog.Error("Failed to load configuration", "error", err)
-		panic(err)
-	}
+	config := config.GetConfig()
 
 	slog.Info("Running migrations...")
 	// Run database migrations
-	err = db.RunMigrations()
+	err := db.RunMigrations()
 	if err != nil {
 		slog.Error("Failed to run migrations", "error", err)
 		panic(err)
@@ -75,6 +71,34 @@ func main() {
 	mux.HandleFunc("GET /login", handlers.GetLoginHandler)
 	mux.HandleFunc("POST /login", handlers.PostLoginHandler)
 	mux.HandleFunc("GET /logout", handlers.LogoutHandler)
+	mux.HandleFunc("GET /register", handlers.GetRegisterHandler)
+	mux.HandleFunc("POST /register", handlers.PostRegisterHandler)
+
+	// Admin routes - require authentication and admin privileges
+	requireAdminAuth := func(next http.Handler) http.Handler {
+		return requireAuth(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// Get database connection
+			database, err := db.GetConnection()
+			if err != nil {
+				http.Error(w, "Internal server error", http.StatusInternalServerError)
+				return
+			}
+			defer database.Close()
+
+			// Get current user
+			user, err := auth.GetUserBySession(database, r)
+			if err != nil || !user.IsAdmin {
+				http.Error(w, "Access denied - admin privileges required", http.StatusForbidden)
+				return
+			}
+
+			next.ServeHTTP(w, r)
+		}))
+	}
+
+	mux.Handle("GET /admin/registrations", requireAdminAuth(http.HandlerFunc(handlers.GetPendingRegistrationsHandler)))
+	mux.Handle("POST /admin/registrations/{id}/approve", requireAdminAuth(http.HandlerFunc(handlers.ApproveRegistrationHandler)))
+	mux.Handle("POST /admin/registrations/{id}/deny", requireAdminAuth(http.HandlerFunc(handlers.DenyRegistrationHandler)))
 
 	// Recipe routes with parameters
 	mux.Handle("GET /recipes/create", requireAuth(http.HandlerFunc(handlers.GetCreateRecipeHandler)))

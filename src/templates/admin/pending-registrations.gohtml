@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pending Registrations - Recipe Book Admin</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .header {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        h1 {
+            color: #333;
+            margin: 0;
+        }
+        .nav-links {
+            margin-top: 10px;
+        }
+        .nav-links a {
+            color: #007bff;
+            text-decoration: none;
+            margin-right: 20px;
+        }
+        .nav-links a:hover {
+            text-decoration: underline;
+        }
+        .registrations-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .registration-card {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            background-color: #fafafa;
+        }
+        .registration-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .registration-info h3 {
+            margin: 0;
+            color: #333;
+        }
+        .registration-date {
+            color: #666;
+            font-size: 14px;
+        }
+        .registration-details {
+            margin-bottom: 20px;
+        }
+        .detail-row {
+            margin-bottom: 8px;
+        }
+        .detail-label {
+            font-weight: bold;
+            color: #555;
+            display: inline-block;
+            width: 100px;
+        }
+        .detail-value {
+            color: #333;
+        }
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+        }
+        .btn-approve {
+            background-color: #28a745;
+            color: white;
+        }
+        .btn-approve:hover {
+            background-color: #218838;
+        }
+        .btn-deny {
+            background-color: #dc3545;
+            color: white;
+        }
+        .btn-deny:hover {
+            background-color: #c82333;
+        }
+        .no-registrations {
+            text-align: center;
+            color: #666;
+            font-style: italic;
+            padding: 40px;
+        }
+        .success {
+            color: #155724;
+            margin-bottom: 15px;
+            padding: 10px;
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            border-radius: 4px;
+        }
+        .error {
+            color: #721c24;
+            margin-bottom: 15px;
+            padding: 10px;
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Admin Panel - Pending Registrations</h1>
+        <div class="nav-links">
+            <a href="/">Home</a>
+            <a href="/recipes">Recipes</a>
+            <a href="/logout">Logout</a>
+        </div>
+    </div>
+
+    <div class="registrations-container">
+        {{if .Success}}
+            <div class="success">{{.Success}}</div>
+        {{end}}
+        
+        {{if .Error}}
+            <div class="error">{{.Error}}</div>
+        {{end}}
+
+        {{if .Registrations}}
+            {{range .Registrations}}
+                <div class="registration-card">
+                    <div class="registration-header">
+                        <div class="registration-info">
+                            <h3>{{.Username}}</h3>
+                            <div class="registration-date">Requested: {{.RequestedAt.Format "January 2, 2006 at 3:04 PM"}}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="registration-details">
+                        <div class="detail-row">
+                            <span class="detail-label">Username:</span>
+                            <span class="detail-value">{{.Username}}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Email:</span>
+                            <span class="detail-value">{{.Email}}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Status:</span>
+                            <span class="detail-value">{{.Status}}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="action-buttons">
+                        <form method="POST" action="/admin/registrations/{{.ID}}/approve" style="display: inline;">
+                            <button type="submit" class="btn btn-approve" onclick="return confirm('Are you sure you want to approve this registration?')">
+                                Approve
+                            </button>
+                        </form>
+                        <form method="POST" action="/admin/registrations/{{.ID}}/deny" style="display: inline;">
+                            <button type="submit" class="btn btn-deny" onclick="return confirm('Are you sure you want to deny this registration?')">
+                                Deny
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            {{end}}
+        {{else}}
+            <div class="no-registrations">
+                <p>No pending registrations at this time.</p>
+            </div>
+        {{end}}
+    </div>
+</body>
+</html>

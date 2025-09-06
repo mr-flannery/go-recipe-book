@@ -37,12 +37,7 @@ func RequireAPIKey() func(http.Handler) http.Handler {
 			}
 
 			// Get configuration to check valid API keys
-			cfg, err := config.GetConfig()
-			if err != nil {
-				slog.Error("Failed to load configuration for API key validation", "error", err)
-				http.Error(w, "Internal server error", http.StatusInternalServerError)
-				return
-			}
+			cfg := config.GetConfig()
 
 			// Validate the token against configured API keys
 			validToken := false
@@ -67,10 +62,7 @@ func RequireAPIKey() func(http.Handler) http.Handler {
 
 // GetAdminUserID returns the admin user ID from the database
 func GetAdminUserID() (int, error) {
-	cfg, err := config.GetConfig()
-	if err != nil {
-		return 0, fmt.Errorf("failed to load configuration: %w", err)
-	}
+	cfg := config.GetConfig()
 
 	// Use the existing function to get user ID by username
 	adminID, err := GetUserIDByUsername(cfg.DB.Admin.Username)

@@ -8,6 +8,8 @@ require github.com/lib/pq v1.10.9 // PostgreSQL driver
 
 require (
 	github.com/golang-migrate/migrate/v4 v4.18.3
+	github.com/maileroo/maileroo-go-sdk v1.0.0
+	golang.org/x/crypto v0.41.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
@@ -15,6 +17,5 @@ require (
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	go.uber.org/atomic v1.11.0 // indirect
-	golang.org/x/crypto v0.41.0 // indirect
 	golang.org/x/sys v0.35.0 // indirect
 )

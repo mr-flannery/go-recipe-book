@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"fmt"
-	"log/slog"
 	"net"
 	"net/http"
 	"time"
@@ -20,11 +19,7 @@ const (
 )
 
 func cookieSettings() (string, bool) {
-	config, err := config.GetConfig()
-	if err != nil {
-		slog.Error("Failed to load config")
-		return "__Secure-session", true
-	}
+	config := config.GetConfig()
 
 	if config.Environment.Mode == "development" {
 		return "session", false
