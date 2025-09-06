@@ -5,41 +5,7 @@
     <meta charset="UTF-8">
     <title>Login</title>
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
-    <style>
-        .error {
-            color: red;
-            margin-top: 10px;
-        }
-        .form-container {
-            max-width: 400px;
-            margin: 50px auto;
-            padding: 20px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-        }
-        .form-group {
-            margin-bottom: 15px;
-        }
-        input {
-            width: 100%;
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 3px;
-            box-sizing: border-box;
-        }
-        button {
-            width: 100%;
-            padding: 10px;
-            background-color: #007bff;
-            color: white;
-            border: none;
-            border-radius: 3px;
-            cursor: pointer;
-        }
-        button:hover {
-            background-color: #0056b3;
-        }
-    </style>
+    <link rel="stylesheet" href="/static/css/styles.css">
 </head>
 <body>
     <div class="form-container">
@@ -61,7 +27,7 @@
                 {{end}}
             </div>
         </form>
-        <div style="text-align: center; margin-top: 20px;">
+        <div class="login-link">
             <p>Don't have an account? <a href="/register">Register here</a></p>
             <p><a href="/">Back to Home</a></p>
         </div>

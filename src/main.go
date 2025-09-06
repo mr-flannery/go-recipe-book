@@ -64,6 +64,9 @@ func main() {
 	// Create a new ServeMux
 	mux := http.NewServeMux()
 
+	// Static files (CSS, JS, images, etc.)
+	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./static/"))))
+
 	// Home page
 	mux.HandleFunc("/", handlers.HomeHandler)
 
