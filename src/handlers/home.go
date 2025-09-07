@@ -1,11 +1,11 @@
 package handlers
 
 import (
-	"html/template"
 	"net/http"
 
 	"github.com/mr-flannery/go-recipe-book/src/auth"
 	"github.com/mr-flannery/go-recipe-book/src/db"
+	"github.com/mr-flannery/go-recipe-book/src/templates"
 )
 
 func HomeHandler(w http.ResponseWriter, r *http.Request) {
@@ -24,8 +24,7 @@ func HomeHandler(w http.ResponseWriter, r *http.Request) {
 			Username:   "",
 			IsAdmin:    false,
 		}
-		templates := template.Must(template.ParseGlob("templates/*.gohtml"))
-		err := templates.ExecuteTemplate(w, "home.gohtml", data)
+		err := templates.Templates.ExecuteTemplate(w, "home.gohtml", data)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
@@ -56,8 +55,7 @@ func HomeHandler(w http.ResponseWriter, r *http.Request) {
 		IsAdmin:    isAdmin,
 	}
 
-	templates := template.Must(template.ParseGlob("templates/*.gohtml"))
-	err = templates.ExecuteTemplate(w, "home.gohtml", data)
+	err = templates.Templates.ExecuteTemplate(w, "home.gohtml", data)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
@@ -79,8 +77,7 @@ func ImprintHandler(w http.ResponseWriter, r *http.Request) {
 			Username:   "",
 			IsAdmin:    false,
 		}
-		templates := template.Must(template.ParseGlob("templates/*.gohtml"))
-		err := templates.ExecuteTemplate(w, "imprint.gohtml", data)
+		err := templates.Templates.ExecuteTemplate(w, "imprint.gohtml", data)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
@@ -111,8 +108,7 @@ func ImprintHandler(w http.ResponseWriter, r *http.Request) {
 		IsAdmin:    isAdmin,
 	}
 
-	templates := template.Must(template.ParseGlob("templates/*.gohtml"))
-	err = templates.ExecuteTemplate(w, "imprint.gohtml", data)
+	err = templates.Templates.ExecuteTemplate(w, "imprint.gohtml", data)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}

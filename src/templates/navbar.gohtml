@@ -11,7 +11,7 @@
             {{if .IsLoggedIn}}
                 <span class="user-greeting">Welcome, {{.Username}}!</span>
                 {{if .IsAdmin}}
-                    <a href="/admin/pending-registrations" class="nav-link admin-link">Admin</a>
+                    <a href="/admin/registrations" class="nav-link admin-link">Admin</a>
                 {{end}}
                 <a href="/logout" class="nav-link logout-link">Logout</a>
             {{else}}

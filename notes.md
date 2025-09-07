@@ -6,7 +6,7 @@
 
 ## go
 
-- this is a thing when debugging go, apparently
+- having to specifically use `call` is a thing when debugging go, apparently
   ```
   call "html/template".ParseGlob("templates/*.gohtml")
   ```

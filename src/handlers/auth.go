@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"fmt"
-	"html/template"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -11,6 +10,7 @@ import (
 	"github.com/mr-flannery/go-recipe-book/src/config"
 	"github.com/mr-flannery/go-recipe-book/src/db"
 	"github.com/mr-flannery/go-recipe-book/src/mail"
+	"github.com/mr-flannery/go-recipe-book/src/templates"
 )
 
 type LoginData struct {
@@ -19,7 +19,6 @@ type LoginData struct {
 }
 
 func GetLoginHandler(w http.ResponseWriter, r *http.Request) {
-	templates := template.Must(template.ParseGlob("templates/*.gohtml"))
 
 	redirectURL := r.URL.Query().Get("redirect")
 	data := LoginData{
@@ -27,14 +26,13 @@ func GetLoginHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	err := templates.ExecuteTemplate(w, "login.gohtml", data)
+	err := templates.Templates.ExecuteTemplate(w, "login.gohtml", data)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
 
 func PostLoginHandler(w http.ResponseWriter, r *http.Request) {
-	templates := template.Must(template.ParseGlob("templates/*.gohtml"))
 
 	r.ParseForm()
 	email := r.FormValue("email")
@@ -50,7 +48,7 @@ func PostLoginHandler(w http.ResponseWriter, r *http.Request) {
 			Error:       "Invalid username or password. Please try again.",
 		}
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		err := templates.ExecuteTemplate(w, "login.gohtml", data)
+		err := templates.Templates.ExecuteTemplate(w, "login.gohtml", data)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
@@ -101,20 +99,16 @@ type RegisterData struct {
 }
 
 func GetRegisterHandler(w http.ResponseWriter, r *http.Request) {
-	templates := template.Must(template.ParseGlob("templates/*.gohtml"))
-
 	data := RegisterData{}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	err := templates.ExecuteTemplate(w, "register.gohtml", data)
+	err := templates.Templates.ExecuteTemplate(w, "register.gohtml", data)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
 
 func PostRegisterHandler(w http.ResponseWriter, r *http.Request) {
-	templates := template.Must(template.ParseGlob("templates/*.gohtml"))
-
 	r.ParseForm()
 	username := r.FormValue("username")
 	email := r.FormValue("email")
@@ -130,7 +124,7 @@ func PostRegisterHandler(w http.ResponseWriter, r *http.Request) {
 	if password != confirmPassword {
 		data.Error = "Passwords do not match"
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		templates.ExecuteTemplate(w, "register.gohtml", data)
+		templates.Templates.ExecuteTemplate(w, "register.gohtml", data)
 		return
 	}
 
@@ -140,7 +134,7 @@ func PostRegisterHandler(w http.ResponseWriter, r *http.Request) {
 		slog.Error("Failed to connect to database", "error", err)
 		data.Error = "Internal server error. Please try again later."
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		templates.ExecuteTemplate(w, "register.gohtml", data)
+		templates.Templates.ExecuteTemplate(w, "register.gohtml", data)
 		return
 	}
 	defer database.Close()
@@ -151,7 +145,7 @@ func PostRegisterHandler(w http.ResponseWriter, r *http.Request) {
 		slog.Error("Failed to create registration request", "error", err)
 		data.Error = err.Error()
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		templates.ExecuteTemplate(w, "register.gohtml", data)
+		templates.Templates.ExecuteTemplate(w, "register.gohtml", data)
 		return
 	}
 
@@ -166,7 +160,7 @@ func PostRegisterHandler(w http.ResponseWriter, r *http.Request) {
 
 	data.Success = "Registration request submitted successfully! An administrator will review your request and you will receive an email when it's approved."
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	templates.ExecuteTemplate(w, "register.gohtml", data)
+	templates.Templates.ExecuteTemplate(w, "register.gohtml", data)
 }
 
 type PendingRegistrationsData struct {
@@ -176,8 +170,6 @@ type PendingRegistrationsData struct {
 }
 
 func GetPendingRegistrationsHandler(w http.ResponseWriter, r *http.Request) {
-	templates := template.Must(template.ParseGlob("templates/admin/*.gohtml"))
-
 	// Get database connection
 	database, err := db.GetConnection()
 	if err != nil {
@@ -200,7 +192,7 @@ func GetPendingRegistrationsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	err = templates.ExecuteTemplate(w, "pending-registrations.gohtml", data)
+	err = templates.Templates.ExecuteTemplate(w, "pending-registrations.gohtml", data)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
