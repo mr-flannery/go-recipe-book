@@ -1,8 +1,9 @@
-- make the list recipes page the homepage
 - add a header and a navbar and stuff like that
+  - the navbar exists, and there is a usercontext middleware. i still need to add the navbar and footer to all pages that require them and then need to update all template call functions to get the usercontext from the middleware so that the navbar can do it's thing
+- add a footer with an impressum
 - add random function
   - and put it into the header
-- add a footer with an impressum
+- make the list recipes page the homepage
 - prevent website from being crawled once it's live
 - write tests
 - refactor
