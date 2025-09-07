@@ -70,6 +70,9 @@ func main() {
 	// Home page
 	mux.HandleFunc("/", handlers.HomeHandler)
 
+	// Imprint page
+	mux.HandleFunc("/imprint", handlers.ImprintHandler)
+
 	// Auth routes
 	mux.HandleFunc("GET /login", handlers.GetLoginHandler)
 	mux.HandleFunc("POST /login", handlers.PostLoginHandler)

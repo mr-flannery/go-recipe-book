@@ -1,0 +1,23 @@
+{{define "navbar"}}
+<nav class="navbar">
+    <div class="navbar-container">
+        <div class="navbar-brand">
+            <a href="/" class="brand-link">
+                <span class="brand-logo">🍳</span>
+                <span class="brand-text">Recipe Book</span>
+            </a>
+        </div>
+        <div class="navbar-menu">
+            {{if .IsLoggedIn}}
+                <span class="user-greeting">Welcome, {{.Username}}!</span>
+                {{if .IsAdmin}}
+                    <a href="/admin/pending-registrations" class="nav-link admin-link">Admin</a>
+                {{end}}
+                <a href="/logout" class="nav-link logout-link">Logout</a>
+            {{else}}
+                <a href="/login" class="nav-link login-link">Login</a>
+            {{end}}
+        </div>
+    </div>
+</nav>
+{{end}}

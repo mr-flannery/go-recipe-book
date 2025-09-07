@@ -5,8 +5,163 @@ body {
     font-family: Arial, sans-serif;
     line-height: 1.6;
     margin: 0;
-    padding: 20px;
+    padding: 0;
     background-color: #f5f5f5;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Navbar Styles */
+.navbar {
+    background-color: #fff;
+    border-bottom: 1px solid #dee2e6;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+}
+
+.navbar-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 20px;
+    height: 60px;
+}
+
+.navbar-brand .brand-link {
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+    color: #333;
+    font-weight: bold;
+    font-size: 1.2em;
+}
+
+.brand-logo {
+    font-size: 1.5em;
+    margin-right: 8px;
+}
+
+.brand-text {
+    color: #007bff;
+}
+
+.navbar-menu {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.user-greeting {
+    color: #666;
+    font-size: 0.9em;
+}
+
+.nav-link {
+    text-decoration: none;
+    color: #007bff;
+    padding: 8px 16px;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+.nav-link:hover {
+    background-color: #f8f9fa;
+    text-decoration: none;
+}
+
+.admin-link {
+    background-color: #28a745;
+    color: white !important;
+}
+
+.admin-link:hover {
+    background-color: #218838;
+}
+
+.logout-link {
+    color: #dc3545 !important;
+}
+
+.logout-link:hover {
+    background-color: #f8d7da;
+}
+
+.login-link {
+    background-color: #007bff;
+    color: white !important;
+}
+
+.login-link:hover {
+    background-color: #0056b3;
+}
+
+/* Main Content */
+.main-content {
+    flex: 1;
+    padding: 20px;
+}
+
+/* Footer Styles */
+.footer {
+    background-color: #343a40;
+    color: #fff;
+    margin-top: auto;
+}
+
+.footer-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.footer-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.footer-content p {
+    margin: 0;
+    font-size: 0.9em;
+}
+
+.footer-links {
+    display: flex;
+    gap: 20px;
+}
+
+.footer-link {
+    color: #adb5bd;
+    text-decoration: none;
+    font-size: 0.9em;
+}
+
+.footer-link:hover {
+    color: #fff;
+    text-decoration: underline;
+}
+
+/* Imprint Page Styles */
+.imprint-content {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.imprint-content h2,
+.imprint-content h3 {
+    color: #333;
+    margin-top: 30px;
+}
+
+.imprint-content p {
+    margin-bottom: 15px;
+    text-align: justify;
 }
 
 /* Container Styles */
@@ -703,17 +858,27 @@ textarea {
     margin-bottom: 20px;
 }
 
-.inline-form {
-body {
-    max-width: 1200px;
-    margin: 0 auto;
-}
-
-.form-container {
-    max-width: 400px;
-}
-
-.container {
-    max-width: 800px;
-    margin: 0 auto;
+/* Responsive Design for Mobile */
+@media (max-width: 768px) {
+    .navbar-container {
+        padding: 0 15px;
+    }
+    
+    .navbar-menu {
+        gap: 15px;
+    }
+    
+    .user-greeting {
+        display: none;
+    }
+    
+    .footer-content {
+        flex-direction: column;
+        gap: 10px;
+        text-align: center;
+    }
+    
+    .main-content {
+        padding: 15px;
+    }
 }

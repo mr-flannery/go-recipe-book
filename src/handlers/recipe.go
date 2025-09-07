@@ -3,7 +3,6 @@ package handlers
 import (
 	"encoding/base64"
 	"fmt"
-	"html/template"
 	"io"
 	"log/slog"
 	"net/http"
@@ -13,13 +12,13 @@ import (
 	"github.com/mr-flannery/go-recipe-book/src/auth"
 	"github.com/mr-flannery/go-recipe-book/src/db"
 	"github.com/mr-flannery/go-recipe-book/src/models"
+	"github.com/mr-flannery/go-recipe-book/src/templates"
+	_ "github.com/mr-flannery/go-recipe-book/src/templates" // Ensure templates package is imported for initialization
 )
-
-var recipeTemplates = template.Must(template.ParseGlob("templates/recipes/*.gohtml"))
 
 // GetCreateRecipeHandler handles displaying the create recipe form
 func GetCreateRecipeHandler(w http.ResponseWriter, r *http.Request) {
-	err := recipeTemplates.ExecuteTemplate(w, "create.gohtml", nil)
+	err := templates.Templates.ExecuteTemplate(w, "create.gohtml", nil)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
@@ -82,7 +81,7 @@ func PostCreateRecipeHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Handle image upload - prioritize cropped image data over original file
 	var imageData []byte
-	
+
 	// Check if cropped image data is provided
 	croppedImageData := r.FormValue("cropped_image_data")
 	if croppedImageData != "" {
@@ -93,7 +92,7 @@ func PostCreateRecipeHandler(w http.ResponseWriter, r *http.Request) {
 				croppedImageData = croppedImageData[commaIndex+1:]
 			}
 		}
-		
+
 		// Decode base64 image data
 		decodedData, err := base64.StdEncoding.DecodeString(croppedImageData)
 		if err != nil {
@@ -164,7 +163,7 @@ func ListRecipesHandler(w http.ResponseWriter, r *http.Request) {
 			IsLoggedIn:  false,
 			CurrentUser: nil,
 		}
-		err = recipeTemplates.ExecuteTemplate(w, "list.gohtml", data)
+		err = templates.Templates.ExecuteTemplate(w, "list.gohtml", data)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
@@ -185,7 +184,7 @@ func ListRecipesHandler(w http.ResponseWriter, r *http.Request) {
 		CurrentUser: currentUser,
 	}
 
-	err = recipeTemplates.ExecuteTemplate(w, "list.gohtml", data)
+	err = templates.Templates.ExecuteTemplate(w, "list.gohtml", data)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
@@ -199,7 +198,7 @@ func GetUpdateRecipeHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Recipe not found", http.StatusNotFound)
 		return
 	}
-	err = recipeTemplates.ExecuteTemplate(w, "update.gohtml", recipe)
+	err = templates.Templates.ExecuteTemplate(w, "update.gohtml", recipe)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
@@ -366,11 +365,11 @@ func ViewRecipeHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		// If DB fails, assume not logged in
 		data := struct {
-			Recipe     models.Recipe
-			Comments   []CommentWithUsername
-			IsLoggedIn bool
+			Recipe      models.Recipe
+			Comments    []CommentWithUsername
+			IsLoggedIn  bool
 			CurrentUser *auth.User
-			IsAuthor   bool
+			IsAuthor    bool
 		}{
 			Recipe:      recipe,
 			Comments:    commentsWithUsernames,
@@ -378,7 +377,7 @@ func ViewRecipeHandler(w http.ResponseWriter, r *http.Request) {
 			CurrentUser: nil,
 			IsAuthor:    false,
 		}
-		err = recipeTemplates.ExecuteTemplate(w, "view.gohtml", data)
+		err = templates.Templates.ExecuteTemplate(w, "view.gohtml", data)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
@@ -391,11 +390,11 @@ func ViewRecipeHandler(w http.ResponseWriter, r *http.Request) {
 	isAuthor := isLoggedIn && currentUser.ID == recipe.AuthorID
 
 	data := struct {
-		Recipe     models.Recipe
-		Comments   []CommentWithUsername
-		IsLoggedIn bool
+		Recipe      models.Recipe
+		Comments    []CommentWithUsername
+		IsLoggedIn  bool
 		CurrentUser *auth.User
-		IsAuthor   bool
+		IsAuthor    bool
 	}{
 		Recipe:      recipe,
 		Comments:    commentsWithUsernames,
@@ -404,7 +403,7 @@ func ViewRecipeHandler(w http.ResponseWriter, r *http.Request) {
 		IsAuthor:    isAuthor,
 	}
 
-	err = recipeTemplates.ExecuteTemplate(w, "view.gohtml", data)
+	err = templates.Templates.ExecuteTemplate(w, "view.gohtml", data)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
@@ -480,7 +479,7 @@ func CommentHTMXHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Return HTML fragment
 	w.Header().Set("Content-Type", "text/html")
-	err = recipeTemplates.ExecuteTemplate(w, "comment.gohtml", commentData)
+	err = templates.Templates.ExecuteTemplate(w, "comment.gohtml", commentData)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
@@ -591,7 +590,7 @@ func FilterRecipesHTMXHandler(w http.ResponseWriter, r *http.Request) {
 			CurrentUser: nil,
 		}
 		w.Header().Set("Content-Type", "text/html")
-		err = recipeTemplates.ExecuteTemplate(w, "recipe-cards.gohtml", data)
+		err = templates.Templates.ExecuteTemplate(w, "recipe-cards.gohtml", data)
 		if err != nil {
 			slog.Error("Failed to execute template", "error", err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -614,7 +613,7 @@ func FilterRecipesHTMXHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "text/html")
-	err = recipeTemplates.ExecuteTemplate(w, "recipe-cards.gohtml", data)
+	err = templates.Templates.ExecuteTemplate(w, "recipe-cards.gohtml", data)
 	if err != nil {
 		slog.Error("Failed to execute template", "error", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
