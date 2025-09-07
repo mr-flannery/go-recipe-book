@@ -171,17 +171,12 @@ func ListRecipesHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer database.Close()
 
-	currentUser, err := auth.GetUserBySession(database, r)
-	isLoggedIn := err == nil
-
 	data := struct {
-		Recipes     []models.Recipe
-		IsLoggedIn  bool
-		CurrentUser *auth.User
+		Recipes  []models.Recipe
+		UserInfo *auth.UserInfo
 	}{
-		Recipes:     recipes,
-		IsLoggedIn:  isLoggedIn,
-		CurrentUser: currentUser,
+		Recipes:  recipes,
+		UserInfo: auth.GetUserInfoFromContext(r.Context()),
 	}
 
 	err = templates.Templates.ExecuteTemplate(w, "list.gohtml", data)

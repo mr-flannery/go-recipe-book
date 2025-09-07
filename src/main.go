@@ -58,7 +58,8 @@ func main() {
 	}()
 
 	// Create authentication middleware
-	requireAuth := auth.RequireAuth(database)
+	userContext := auth.UserContextMiddleware()
+	requireAuth := auth.RequireAuth()
 	requireAPIKey := auth.RequireAPIKey()
 
 	// Create a new ServeMux
@@ -68,10 +69,10 @@ func main() {
 	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./static/"))))
 
 	// Home page
-	mux.HandleFunc("/", handlers.HomeHandler)
+	mux.Handle("/", userContext(http.HandlerFunc(handlers.HomeHandler)))
 
 	// Imprint page
-	mux.HandleFunc("/imprint", handlers.ImprintHandler)
+	mux.Handle("/imprint", userContext(http.HandlerFunc(handlers.ImprintHandler)))
 
 	// Auth routes
 	mux.HandleFunc("GET /login", handlers.GetLoginHandler)
@@ -82,48 +83,77 @@ func main() {
 
 	// Admin routes - require authentication and admin privileges
 	requireAdminAuth := func(next http.Handler) http.Handler {
-		return requireAuth(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// Get database connection
-			database, err := db.GetConnection()
-			if err != nil {
-				http.Error(w, "Internal server error", http.StatusInternalServerError)
-				return
-			}
-			defer database.Close()
-
-			// Get current user
-			user, err := auth.GetUserBySession(database, r)
-			if err != nil || !user.IsAdmin {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// Get current user from context
+			if !auth.IsUserAdmin(r.Context()) {
 				http.Error(w, "Access denied - admin privileges required", http.StatusForbidden)
 				return
 			}
 
 			next.ServeHTTP(w, r)
-		}))
+		})
 	}
 
-	mux.Handle("GET /admin/registrations", requireAdminAuth(http.HandlerFunc(handlers.GetPendingRegistrationsHandler)))
-	mux.Handle("POST /admin/registrations/{id}/approve", requireAdminAuth(http.HandlerFunc(handlers.ApproveRegistrationHandler)))
-	mux.Handle("POST /admin/registrations/{id}/deny", requireAdminAuth(http.HandlerFunc(handlers.DenyRegistrationHandler)))
+	mux.Handle("GET /admin/registrations",
+		userContext(
+			requireAuth(
+				requireAdminAuth(
+					http.HandlerFunc(handlers.GetPendingRegistrationsHandler)))))
+	mux.Handle("POST /admin/registrations/{id}/approve",
+		userContext(
+			requireAuth(
+				requireAdminAuth(
+					http.HandlerFunc(handlers.ApproveRegistrationHandler)))))
+	mux.Handle("POST /admin/registrations/{id}/deny",
+		userContext(
+			requireAuth(
+				requireAdminAuth(
+					http.HandlerFunc(handlers.DenyRegistrationHandler)))))
 
 	// Recipe routes with parameters
-	mux.Handle("GET /recipes/create", requireAuth(http.HandlerFunc(handlers.GetCreateRecipeHandler)))
-	mux.Handle("POST /recipes/create", requireAuth(http.HandlerFunc(handlers.PostCreateRecipeHandler)))
-	mux.Handle("GET /recipes/update", requireAuth(http.HandlerFunc(handlers.GetUpdateRecipeHandler)))
-	mux.Handle("POST /recipes/update", requireAuth(http.HandlerFunc(handlers.PostUpdateRecipeHandler)))
-	mux.Handle("DELETE /recipes/{id}/delete", requireAuth(http.HandlerFunc(handlers.DeleteRecipeHandler)))
-	mux.HandleFunc("GET /recipes", handlers.ListRecipesHandler)
-	mux.HandleFunc("POST /recipes/filter", handlers.FilterRecipesHTMXHandler)
+	mux.Handle("GET /recipes/create",
+		userContext(
+			requireAuth(
+				http.HandlerFunc(handlers.GetCreateRecipeHandler))))
+	mux.Handle("POST /recipes/create",
+		userContext(
+			requireAuth(
+				http.HandlerFunc(handlers.PostCreateRecipeHandler))))
+	mux.Handle("GET /recipes/update",
+		userContext(
+			requireAuth(
+				http.HandlerFunc(handlers.GetUpdateRecipeHandler))))
+	mux.Handle("POST /recipes/update",
+		userContext(
+			requireAuth(
+				http.HandlerFunc(handlers.PostUpdateRecipeHandler))))
+	mux.Handle("DELETE /recipes/{id}/delete",
+		userContext(
+			requireAuth(
+				http.HandlerFunc(handlers.DeleteRecipeHandler))))
+	mux.Handle("GET /recipes",
+		userContext(
+			http.HandlerFunc(handlers.ListRecipesHandler)))
+	mux.Handle("POST /recipes/filter",
+		userContext(
+			http.HandlerFunc(handlers.FilterRecipesHTMXHandler)))
 
 	// Recipe view route with ID parameter - /recipes/{id}
-	mux.HandleFunc("GET /recipes/{id}", handlers.ViewRecipeHandler)
+	mux.Handle("GET /recipes/{id}",
+		userContext(
+			http.HandlerFunc(handlers.ViewRecipeHandler)))
 
 	// Recipe comments route with ID parameter - /recipes/{id}/comments/htmx
-	mux.Handle("POST /recipes/{id}/comments/htmx", requireAuth(http.HandlerFunc(handlers.CommentHTMXHandler)))
+	mux.Handle("POST /recipes/{id}/comments/htmx",
+		userContext(
+			requireAuth(
+				http.HandlerFunc(handlers.CommentHTMXHandler))))
 
 	// API routes - protected by API key authentication
 	mux.HandleFunc("GET /api/health", handlers.APIHealthHandler)
-	mux.Handle("POST /api/recipe/upload", requireAPIKey(http.HandlerFunc(handlers.APICreateRecipeHandler)))
+	mux.Handle("POST /api/recipe/upload",
+		requireAPIKey(
+			http.HandlerFunc(handlers.APICreateRecipeHandler)))
 
 	slog.Info("Ready to serve!")
 

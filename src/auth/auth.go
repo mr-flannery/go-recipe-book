@@ -99,10 +99,12 @@ func IsSessionValid(db *sql.DB, r *http.Request) bool {
 }
 
 // RequireAuth creates middleware to enforce authentication
-func RequireAuth(db *sql.DB) func(http.Handler) http.Handler {
+// This middleware should be used AFTER UserContextMiddleware
+func RequireAuth() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if !IsSessionValid(db, r) {
+			user := GetUserFromContext(r.Context())
+			if user == nil {
 				// Include the current URL as redirect parameter
 				currentURL := r.URL.Path
 				if r.URL.RawQuery != "" {

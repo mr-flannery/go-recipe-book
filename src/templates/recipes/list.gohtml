@@ -32,6 +32,7 @@
     </script>
 </head>
 <body>
+    {{ template "navbar" .UserInfo }}
     <div class="header">
         <h1>Recipe Collection</h1>
         <a href="/recipes/create" class="btn btn-primary">+ Create New Recipe</a>
