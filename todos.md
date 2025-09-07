@@ -1,7 +1,7 @@
-- add dynamic filtering
-- add random function
 - make the list recipes page the homepage
 - add a header and a navbar and stuff like that
+- add random function
+  - and put it into the header
 - add a footer with an impressum
 - prevent website from being crawled once it's live
 - write tests
@@ -10,5 +10,6 @@
   - nginx https stuff
   - buy domain
   - register domain with Maileroo
+- fix the frigging css...
 - tagging!!!
 - 

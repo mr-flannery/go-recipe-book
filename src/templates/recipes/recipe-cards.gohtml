@@ -1,43 +1,43 @@
 <div id="recipe-results">
-        {{if .Recipes}}
-        <div class="recipe-grid">
-            {{range .Recipes}}
-            <div class="recipe-card">
-                <div class="recipe-image-container">
-                    {{if .ImageBase64}}
-                        <img src="data:image/jpeg;base64,{{.ImageBase64}}" alt="{{.Title}}" class="recipe-image">
-                    {{else}}
-                        <div class="no-image">No image</div>
-                    {{end}}
+    {{if .Recipes}}
+    <div class="recipe-grid">
+        {{range .Recipes}}
+        <div class="recipe-card">
+            <div class="recipe-image-container">
+                {{if .ImageBase64}}
+                    <img src="data:image/jpeg;base64,{{.ImageBase64}}" alt="{{.Title}}" class="recipe-image">
+                {{else}}
+                    <div class="no-image">No image</div>
+                {{end}}
+            </div>
+            
+            <div class="recipe-content">
+                <div class="recipe-title">{{.Title}}</div>
+                
+                <div class="recipe-ingredients">{{.IngredientsMD}}</div>
+                
+                <div class="recipe-meta">
+                    {{if .PrepTime}}<span>⏱️ {{.PrepTime}}min prep</span>{{end}}
+                    {{if .CookTime}}<span>🔥 {{.CookTime}}min cook</span>{{end}}
+                    {{if .Calories}}<span>📊 {{.Calories}} cal</span>{{end}}
                 </div>
                 
-                <div class="recipe-content">
-                    <div class="recipe-title">{{.Title}}</div>
-                    
-                    <div class="recipe-ingredients">{{.IngredientsMD}}</div>
-                    
-                    <div class="recipe-meta">
-                        {{if .PrepTime}}<span>⏱️ {{.PrepTime}}min prep</span>{{end}}
-                        {{if .CookTime}}<span>🔥 {{.CookTime}}min cook</span>{{end}}
-                        {{if .Calories}}<span>📊 {{.Calories}} cal</span>{{end}}
-                    </div>
-                    
-                    <div class="recipe-actions">
-                        <a href="/recipes/{{.ID}}" class="btn btn-primary">View Recipe</a>
-                        {{if and $.IsLoggedIn (eq $.CurrentUser.ID .AuthorID)}}
-                            <a href="/recipes/update?id={{.ID}}" class="btn btn-secondary">Edit</a>
-                            <button onclick="deleteRecipe({{.ID}})" class="btn btn-danger">Delete</button>
-                        {{end}}
-                    </div>
+                <div class="recipe-actions">
+                    <a href="/recipes/{{.ID}}" class="btn btn-primary">View Recipe</a>
+                    {{if and $.IsLoggedIn (eq $.CurrentUser.ID .AuthorID)}}
+                        <a href="/recipes/update?id={{.ID}}" class="btn btn-secondary">Edit</a>
+                        <button onclick="deleteRecipe({{.ID}})" class="btn btn-danger">Delete</button>
+                    {{end}}
                 </div>
             </div>
-            {{end}}
-        </div>
-        {{else}}
-        <div class="text-center margin-top-20">
-            <h2>No recipes found</h2>
-            <p>Create your first recipe to get started!</p>
-            <a href="/recipes/create" class="btn btn-primary">Create Your First Recipe</a>
         </div>
         {{end}}
     </div>
+    {{else}}
+    <div class="text-center margin-top-20">
+        <h2>No recipes found</h2>
+        <p>Either no recipes match your filter, or there are no recipes available.</p>
+        <a href="/recipes/create" class="btn btn-primary">Create a recipe!</a>
+    </div>
+    {{end}}
+</div>
