@@ -13,4 +13,6 @@
   - register domain with Maileroo
 - fix the frigging css...
 - tagging!!!
-- 
+- list recipes that share ingredients with the current recipe
+  - this would reuqire first implement some form of structured ingredient logging, i.e. instead of just using text, it would require structured inputs that is backed by some database
+  - and/or this can be parsed from the freetext input

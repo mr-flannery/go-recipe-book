@@ -4,8 +4,18 @@ import (
 	"html/template"
 	"io/fs"
 	"path/filepath"
+	"runtime"
 	"strings"
 )
+
+// getPackageDir returns the directory containing this source file
+func getPackageDir() string {
+	_, filename, _, ok := runtime.Caller(0)
+	if !ok {
+		panic("failed to get current file path")
+	}
+	return filepath.Dir(filename)
+}
 
 func loadTemplatesRecursive(root string) (*template.Template, error) {
 	var files []string
@@ -28,5 +38,4 @@ func loadTemplatesRecursive(root string) (*template.Template, error) {
 	return template.ParseFiles(files...)
 }
 
-// var Templates = template.Must(template.ParseGlob("templates/**/*.gohtml"))
-var Templates = template.Must(loadTemplatesRecursive("templates"))
+var Templates = template.Must(loadTemplatesRecursive(getPackageDir()))

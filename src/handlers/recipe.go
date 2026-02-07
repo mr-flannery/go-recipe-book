@@ -156,10 +156,12 @@ func ListRecipesHandler(w http.ResponseWriter, r *http.Request) {
 		// If DB fails, assume not logged in
 		data := struct {
 			Recipes     []models.Recipe
+			UserInfo    *auth.UserInfo
 			IsLoggedIn  bool
 			CurrentUser *auth.User
 		}{
 			Recipes:     recipes,
+			UserInfo:    &auth.UserInfo{IsLoggedIn: false, IsAdmin: false, Username: ""},
 			IsLoggedIn:  false,
 			CurrentUser: nil,
 		}
@@ -171,12 +173,22 @@ func ListRecipesHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer database.Close()
 
+	userInfo := auth.GetUserInfoFromContext(r.Context())
+	var currentUser *auth.User
+	if userInfo.IsLoggedIn {
+		currentUser, _ = auth.GetUserBySession(database, r)
+	}
+
 	data := struct {
-		Recipes  []models.Recipe
-		UserInfo *auth.UserInfo
+		Recipes     []models.Recipe
+		UserInfo    *auth.UserInfo
+		IsLoggedIn  bool
+		CurrentUser *auth.User
 	}{
-		Recipes:  recipes,
-		UserInfo: auth.GetUserInfoFromContext(r.Context()),
+		Recipes:     recipes,
+		UserInfo:    userInfo,
+		IsLoggedIn:  userInfo.IsLoggedIn,
+		CurrentUser: currentUser,
 	}
 
 	err = templates.Templates.ExecuteTemplate(w, "list.gohtml", data)
@@ -585,7 +597,7 @@ func FilterRecipesHTMXHandler(w http.ResponseWriter, r *http.Request) {
 			CurrentUser: nil,
 		}
 		w.Header().Set("Content-Type", "text/html")
-		err = templates.Templates.ExecuteTemplate(w, "recipe-cards.gohtml", data)
+		err = templates.Templates.ExecuteTemplate(w, "recipe-cards", data)
 		if err != nil {
 			slog.Error("Failed to execute template", "error", err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)

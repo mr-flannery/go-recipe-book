@@ -4,12 +4,23 @@ import (
 	"database/sql"
 	"fmt"
 	"log/slog"
+	"path/filepath"
+	"runtime"
 
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/lib/pq"
 	"github.com/mr-flannery/go-recipe-book/src/config"
 )
+
+// getPackageDir returns the directory containing this source file
+func getPackageDir() string {
+	_, filename, _, ok := runtime.Caller(0)
+	if !ok {
+		panic("failed to get current file path")
+	}
+	return filepath.Dir(filename)
+}
 
 // implement connection pool at some point in time?
 func GetConnection() (*sql.DB, error) {
@@ -40,8 +51,9 @@ func RunMigrations() error {
 		slog.Error("Failed to create migration driver", "error", err)
 	}
 
+	migrationsPath := filepath.Join(getPackageDir(), "migrations")
 	m, err := migrate.NewWithDatabaseInstance(
-		"file://db/migrations",
+		"file://"+migrationsPath,
 		"postgres",
 		driver,
 	)

@@ -4,6 +4,8 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"path/filepath"
+	"runtime"
 	"time"
 
 	"github.com/mr-flannery/go-recipe-book/src/auth"
@@ -13,6 +15,15 @@ import (
 
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 )
+
+// getPackageDir returns the directory containing this source file
+func getPackageDir() string {
+	_, filename, _, ok := runtime.Caller(0)
+	if !ok {
+		panic("failed to get current file path")
+	}
+	return filepath.Dir(filename)
+}
 
 func main() {
 	addr := ":8080"
@@ -66,7 +77,8 @@ func main() {
 	mux := http.NewServeMux()
 
 	// Static files (CSS, JS, images, etc.)
-	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./static/"))))
+	staticPath := filepath.Join(getPackageDir(), "static")
+	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir(staticPath))))
 
 	// Home page
 	mux.Handle("/", userContext(http.HandlerFunc(handlers.HomeHandler)))

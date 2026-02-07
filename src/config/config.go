@@ -3,10 +3,21 @@ package config
 import (
 	"log/slog"
 	"os"
+	"path/filepath"
 	"reflect"
+	"runtime"
 
 	"gopkg.in/yaml.v3"
 )
+
+// getPackageDir returns the directory containing this source file
+func getPackageDir() string {
+	_, filename, _, ok := runtime.Caller(0)
+	if !ok {
+		panic("failed to get current file path")
+	}
+	return filepath.Dir(filename)
+}
 
 type Config struct {
 	DB struct {
@@ -48,8 +59,9 @@ func GetConfig() Config {
 		return config
 	}
 
-	// unsure if the path makes sense once I start packaging this into a docker container
-	file, err := os.Open("../config.yaml")
+	// config.yaml is located at the project root (parent of src/)
+	configPath := filepath.Join(getPackageDir(), "..", "..", "config.yaml")
+	file, err := os.Open(configPath)
 	if err != nil {
 		panic("Failed to open config file: " + err.Error())
 	}
