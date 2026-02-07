@@ -18,7 +18,12 @@ import (
 
 // GetCreateRecipeHandler handles displaying the create recipe form
 func GetCreateRecipeHandler(w http.ResponseWriter, r *http.Request) {
-	err := templates.Templates.ExecuteTemplate(w, "create.gohtml", nil)
+	data := struct {
+		UserInfo *auth.UserInfo
+	}{
+		UserInfo: auth.GetUserInfoFromContext(r.Context()),
+	}
+	err := templates.Templates.ExecuteTemplate(w, "create.gohtml", data)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
@@ -205,7 +210,16 @@ func GetUpdateRecipeHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Recipe not found", http.StatusNotFound)
 		return
 	}
-	err = templates.Templates.ExecuteTemplate(w, "update.gohtml", recipe)
+
+	data := struct {
+		Recipe   models.Recipe
+		UserInfo *auth.UserInfo
+	}{
+		Recipe:   recipe,
+		UserInfo: auth.GetUserInfoFromContext(r.Context()),
+	}
+
+	err = templates.Templates.ExecuteTemplate(w, "update.gohtml", data)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
@@ -368,6 +382,8 @@ func ViewRecipeHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Check if user is logged in and get user info
+	userInfo := auth.GetUserInfoFromContext(r.Context())
+
 	database, err := db.GetConnection()
 	if err != nil {
 		// If DB fails, assume not logged in
@@ -377,12 +393,14 @@ func ViewRecipeHandler(w http.ResponseWriter, r *http.Request) {
 			IsLoggedIn  bool
 			CurrentUser *auth.User
 			IsAuthor    bool
+			UserInfo    *auth.UserInfo
 		}{
 			Recipe:      recipe,
 			Comments:    commentsWithUsernames,
 			IsLoggedIn:  false,
 			CurrentUser: nil,
 			IsAuthor:    false,
+			UserInfo:    userInfo,
 		}
 		err = templates.Templates.ExecuteTemplate(w, "view.gohtml", data)
 		if err != nil {
@@ -402,12 +420,14 @@ func ViewRecipeHandler(w http.ResponseWriter, r *http.Request) {
 		IsLoggedIn  bool
 		CurrentUser *auth.User
 		IsAuthor    bool
+		UserInfo    *auth.UserInfo
 	}{
 		Recipe:      recipe,
 		Comments:    commentsWithUsernames,
 		IsLoggedIn:  isLoggedIn,
 		CurrentUser: currentUser,
 		IsAuthor:    isAuthor,
+		UserInfo:    userInfo,
 	}
 
 	err = templates.Templates.ExecuteTemplate(w, "view.gohtml", data)

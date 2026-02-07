@@ -1,6 +1,3 @@
-- add a header and a navbar and stuff like that
-  - the navbar exists, and there is a usercontext middleware. i still need to add the navbar and footer to all pages that require them and then need to update all template call functions to get the usercontext from the middleware so that the navbar can do it's thing
-- add a footer with an impressum
 - add random function
   - and put it into the header
 - prevent website from being crawled once it's live
@@ -25,3 +22,6 @@
   - recipes can be added to collections
   - collections are owned by a user
   - a user can give other users access to said collection
+- GDRP
+  - export user info
+  - delete account

@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="/static/css/styles.css">
 </head>
 <body>
+    {{ template "navbar" .UserInfo }}
     <div class="navigation">
         <a href="/recipes" class="btn btn-secondary">← Back to Recipes</a>
     </div>
@@ -210,5 +211,6 @@
             }
         });
     </script>
+    {{ template "footer" .UserInfo }}
 </body>
 </html>

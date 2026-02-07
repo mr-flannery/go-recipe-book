@@ -7,13 +7,9 @@
     <link rel="stylesheet" href="/static/css/styles.css">
 </head>
 <body>
+    {{ template "navbar" .UserInfo }}
     <div class="header">
         <h1>Admin Panel - Pending Registrations</h1>
-        <div class="nav-links">
-            <a href="/">Home</a>
-            <a href="/recipes">Recipes</a>
-            <a href="/logout">Logout</a>
-        </div>
     </div>
 
     <div class="registrations-container">
@@ -70,5 +66,6 @@
             </div>
         {{end}}
     </div>
+    {{ template "footer" }}
 </body>
 </html>

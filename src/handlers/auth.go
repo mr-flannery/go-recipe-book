@@ -16,6 +16,7 @@ import (
 type LoginData struct {
 	RedirectURL string
 	Error       string
+	UserInfo    *auth.UserInfo
 }
 
 func GetLoginHandler(w http.ResponseWriter, r *http.Request) {
@@ -23,6 +24,7 @@ func GetLoginHandler(w http.ResponseWriter, r *http.Request) {
 	redirectURL := r.URL.Query().Get("redirect")
 	data := LoginData{
 		RedirectURL: redirectURL,
+		UserInfo:    auth.GetUserInfoFromContext(r.Context()),
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
@@ -46,6 +48,7 @@ func PostLoginHandler(w http.ResponseWriter, r *http.Request) {
 		data := LoginData{
 			RedirectURL: redirectURL,
 			Error:       "Invalid username or password. Please try again.",
+			UserInfo:    auth.GetUserInfoFromContext(r.Context()),
 		}
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		err := templates.Templates.ExecuteTemplate(w, "login.gohtml", data)
@@ -96,10 +99,13 @@ type RegisterData struct {
 	Email    string
 	Error    string
 	Success  string
+	UserInfo *auth.UserInfo
 }
 
 func GetRegisterHandler(w http.ResponseWriter, r *http.Request) {
-	data := RegisterData{}
+	data := RegisterData{
+		UserInfo: auth.GetUserInfoFromContext(r.Context()),
+	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	err := templates.Templates.ExecuteTemplate(w, "register.gohtml", data)
@@ -118,6 +124,7 @@ func PostRegisterHandler(w http.ResponseWriter, r *http.Request) {
 	data := RegisterData{
 		Username: username,
 		Email:    email,
+		UserInfo: auth.GetUserInfoFromContext(r.Context()),
 	}
 
 	// Validate passwords match
@@ -167,6 +174,7 @@ type PendingRegistrationsData struct {
 	Registrations []auth.RegistrationRequest
 	Success       string
 	Error         string
+	UserInfo      *auth.UserInfo
 }
 
 func GetPendingRegistrationsHandler(w http.ResponseWriter, r *http.Request) {
@@ -189,6 +197,7 @@ func GetPendingRegistrationsHandler(w http.ResponseWriter, r *http.Request) {
 
 	data := PendingRegistrationsData{
 		Registrations: registrations,
+		UserInfo:      auth.GetUserInfoFromContext(r.Context()),
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
