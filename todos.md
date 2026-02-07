@@ -1,5 +1,5 @@
-- add random function
-  - and put it into the header
+- code reloading
+  - Let's watch whether this actually works correctly now...
 - prevent website from being crawled once it's live
 - write tests
 - refactor
