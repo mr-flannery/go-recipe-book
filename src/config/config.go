@@ -5,19 +5,10 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
-	"runtime"
 
+	"github.com/mr-flannery/go-recipe-book/src/utils"
 	"gopkg.in/yaml.v3"
 )
-
-// getPackageDir returns the directory containing this source file
-func getPackageDir() string {
-	_, filename, _, ok := runtime.Caller(0)
-	if !ok {
-		panic("failed to get current file path")
-	}
-	return filepath.Dir(filename)
-}
 
 type Config struct {
 	DB struct {
@@ -60,7 +51,7 @@ func GetConfig() Config {
 	}
 
 	// config.yaml is located at the project root (parent of src/)
-	configPath := filepath.Join(getPackageDir(), "..", "..", "config.yaml")
+	configPath := filepath.Join(utils.GetCallerDir(0), "..", "..", "config.yaml")
 	file, err := os.Open(configPath)
 	if err != nil {
 		panic("Failed to open config file: " + err.Error())

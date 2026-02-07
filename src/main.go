@@ -5,25 +5,16 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"runtime"
 	"time"
 
 	"github.com/mr-flannery/go-recipe-book/src/auth"
 	"github.com/mr-flannery/go-recipe-book/src/config"
 	"github.com/mr-flannery/go-recipe-book/src/db"
 	"github.com/mr-flannery/go-recipe-book/src/handlers"
+	"github.com/mr-flannery/go-recipe-book/src/utils"
 
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 )
-
-// getPackageDir returns the directory containing this source file
-func getPackageDir() string {
-	_, filename, _, ok := runtime.Caller(0)
-	if !ok {
-		panic("failed to get current file path")
-	}
-	return filepath.Dir(filename)
-}
 
 func main() {
 	addr := ":8080"
@@ -77,7 +68,7 @@ func main() {
 	mux := http.NewServeMux()
 
 	// Static files (CSS, JS, images, etc.)
-	staticPath := filepath.Join(getPackageDir(), "static")
+	staticPath := filepath.Join(utils.GetCallerDir(0), "static")
 	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir(staticPath))))
 
 	// Home page
