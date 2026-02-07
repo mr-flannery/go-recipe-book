@@ -71,6 +71,11 @@ func main() {
 	staticPath := filepath.Join(utils.GetCallerDir(0), "static")
 	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir(staticPath))))
 
+	// Serve robots.txt from root
+	mux.HandleFunc("GET /robots.txt", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, filepath.Join(staticPath, "robots.txt"))
+	})
+
 	// Home page
 	mux.Handle("/", userContext(http.HandlerFunc(handlers.HomeHandler)))
 
