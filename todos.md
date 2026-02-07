@@ -3,7 +3,6 @@
 - add a footer with an impressum
 - add random function
   - and put it into the header
-- make the list recipes page the homepage
 - prevent website from being crawled once it's live
 - write tests
 - refactor
@@ -16,3 +15,13 @@
 - list recipes that share ingredients with the current recipe
   - this would reuqire first implement some form of structured ingredient logging, i.e. instead of just using text, it would require structured inputs that is backed by some database
   - and/or this can be parsed from the freetext input
+  - this might be an llm use case
+  - probably rather do this at the end
+- extract recipes from youtube videos or websites using llms
+- add api endpoints for creating recipes
+- calculate calorie information from ingredients
+  - though this would need to be adjusted for ingredentis that are missing precise quantities
+- add a collection feature
+  - recipes can be added to collections
+  - collections are owned by a user
+  - a user can give other users access to said collection
