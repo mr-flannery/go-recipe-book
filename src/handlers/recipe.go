@@ -559,6 +559,19 @@ func DeleteRecipeHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("Recipe deleted successfully"))
 }
 
+// RandomRecipeHandler redirects to a random recipe
+func RandomRecipeHandler(w http.ResponseWriter, r *http.Request) {
+	recipeID, err := models.GetRandomRecipeID()
+	if err != nil {
+		// If no recipes exist or there's an error, redirect to recipes list
+		slog.Error("Failed to get random recipe", "error", err)
+		http.Redirect(w, r, "/recipes", http.StatusSeeOther)
+		return
+	}
+
+	http.Redirect(w, r, fmt.Sprintf("/recipes/%d", recipeID), http.StatusSeeOther)
+}
+
 // FilterRecipesHTMXHandler handles HTMX filtering requests and returns filtered recipe cards
 func FilterRecipesHTMXHandler(w http.ResponseWriter, r *http.Request) {
 	// Parse form data

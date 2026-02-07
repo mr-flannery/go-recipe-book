@@ -8,6 +8,7 @@
             </a>
         </div>
         <div class="navbar-menu">
+            <a href="/recipes/random" class="nav-link random-link">Random Recipe</a>
             {{if .IsLoggedIn}}
                 <span class="user-greeting">Welcome, {{.Username}}!</span>
                 {{if .IsAdmin}}

@@ -374,3 +374,21 @@ func GetLatestCommentByUserAndRecipe(userID int, recipeID int) (Comment, error) 
 
 	return comment, nil
 }
+
+// GetRandomRecipeID retrieves a random recipe ID from the database
+func GetRandomRecipeID() (int, error) {
+	var id int
+
+	dbConnection, err := db.GetConnection()
+	if err != nil {
+		return 0, fmt.Errorf("failed to connect to database: %v", err)
+	}
+	defer dbConnection.Close()
+
+	err = dbConnection.QueryRow("SELECT id FROM recipes ORDER BY RANDOM() LIMIT 1").Scan(&id)
+	if err != nil {
+		return 0, fmt.Errorf("failed to get random recipe: %v", err)
+	}
+
+	return id, nil
+}

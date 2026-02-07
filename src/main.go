@@ -137,6 +137,9 @@ func main() {
 	mux.Handle("GET /recipes",
 		userContext(
 			http.HandlerFunc(handlers.ListRecipesHandler)))
+	mux.Handle("GET /recipes/random",
+		userContext(
+			http.HandlerFunc(handlers.RandomRecipeHandler)))
 	mux.Handle("POST /recipes/filter",
 		userContext(
 			http.HandlerFunc(handlers.FilterRecipesHTMXHandler)))
