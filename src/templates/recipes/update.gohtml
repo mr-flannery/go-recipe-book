@@ -60,11 +60,6 @@
                 <label>Tags</label>
                 <div class="tags-section">
                     <div id="tags-container" class="tags-container">
-                        {{range .Recipe.Tags}}
-                        <span class="tag tag-author" data-tag="{{.Name}}">
-                            {{.Name}}<button type="button" class="tag-remove" onclick="removeTag('{{.Name}}')">&times;</button>
-                        </span>
-                        {{end}}
                         <div class="tag-input-container">
                             <input type="text" id="tag-input" class="tag-input" placeholder="Add tag...">
                             <div id="tag-suggestions" class="tag-suggestions"></div>
@@ -90,7 +85,7 @@
                 <label for="instructions">Instructions (Markdown) *</label>
                 <textarea id="instructions" name="instructions" class="textarea-large" required placeholder="Provide step-by-step instructions. You can use Markdown formatting:
 
-1. **Preheat** oven to 350°F (175°C)
+1. **Preheat** oven to 350F (175C)
 2. In a large bowl, mix dry ingredients
 3. Add wet ingredients and stir until combined
 4. Bake for 25-30 minutes until golden brown
@@ -106,136 +101,22 @@
         </form>
     </div>
 
+    {{ template "tag-input-script" }}
     <script>
-        const tagInput = document.getElementById('tag-input');
-        const tagSuggestions = document.getElementById('tag-suggestions');
-        const tagsContainer = document.getElementById('tags-container');
-        const tagsHidden = document.getElementById('tags-hidden');
-        let selectedTags = tagsHidden.value ? tagsHidden.value.split(',').filter(t => t.trim()) : [];
-        let selectedIndex = -1;
-        let currentSuggestions = [];
-
-        async function searchTags(query) {
-            try {
-                const response = await fetch(`/api/tags/search?q=${encodeURIComponent(query)}`);
-                const data = await response.json();
-                return data.tags || [];
-            } catch (e) {
-                return [];
-            }
-        }
-
-        function updateHiddenField() {
-            tagsHidden.value = selectedTags.join(',');
-        }
-
-        function renderTags() {
-            const existingTags = tagsContainer.querySelectorAll('.tag');
-            existingTags.forEach(tag => tag.remove());
+        document.addEventListener('DOMContentLoaded', function() {
+            const tagsHidden = document.getElementById('tags-hidden');
+            const initialTags = tagsHidden.value ? tagsHidden.value.split(',').filter(t => t.trim()) : [];
             
-            const inputContainer = tagsContainer.querySelector('.tag-input-container');
-            selectedTags.forEach(tagName => {
-                const tagEl = document.createElement('span');
-                tagEl.className = 'tag tag-author';
-                tagEl.setAttribute('data-tag', tagName);
-                tagEl.innerHTML = `${tagName}<button type="button" class="tag-remove" onclick="removeTag('${tagName}')">&times;</button>`;
-                tagsContainer.insertBefore(tagEl, inputContainer);
+            TagInputWidget.init({
+                inputId: 'tag-input',
+                suggestionsId: 'tag-suggestions',
+                containerId: 'tags-container',
+                hiddenFieldId: 'tags-hidden',
+                searchUrl: '/api/tags/search',
+                initialTags: initialTags,
+                tagClass: 'tag-author',
+                mode: 'local'
             });
-        }
-
-        function addTag(tagName) {
-            tagName = tagName.toLowerCase().trim();
-            if (!tagName || selectedTags.includes(tagName)) return;
-            
-            selectedTags.push(tagName);
-            updateHiddenField();
-            renderTags();
-            tagInput.value = '';
-            tagSuggestions.classList.remove('show');
-        }
-
-        window.removeTag = function(tagName) {
-            selectedTags = selectedTags.filter(t => t !== tagName);
-            updateHiddenField();
-            renderTags();
-        };
-
-        function renderSuggestions(tags, query) {
-            currentSuggestions = tags.filter(t => !selectedTags.includes(t));
-            selectedIndex = -1;
-            
-            if (currentSuggestions.length === 0 && query.trim() === '') {
-                tagSuggestions.classList.remove('show');
-                return;
-            }
-
-            let html = '';
-            currentSuggestions.forEach((tag, i) => {
-                html += `<div class="tag-suggestion" data-index="${i}" data-tag="${tag}">${tag}</div>`;
-            });
-
-            const normalizedQuery = query.toLowerCase().trim();
-            if (normalizedQuery !== '' && !currentSuggestions.includes(normalizedQuery) && !selectedTags.includes(normalizedQuery)) {
-                html += `<div class="tag-suggestion tag-suggestion-new" data-index="${currentSuggestions.length}" data-tag="${normalizedQuery}">Create "${normalizedQuery}"</div>`;
-                currentSuggestions.push(normalizedQuery);
-            }
-
-            if (html === '') {
-                tagSuggestions.classList.remove('show');
-                return;
-            }
-
-            tagSuggestions.innerHTML = html;
-            tagSuggestions.classList.add('show');
-        }
-
-        tagInput.addEventListener('input', async function() {
-            const query = this.value;
-            const tags = await searchTags(query);
-            renderSuggestions(tags, query);
-        });
-
-        tagInput.addEventListener('keydown', function(e) {
-            const items = tagSuggestions.querySelectorAll('.tag-suggestion');
-            
-            if (e.key === 'ArrowDown') {
-                e.preventDefault();
-                selectedIndex = Math.min(selectedIndex + 1, items.length - 1);
-                items.forEach((item, i) => item.classList.toggle('selected', i === selectedIndex));
-            } else if (e.key === 'ArrowUp') {
-                e.preventDefault();
-                selectedIndex = Math.max(selectedIndex - 1, 0);
-                items.forEach((item, i) => item.classList.toggle('selected', i === selectedIndex));
-            } else if (e.key === 'Enter') {
-                e.preventDefault();
-                if (selectedIndex >= 0 && currentSuggestions[selectedIndex]) {
-                    addTag(currentSuggestions[selectedIndex]);
-                } else if (this.value.trim()) {
-                    addTag(this.value.trim());
-                }
-            } else if (e.key === 'Escape') {
-                tagSuggestions.classList.remove('show');
-            }
-        });
-
-        tagSuggestions.addEventListener('click', function(e) {
-            const item = e.target.closest('.tag-suggestion');
-            if (item) {
-                addTag(item.dataset.tag);
-            }
-        });
-
-        document.addEventListener('click', function(e) {
-            if (!tagInput.contains(e.target) && !tagSuggestions.contains(e.target)) {
-                tagSuggestions.classList.remove('show');
-            }
-        });
-
-        tagInput.addEventListener('focus', async function() {
-            if (this.value.trim() === '') {
-                const tags = await searchTags('');
-                renderSuggestions(tags, '');
-            }
         });
     </script>
     {{ template "footer" }}

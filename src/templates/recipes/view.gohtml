@@ -27,156 +27,6 @@
                 });
             }
         }
-
-        function initTagInput(inputId, suggestionsId, searchUrl, addUrl, containerId, tagClass, isAuthor) {
-            const input = document.getElementById(inputId);
-            const suggestions = document.getElementById(suggestionsId);
-            const container = document.getElementById(containerId);
-            let selectedIndex = -1;
-            let currentSuggestions = [];
-
-            async function searchTags(query) {
-                try {
-                    const response = await fetch(`${searchUrl}?q=${encodeURIComponent(query)}`);
-                    const data = await response.json();
-                    return data.tags || [];
-                } catch (e) {
-                    return [];
-                }
-            }
-
-            function renderSuggestions(tags, query) {
-                currentSuggestions = tags;
-                selectedIndex = -1;
-                
-                if (tags.length === 0 && query.trim() === '') {
-                    suggestions.classList.remove('show');
-                    return;
-                }
-
-                let html = '';
-                tags.forEach((tag, i) => {
-                    html += `<div class="tag-suggestion" data-index="${i}" data-tag="${tag}">${tag}</div>`;
-                });
-
-                if (query.trim() !== '' && !tags.includes(query.toLowerCase().trim())) {
-                    html += `<div class="tag-suggestion tag-suggestion-new" data-index="${tags.length}" data-tag="${query.trim()}">Create "${query.trim()}"</div>`;
-                    currentSuggestions.push(query.trim());
-                }
-
-                if (html === '') {
-                    suggestions.classList.remove('show');
-                    return;
-                }
-
-                suggestions.innerHTML = html;
-                suggestions.classList.add('show');
-            }
-
-            async function addTag(tagName) {
-                if (!tagName.trim()) return;
-
-                const formData = new FormData();
-                formData.append('tag', tagName.trim());
-
-                try {
-                    const response = await fetch(addUrl, {
-                        method: 'POST',
-                        body: formData
-                    });
-                    const data = await response.json();
-                    
-                    if (data.success) {
-                        location.reload();
-                    } else {
-                        alert(data.error || 'Failed to add tag');
-                    }
-                } catch (e) {
-                    alert('Error adding tag');
-                }
-            }
-
-            input.addEventListener('input', async function() {
-                const query = this.value;
-                const tags = await searchTags(query);
-                renderSuggestions(tags, query);
-            });
-
-            input.addEventListener('keydown', function(e) {
-                const items = suggestions.querySelectorAll('.tag-suggestion');
-                
-                if (e.key === 'ArrowDown') {
-                    e.preventDefault();
-                    selectedIndex = Math.min(selectedIndex + 1, items.length - 1);
-                    items.forEach((item, i) => item.classList.toggle('selected', i === selectedIndex));
-                } else if (e.key === 'ArrowUp') {
-                    e.preventDefault();
-                    selectedIndex = Math.max(selectedIndex - 1, 0);
-                    items.forEach((item, i) => item.classList.toggle('selected', i === selectedIndex));
-                } else if (e.key === 'Enter') {
-                    e.preventDefault();
-                    if (selectedIndex >= 0 && currentSuggestions[selectedIndex]) {
-                        addTag(currentSuggestions[selectedIndex]);
-                    } else if (this.value.trim()) {
-                        addTag(this.value.trim());
-                    }
-                } else if (e.key === 'Escape') {
-                    suggestions.classList.remove('show');
-                }
-            });
-
-            suggestions.addEventListener('click', function(e) {
-                const item = e.target.closest('.tag-suggestion');
-                if (item) {
-                    addTag(item.dataset.tag);
-                }
-            });
-
-            document.addEventListener('click', function(e) {
-                if (!input.contains(e.target) && !suggestions.contains(e.target)) {
-                    suggestions.classList.remove('show');
-                }
-            });
-
-            input.addEventListener('focus', async function() {
-                if (this.value.trim() === '') {
-                    const tags = await searchTags('');
-                    renderSuggestions(tags, '');
-                }
-            });
-        }
-
-        async function removeTag(recipeId, tagId) {
-            try {
-                const response = await fetch(`/recipes/${recipeId}/tags/${tagId}`, {
-                    method: 'DELETE'
-                });
-                const data = await response.json();
-                if (data.success) {
-                    location.reload();
-                } else {
-                    alert(data.error || 'Failed to remove tag');
-                }
-            } catch (e) {
-                alert('Error removing tag');
-            }
-        }
-
-        async function removeUserTag(tagId) {
-            try {
-                const response = await fetch(`/user-tags/${tagId}`, {
-                    method: 'DELETE'
-                });
-                const data = await response.json();
-                if (data.success) {
-                    location.reload();
-                } else {
-                    alert(data.error || 'Failed to remove tag');
-                }
-            } catch (e) {
-                alert('Error removing tag');
-            }
-        }
     </script>
 </head>
 <body>
@@ -228,13 +78,13 @@
 
         <!-- Author Tags Section -->
         <div class="tags-section">
-            <div class="tags-container">
+            <div id="author-tags-container" class="tags-container">
                 <span class="tags-label">Tags:</span>
                 {{range .Recipe.Tags}}
                 <span class="tag tag-author">
                     {{.Name}}
                     {{if $.IsAuthor}}
-                    <button class="tag-remove" onclick="removeTag({{$.Recipe.ID}}, {{.ID}})" title="Remove tag">&times;</button>
+                    <button class="tag-remove" onclick="removeAuthorTag({{$.Recipe.ID}}, {{.ID}})" title="Remove tag">&times;</button>
                     {{end}}
                 </span>
                 {{end}}
@@ -253,7 +103,7 @@
         <!-- User Tags Section (only for logged-in users) -->
         {{if .IsLoggedIn}}
         <div class="tags-section">
-            <div class="tags-container">
+            <div id="user-tags-container" class="tags-container">
                 <span class="tags-label">My Tags:</span>
                 {{range .UserTags}}
                 <span class="tag tag-user">
@@ -287,7 +137,7 @@
             {{range .Comments}}
             <div class="comment">
                 <div class="comment-header">
-                    {{.Username}} • {{.CreatedAt.Format "Jan 2, 2006 at 3:04 PM"}}
+                    {{.Username}} - {{.CreatedAt.Format "Jan 2, 2006 at 3:04 PM"}}
                 </div>
                 <div class="comment-content">{{.ContentMD}}</div>
             </div>
@@ -313,13 +163,33 @@
         {{end}}
     </div>
 
+    {{ template "tag-input-script" }}
+    {{ template "tag-remove-script" }}
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             {{if .IsAuthor}}
-            initTagInput('author-tag-input', 'author-tag-suggestions', '/api/tags/search', '/recipes/{{.Recipe.ID}}/tags', 'author-tags-container', 'tag-author', true);
+            TagInputWidget.init({
+                inputId: 'author-tag-input',
+                suggestionsId: 'author-tag-suggestions',
+                containerId: 'author-tags-container',
+                searchUrl: '/api/tags/search',
+                addUrl: '/recipes/{{.Recipe.ID}}/tags',
+                initialTags: [],
+                tagClass: 'tag-author',
+                mode: 'ajax'
+            });
             {{end}}
             {{if .IsLoggedIn}}
-            initTagInput('user-tag-input', 'user-tag-suggestions', '/api/tags/user/search', '/recipes/{{.Recipe.ID}}/user-tags', 'user-tags-container', 'tag-user', false);
+            TagInputWidget.init({
+                inputId: 'user-tag-input',
+                suggestionsId: 'user-tag-suggestions',
+                containerId: 'user-tags-container',
+                searchUrl: '/api/tags/user/search',
+                addUrl: '/recipes/{{.Recipe.ID}}/user-tags',
+                initialTags: [],
+                tagClass: 'tag-user',
+                mode: 'ajax'
+            });
             {{end}}
         });
     </script>
