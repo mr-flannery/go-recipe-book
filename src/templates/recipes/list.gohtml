@@ -51,6 +51,13 @@
             </div>
             
             <div class="filter-row">
+                <div class="filter-group filter-group-wide">
+                    <label for="tags">Tags:</label>
+                    <input type="text" id="tags" name="tags" placeholder="e.g., vegetarian, quick (comma-separated)">
+                </div>
+            </div>
+            
+            <div class="filter-row">
                 <div class="filter-group">
                     <label for="calories_op">Calories:</label>
                     <select id="calories_op" name="calories_op">
@@ -98,6 +105,7 @@
     <script>
         function clearFilters() {
             document.getElementById('search').value = '';
+            document.getElementById('tags').value = '';
             document.getElementById('calories_op').value = '';
             document.getElementById('calories_value').value = '';
             document.getElementById('prep_time_op').value = '';

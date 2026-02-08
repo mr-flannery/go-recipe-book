@@ -1,6 +1,5 @@
 - code reloading
   - Let's watch whether this actually works correctly now...
-- prevent website from being crawled once it's live
 - write tests
 - refactor
 - deploy
@@ -9,6 +8,16 @@
   - register domain with Maileroo
 - fix the frigging css...
 - tagging!!!
+- split models into different files, recipe, tags, comment, etc.
+- openAPI spec + syncing
+- the API endpoints should be restructured into
+  - pages `/recipe/`
+  - htmx, which will probably be `/htmx/`, gotta think about whether I can make them match the pages or whether they should rather be grouped with models or something
+  - API `/api/`, i.e. those endpoints that are actually used either from interactive components or from API clients
+- thhink about transaction handling for various operations, e.g. recipes and tags are separate tables
+- SQL prepared statements? is this code vulnerable to SQL injection right now?
+- there are a lot of inline structs, also a lot of duplicated ones
+  - e.g. `CommentsWithUsername`
 - list recipes that share ingredients with the current recipe
   - this would reuqire first implement some form of structured ingredient logging, i.e. instead of just using text, it would require structured inputs that is backed by some database
   - and/or this can be parsed from the freetext input

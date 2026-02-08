@@ -1,0 +1,206 @@
+{{define "tag-input-script"}}
+<script>
+(function() {
+    if (window.TagInputWidget) return;
+    window.TagInputWidget = {
+        init: function(config) {
+            const {
+                inputId,
+                suggestionsId,
+                containerId,
+                hiddenFieldId,
+                searchUrl,
+                initialTags = [],
+                tagClass = 'tag-author',
+                mode = 'local',
+                addUrl = null,
+                onTagAdded = null,
+                onTagRemoved = null
+            } = config;
+
+            const input = document.getElementById(inputId);
+            const suggestions = document.getElementById(suggestionsId);
+            const container = document.getElementById(containerId);
+            const hiddenField = hiddenFieldId ? document.getElementById(hiddenFieldId) : null;
+            
+            if (!input || !suggestions || !container) {
+                return null;
+            }
+
+            let selectedTags = [...initialTags];
+            let selectedIndex = -1;
+            let currentSuggestions = [];
+
+            async function searchTags(query) {
+                try {
+                    const response = await fetch(`${searchUrl}?q=${encodeURIComponent(query)}`);
+                    const data = await response.json();
+                    return data.tags || [];
+                } catch (e) {
+                    return [];
+                }
+            }
+
+            function updateHiddenField() {
+                if (hiddenField) {
+                    hiddenField.value = selectedTags.join(',');
+                }
+            }
+
+            function renderTags() {
+                const existingTags = container.querySelectorAll('.tag');
+                existingTags.forEach(tag => tag.remove());
+                
+                const inputContainer = container.querySelector('.tag-input-container');
+                selectedTags.forEach(tagName => {
+                    const tagEl = document.createElement('span');
+                    tagEl.className = `tag ${tagClass}`;
+                    tagEl.setAttribute('data-tag', tagName);
+                    tagEl.innerHTML = `${tagName}<button type="button" class="tag-remove" data-tag="${tagName}">&times;</button>`;
+                    container.insertBefore(tagEl, inputContainer);
+                });
+
+                container.querySelectorAll('.tag-remove').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        removeTagLocal(this.dataset.tag);
+                    });
+                });
+            }
+
+            function removeTagLocal(tagName) {
+                selectedTags = selectedTags.filter(t => t !== tagName);
+                updateHiddenField();
+                renderTags();
+                if (onTagRemoved) onTagRemoved(tagName);
+            }
+
+            async function addTag(tagName) {
+                tagName = tagName.toLowerCase().trim();
+                if (!tagName || selectedTags.includes(tagName)) return;
+
+                if (mode === 'ajax' && addUrl) {
+                    const formData = new FormData();
+                    formData.append('tag', tagName);
+
+                    try {
+                        const response = await fetch(addUrl, {
+                            method: 'POST',
+                            body: formData
+                        });
+                        const data = await response.json();
+                        
+                        if (data.success) {
+                            if (onTagAdded) {
+                                onTagAdded(tagName);
+                            } else {
+                                location.reload();
+                            }
+                        } else {
+                            alert(data.error || 'Failed to add tag');
+                        }
+                    } catch (e) {
+                        alert('Error adding tag');
+                    }
+                } else {
+                    selectedTags.push(tagName);
+                    updateHiddenField();
+                    renderTags();
+                    if (onTagAdded) onTagAdded(tagName);
+                }
+
+                input.value = '';
+                suggestions.classList.remove('show');
+            }
+
+            function renderSuggestions(tags, query) {
+                currentSuggestions = tags.filter(t => !selectedTags.includes(t));
+                selectedIndex = -1;
+                
+                if (currentSuggestions.length === 0 && query.trim() === '') {
+                    suggestions.classList.remove('show');
+                    return;
+                }
+
+                let html = '';
+                currentSuggestions.forEach((tag, i) => {
+                    html += `<div class="tag-suggestion" data-index="${i}" data-tag="${tag}">${tag}</div>`;
+                });
+
+                const normalizedQuery = query.toLowerCase().trim();
+                if (normalizedQuery !== '' && !currentSuggestions.includes(normalizedQuery) && !selectedTags.includes(normalizedQuery)) {
+                    html += `<div class="tag-suggestion tag-suggestion-new" data-index="${currentSuggestions.length}" data-tag="${normalizedQuery}">Create "${normalizedQuery}"</div>`;
+                    currentSuggestions.push(normalizedQuery);
+                }
+
+                if (html === '') {
+                    suggestions.classList.remove('show');
+                    return;
+                }
+
+                suggestions.innerHTML = html;
+                suggestions.classList.add('show');
+            }
+
+            input.addEventListener('input', async function() {
+                const query = this.value;
+                const tags = await searchTags(query);
+                renderSuggestions(tags, query);
+            });
+
+            input.addEventListener('keydown', function(e) {
+                const items = suggestions.querySelectorAll('.tag-suggestion');
+                
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    selectedIndex = Math.min(selectedIndex + 1, items.length - 1);
+                    items.forEach((item, i) => item.classList.toggle('selected', i === selectedIndex));
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    selectedIndex = Math.max(selectedIndex - 1, 0);
+                    items.forEach((item, i) => item.classList.toggle('selected', i === selectedIndex));
+                } else if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (selectedIndex >= 0 && currentSuggestions[selectedIndex]) {
+                        addTag(currentSuggestions[selectedIndex]);
+                    } else if (this.value.trim()) {
+                        addTag(this.value.trim());
+                    }
+                } else if (e.key === 'Escape') {
+                    suggestions.classList.remove('show');
+                }
+            });
+
+            suggestions.addEventListener('click', function(e) {
+                const item = e.target.closest('.tag-suggestion');
+                if (item) {
+                    addTag(item.dataset.tag);
+                }
+            });
+
+            document.addEventListener('click', function(e) {
+                if (!input.contains(e.target) && !suggestions.contains(e.target)) {
+                    suggestions.classList.remove('show');
+                }
+            });
+
+            input.addEventListener('focus', async function() {
+                if (this.value.trim() === '') {
+                    const tags = await searchTags('');
+                    renderSuggestions(tags, '');
+                }
+            });
+
+            if (mode === 'local' && initialTags.length > 0) {
+                renderTags();
+            }
+
+            return {
+                addTag,
+                removeTag: removeTagLocal,
+                getTags: () => [...selectedTags]
+            };
+        }
+    };
+})();
+</script>
+{{end}}

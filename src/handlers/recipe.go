@@ -137,14 +137,26 @@ func PostCreateRecipeHandler(w http.ResponseWriter, r *http.Request) {
 		AuthorID:       user.ID,
 	}
 
-	if err := models.SaveRecipe(recipe); err != nil {
+	recipeID, err := models.SaveRecipe(recipe)
+	if err != nil {
 		slog.Error("Failed to save recipe", "error", err)
 		http.Error(w, fmt.Sprintf("Failed to save recipe: %v", err), http.StatusInternalServerError)
 		return
 	}
 
-	slog.Info("Recipe created successfully", "title", recipe.Title, "author", user.Username)
-	http.Redirect(w, r, "/recipes", http.StatusSeeOther)
+	// TODO: does this need a transaction? if saving the tags fails, but the recipe itself has been saved, that's kinda weird
+	// probably a good idea to add a transaction
+	// Handle tags if provided
+	tagsStr := r.FormValue("tags")
+	if tagsStr != "" {
+		tagNames := strings.Split(tagsStr, ",")
+		if err := models.SetRecipeTags(recipeID, tagNames); err != nil {
+			slog.Error("Failed to set recipe tags", "error", err)
+		}
+	}
+
+	slog.Info("Recipe created successfully", "id", recipeID, "title", recipe.Title, "author", user.Username)
+	http.Redirect(w, r, fmt.Sprintf("/recipes/%d", recipeID), http.StatusSeeOther)
 }
 
 // ListRecipesHandler lists all recipes
@@ -153,6 +165,17 @@ func ListRecipesHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, "Failed to fetch recipes", http.StatusInternalServerError)
 		return
+	}
+
+	// Get tags for all recipes
+	recipeIDs := make([]int, len(recipes))
+	for i, r := range recipes {
+		recipeIDs[i] = r.ID
+	}
+	tagsMap, _ := models.GetTagsForRecipes(recipeIDs)
+
+	for i := range recipes {
+		recipes[i].Tags = tagsMap[recipes[i].ID]
 	}
 
 	// Get database connection to check user authentication
@@ -210,6 +233,9 @@ func GetUpdateRecipeHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Recipe not found", http.StatusNotFound)
 		return
 	}
+
+	recipeIDInt, _ := strconv.Atoi(recipeID)
+	recipe.Tags, _ = models.GetTagsByRecipeID(recipeIDInt)
 
 	data := struct {
 		Recipe   models.Recipe
@@ -337,6 +363,20 @@ func PostUpdateRecipeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Handle tags if provided
+	tagsStr := r.FormValue("tags")
+	if tagsStr != "" {
+		tagNames := strings.Split(tagsStr, ",")
+		if err := models.SetRecipeTags(recipeID, tagNames); err != nil {
+			slog.Error("Failed to set recipe tags", "error", err)
+		}
+	} else {
+		// Clear tags if empty string provided
+		if err := models.SetRecipeTags(recipeID, []string{}); err != nil {
+			slog.Error("Failed to clear recipe tags", "error", err)
+		}
+	}
+
 	slog.Info("Recipe updated successfully", "id", recipeID, "title", updatedRecipe.Title, "author", user.Username)
 	http.Redirect(w, r, fmt.Sprintf("/recipes/%d", recipeID), http.StatusSeeOther)
 }
@@ -345,17 +385,17 @@ func PostUpdateRecipeHandler(w http.ResponseWriter, r *http.Request) {
 func ViewRecipeHandler(w http.ResponseWriter, r *http.Request) {
 	recipeID := r.PathValue("id")
 	if recipeID == "" {
-		// TODO this should show a dedicated not found page with a link back to the overview page
 		http.Error(w, "Recipe ID is required", http.StatusBadRequest)
 		return
 	}
 
-	// Handle GET request - display recipe and comments
 	recipe, err := models.GetRecipeByID(recipeID)
 	if err != nil {
 		http.Error(w, "Recipe not found", http.StatusNotFound)
 		return
 	}
+
+	recipeIDInt, _ := strconv.Atoi(recipeID)
 
 	comments, err := models.GetCommentsByRecipeID(recipeID)
 	if err != nil {
@@ -363,7 +403,8 @@ func ViewRecipeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Add usernames to comments
+	recipe.Tags, _ = models.GetTagsByRecipeID(recipeIDInt)
+
 	type CommentWithUsername struct {
 		models.Comment
 		Username string
@@ -381,14 +422,13 @@ func ViewRecipeHandler(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	// Check if user is logged in and get user info
 	userInfo := auth.GetUserInfoFromContext(r.Context())
 
 	database, err := db.GetConnection()
 	if err != nil {
-		// If DB fails, assume not logged in
 		data := struct {
 			Recipe      models.Recipe
+			UserTags    []models.UserTag
 			Comments    []CommentWithUsername
 			IsLoggedIn  bool
 			CurrentUser *auth.User
@@ -396,6 +436,7 @@ func ViewRecipeHandler(w http.ResponseWriter, r *http.Request) {
 			UserInfo    *auth.UserInfo
 		}{
 			Recipe:      recipe,
+			UserTags:    nil,
 			Comments:    commentsWithUsernames,
 			IsLoggedIn:  false,
 			CurrentUser: nil,
@@ -414,8 +455,14 @@ func ViewRecipeHandler(w http.ResponseWriter, r *http.Request) {
 	isLoggedIn := err == nil
 	isAuthor := isLoggedIn && currentUser.ID == recipe.AuthorID
 
+	var userTags []models.UserTag
+	if isLoggedIn {
+		userTags, _ = models.GetUserTagsByRecipeID(currentUser.ID, recipeIDInt)
+	}
+
 	data := struct {
 		Recipe      models.Recipe
+		UserTags    []models.UserTag
 		Comments    []CommentWithUsername
 		IsLoggedIn  bool
 		CurrentUser *auth.User
@@ -423,6 +470,7 @@ func ViewRecipeHandler(w http.ResponseWriter, r *http.Request) {
 		UserInfo    *auth.UserInfo
 	}{
 		Recipe:      recipe,
+		UserTags:    userTags,
 		Comments:    commentsWithUsernames,
 		IsLoggedIn:  isLoggedIn,
 		CurrentUser: currentUser,
@@ -606,6 +654,17 @@ func FilterRecipesHTMXHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Parse tags filter
+	if tagsStr := r.FormValue("tags"); tagsStr != "" {
+		tags := strings.Split(tagsStr, ",")
+		for _, tag := range tags {
+			tag = strings.TrimSpace(tag)
+			if tag != "" {
+				filterParams.Tags = append(filterParams.Tags, tag)
+			}
+		}
+	}
+
 	slog.Info("Filtering recipes", "params", filterParams)
 
 	// Get filtered recipes
@@ -614,6 +673,17 @@ func FilterRecipesHTMXHandler(w http.ResponseWriter, r *http.Request) {
 		slog.Error("Failed to fetch filtered recipes", "error", err)
 		http.Error(w, "Failed to fetch filtered recipes", http.StatusInternalServerError)
 		return
+	}
+
+	// Get tags for all recipes
+	recipeIDs := make([]int, len(recipes))
+	for i, r := range recipes {
+		recipeIDs[i] = r.ID
+	}
+	tagsMap, _ := models.GetTagsForRecipes(recipeIDs)
+
+	for i := range recipes {
+		recipes[i].Tags = tagsMap[recipes[i].ID]
 	}
 
 	// Get database connection to check user authentication
@@ -653,7 +723,7 @@ func FilterRecipesHTMXHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "text/html")
-	err = templates.Templates.ExecuteTemplate(w, "recipe-cards.gohtml", data)
+	err = templates.Templates.ExecuteTemplate(w, "recipe-cards", data)
 	if err != nil {
 		slog.Error("Failed to execute template", "error", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)

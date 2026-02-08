@@ -31,7 +31,6 @@
                 <input type="file" id="image" name="image" accept="image/*">
                 <div class="help-text">Upload an image of your finished dish (optional)</div>
                 
-                <!-- Image Preview and Cropping Section -->
                 <div id="image-preview-section" class="image-preview-section">
                     <div id="preview-container" class="preview-container">
                         <div class="preview-title">Image Preview & Cropping</div>
@@ -57,7 +56,6 @@
                     </div>
                 </div>
                 
-                <!-- Hidden input to store cropped image data -->
                 <input type="hidden" id="cropped-image-data" name="cropped_image_data">
             </div>
 
@@ -76,6 +74,8 @@
                 </div>
             </div>
 
+            {{template "tag-input-form" dict "ID" "tags" "InitialTags" ""}}
+
             <div class="form-group">
                 <label for="ingredients">Ingredients (Markdown) *</label>
                 <textarea id="ingredients" name="ingredients" class="textarea-large" required placeholder="List your ingredients here. You can use Markdown formatting:
@@ -91,7 +91,7 @@
                 <label for="instructions">Instructions (Markdown) *</label>
                 <textarea id="instructions" name="instructions" class="textarea-large" required placeholder="Provide step-by-step instructions. You can use Markdown formatting:
 
-1. **Preheat** oven to 350°F (175°C)
+1. **Preheat** oven to 350F (175C)
 2. In a large bowl, mix dry ingredients
 3. Add wet ingredients and stir until combined
 4. Bake for 25-30 minutes until golden brown
@@ -116,7 +116,6 @@
         const previewResult = document.getElementById('preview-result');
         const croppedImageData = document.getElementById('cropped-image-data');
 
-        // Handle file input change
         imageInput.addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (file) {
@@ -124,15 +123,12 @@
                 reader.onload = function(e) {
                     const imageUrl = e.target.result;
                     
-                    // Show preview section
                     previewSection.classList.add('has-image');
                     previewContainer.style.display = 'block';
                     
-                    // Set up cropper
                     cropImage.src = imageUrl;
                     previewResult.src = imageUrl;
                     
-                    // Initialize cropper after image loads
                     cropImage.onload = function() {
                         if (cropper) {
                             cropper.destroy();
@@ -158,7 +154,6 @@
                 };
                 reader.readAsDataURL(file);
             } else {
-                // Hide preview section
                 previewSection.classList.remove('has-image');
                 previewContainer.style.display = 'none';
                 if (cropper) {
@@ -168,13 +163,12 @@
             }
         });
 
-        // Update preview with cropped image
         function updatePreview() {
             if (!cropper) return;
             
             const canvas = cropper.getCroppedCanvas({
                 width: 800,
-                height: 450, // 16:9 ratio
+                height: 450,
                 imageSmoothingEnabled: true,
                 imageSmoothingQuality: 'high'
             });
@@ -204,12 +198,12 @@
             }
         });
 
-        // Form submission - ensure cropped data is included
         document.querySelector('form').addEventListener('submit', function(e) {
             if (cropper && imageInput.files[0]) {
-                updatePreview(); // Ensure latest crop is saved
+                updatePreview();
             }
         });
+
     </script>
     {{ template "footer" .UserInfo }}
 </body>

@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="/static/css/styles.css">
 </head>
 <body>
-    {{ template "navbar" .UserInfo }}
+    {{template "navbar" .UserInfo}}
     <div class="navigation">
         <a href="/recipes/{{.Recipe.ID}}" class="btn btn-secondary">← Back to Recipe</a>
         <a href="/recipes" class="btn btn-secondary">All Recipes</a>
@@ -56,6 +56,8 @@
                 </div>
             </div>
 
+            {{template "tag-input-form" dict "ID" "tags" "InitialTags" (joinTagNames .Recipe.Tags)}}
+
             <div class="form-group">
                 <label for="ingredients">Ingredients (Markdown) *</label>
                 <textarea id="ingredients" name="ingredients" class="textarea-large" required placeholder="List your ingredients here. You can use Markdown formatting:
@@ -71,7 +73,7 @@
                 <label for="instructions">Instructions (Markdown) *</label>
                 <textarea id="instructions" name="instructions" class="textarea-large" required placeholder="Provide step-by-step instructions. You can use Markdown formatting:
 
-1. **Preheat** oven to 350°F (175°C)
+1. **Preheat** oven to 350F (175C)
 2. In a large bowl, mix dry ingredients
 3. Add wet ingredients and stir until combined
 4. Bake for 25-30 minutes until golden brown
@@ -86,6 +88,7 @@
             </div>
         </form>
     </div>
-    {{ template "footer" }}
+
+    {{template "footer"}}
 </body>
 </html>

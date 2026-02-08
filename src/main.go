@@ -160,6 +160,29 @@ func main() {
 			requireAuth(
 				http.HandlerFunc(handlers.CommentHTMXHandler))))
 
+	// Tag routes
+	mux.HandleFunc("GET /api/tags/search", handlers.SearchTagsHandler)
+	mux.Handle("GET /api/tags/user/search",
+		userContext(
+			requireAuth(
+				http.HandlerFunc(handlers.SearchUserTagsHandler))))
+	mux.Handle("POST /recipes/{id}/tags",
+		userContext(
+			requireAuth(
+				http.HandlerFunc(handlers.AddTagToRecipeHandler))))
+	mux.Handle("DELETE /recipes/{id}/tags/{tagId}",
+		userContext(
+			requireAuth(
+				http.HandlerFunc(handlers.RemoveTagFromRecipeHandler))))
+	mux.Handle("POST /recipes/{id}/user-tags",
+		userContext(
+			requireAuth(
+				http.HandlerFunc(handlers.AddUserTagToRecipeHandler))))
+	mux.Handle("DELETE /user-tags/{tagId}",
+		userContext(
+			requireAuth(
+				http.HandlerFunc(handlers.RemoveUserTagHandler))))
+
 	// API routes - protected by API key authentication
 	mux.HandleFunc("GET /api/health", handlers.APIHealthHandler)
 	mux.Handle("POST /api/recipe/upload",

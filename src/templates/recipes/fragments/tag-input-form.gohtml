@@ -1,0 +1,40 @@
+{{define "tag-input-form"}}
+{{template "tag-input-script"}}
+<div class="form-group">
+    <label>Tags</label>
+    <div class="tags-section">
+        <div id="{{.ID}}-container" class="tags-container tag-input-form-widget">
+            <div class="tag-input-container">
+                <input type="text" id="{{.ID}}-input" class="tag-input" placeholder="Add tag...">
+                <div id="{{.ID}}-suggestions" class="tag-suggestions"></div>
+            </div>
+        </div>
+    </div>
+    <input type="hidden" id="{{.ID}}-hidden" name="tags" value="{{.InitialTags}}" class="tag-input-form-hidden">
+    <div class="help-text">Add tags to help others find your recipe (e.g., vegetarian, quick, dessert)</div>
+</div>
+<script>
+(function() {
+    var containers = document.querySelectorAll('.tag-input-form-widget');
+    var container = containers[containers.length - 1];
+    var containerId = container.id;
+    var widgetId = containerId.replace('-container', '');
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        var tagsHidden = document.getElementById(widgetId + '-hidden');
+        var initialTags = tagsHidden.value ? tagsHidden.value.split(',').filter(function(t) { return t.trim(); }) : [];
+        
+        TagInputWidget.init({
+            inputId: widgetId + '-input',
+            suggestionsId: widgetId + '-suggestions',
+            containerId: containerId,
+            hiddenFieldId: widgetId + '-hidden',
+            searchUrl: '/api/tags/search',
+            initialTags: initialTags,
+            tagClass: 'tag-author',
+            mode: 'local'
+        });
+    });
+})();
+</script>
+{{end}}
