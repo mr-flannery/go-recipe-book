@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/mr-flannery/go-recipe-book/src/config"
+	"github.com/mr-flannery/go-recipe-book/src/store"
 )
 
 // RequireAPIKey creates middleware to enforce API key authentication
@@ -60,12 +61,10 @@ func RequireAPIKey() func(http.Handler) http.Handler {
 	}
 }
 
-// GetAdminUserID returns the admin user ID from the database
-func GetAdminUserID() (int, error) {
+func GetAdminUserID(authStore store.AuthStore) (int, error) {
 	cfg := config.GetConfig()
 
-	// Use the existing function to get user ID by username
-	adminID, err := GetUserIDByUsername(cfg.DB.Admin.Username)
+	adminID, err := authStore.GetUserIDByUsername(cfg.DB.Admin.Username)
 	if err != nil {
 		return 0, fmt.Errorf("failed to get admin user ID: %w", err)
 	}

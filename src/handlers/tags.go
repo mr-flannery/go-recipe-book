@@ -8,8 +8,6 @@ import (
 	"strings"
 
 	"github.com/mr-flannery/go-recipe-book/src/auth"
-	"github.com/mr-flannery/go-recipe-book/src/db"
-	"github.com/mr-flannery/go-recipe-book/src/models"
 )
 
 type TagSearchResponse struct {
@@ -21,10 +19,10 @@ type TagResponse struct {
 	Error   string `json:"error,omitempty"`
 }
 
-func SearchTagsHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) SearchTagsHandler(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query().Get("q")
 
-	tags, err := models.SearchTags(query)
+	tags, err := h.TagStore.Search(query)
 	if err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusInternalServerError)
@@ -41,19 +39,10 @@ func SearchTagsHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(TagSearchResponse{Tags: tagNames})
 }
 
-func SearchUserTagsHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) SearchUserTagsHandler(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query().Get("q")
 
-	database, err := db.GetConnection()
-	if err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(TagResponse{Success: false, Error: "Database connection error"})
-		return
-	}
-	defer database.Close()
-
-	user, err := auth.GetUserBySession(database, r)
+	user, err := auth.GetUserBySession(h.AuthStore, r)
 	if err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusUnauthorized)
@@ -61,7 +50,7 @@ func SearchUserTagsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tags, err := models.SearchUserTags(user.ID, query)
+	tags, err := h.UserTagStore.Search(user.ID, query)
 	if err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusInternalServerError)
@@ -73,7 +62,7 @@ func SearchUserTagsHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(TagSearchResponse{Tags: tags})
 }
 
-func AddTagToRecipeHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) AddTagToRecipeHandler(w http.ResponseWriter, r *http.Request) {
 	recipeID := r.PathValue("id")
 	if recipeID == "" {
 		w.Header().Set("Content-Type", "application/json")
@@ -90,16 +79,7 @@ func AddTagToRecipeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	database, err := db.GetConnection()
-	if err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(TagResponse{Success: false, Error: "Database connection error"})
-		return
-	}
-	defer database.Close()
-
-	user, err := auth.GetUserBySession(database, r)
+	user, err := auth.GetUserBySession(h.AuthStore, r)
 	if err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusUnauthorized)
@@ -107,7 +87,7 @@ func AddTagToRecipeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	recipe, err := models.GetRecipeByID(recipeID)
+	recipe, err := h.RecipeStore.GetByID(recipeID)
 	if err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusNotFound)
@@ -133,7 +113,7 @@ func AddTagToRecipeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tag, err := models.GetOrCreateTag(tagName)
+	tag, err := h.TagStore.GetOrCreate(tagName)
 	if err != nil {
 		log.Printf("ERROR: GetOrCreateTag failed for tag '%s': %v", tagName, err)
 		w.Header().Set("Content-Type", "application/json")
@@ -142,7 +122,7 @@ func AddTagToRecipeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = models.AddTagToRecipe(recipeIDInt, tag.ID)
+	err = h.TagStore.AddToRecipe(recipeIDInt, tag.ID)
 	if err != nil {
 		log.Printf("ERROR: AddTagToRecipe failed for recipe %d, tag %d: %v", recipeIDInt, tag.ID, err)
 		w.Header().Set("Content-Type", "application/json")
@@ -155,7 +135,7 @@ func AddTagToRecipeHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(TagResponse{Success: true})
 }
 
-func RemoveTagFromRecipeHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) RemoveTagFromRecipeHandler(w http.ResponseWriter, r *http.Request) {
 	recipeID := r.PathValue("id")
 	tagID := r.PathValue("tagId")
 	if recipeID == "" || tagID == "" {
@@ -181,16 +161,7 @@ func RemoveTagFromRecipeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	database, err := db.GetConnection()
-	if err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(TagResponse{Success: false, Error: "Database connection error"})
-		return
-	}
-	defer database.Close()
-
-	user, err := auth.GetUserBySession(database, r)
+	user, err := auth.GetUserBySession(h.AuthStore, r)
 	if err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusUnauthorized)
@@ -198,7 +169,7 @@ func RemoveTagFromRecipeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	recipe, err := models.GetRecipeByID(recipeID)
+	recipe, err := h.RecipeStore.GetByID(recipeID)
 	if err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusNotFound)
@@ -213,7 +184,7 @@ func RemoveTagFromRecipeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = models.RemoveTagFromRecipe(recipeIDInt, tagIDInt)
+	err = h.TagStore.RemoveFromRecipe(recipeIDInt, tagIDInt)
 	if err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusInternalServerError)
@@ -225,7 +196,7 @@ func RemoveTagFromRecipeHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(TagResponse{Success: true})
 }
 
-func AddUserTagToRecipeHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) AddUserTagToRecipeHandler(w http.ResponseWriter, r *http.Request) {
 	recipeID := r.PathValue("id")
 	if recipeID == "" {
 		w.Header().Set("Content-Type", "application/json")
@@ -242,16 +213,7 @@ func AddUserTagToRecipeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	database, err := db.GetConnection()
-	if err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(TagResponse{Success: false, Error: "Database connection error"})
-		return
-	}
-	defer database.Close()
-
-	user, err := auth.GetUserBySession(database, r)
+	user, err := auth.GetUserBySession(h.AuthStore, r)
 	if err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusUnauthorized)
@@ -259,7 +221,7 @@ func AddUserTagToRecipeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = models.GetRecipeByID(recipeID)
+	_, err = h.RecipeStore.GetByID(recipeID)
 	if err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusNotFound)
@@ -278,7 +240,7 @@ func AddUserTagToRecipeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = models.GetOrCreateUserTag(user.ID, recipeIDInt, tagName)
+	_, err = h.UserTagStore.GetOrCreate(user.ID, recipeIDInt, tagName)
 	if err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusInternalServerError)
@@ -290,7 +252,7 @@ func AddUserTagToRecipeHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(TagResponse{Success: true})
 }
 
-func RemoveUserTagHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) RemoveUserTagHandler(w http.ResponseWriter, r *http.Request) {
 	tagID := r.PathValue("tagId")
 	if tagID == "" {
 		w.Header().Set("Content-Type", "application/json")
@@ -307,16 +269,7 @@ func RemoveUserTagHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	database, err := db.GetConnection()
-	if err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(TagResponse{Success: false, Error: "Database connection error"})
-		return
-	}
-	defer database.Close()
-
-	user, err := auth.GetUserBySession(database, r)
+	user, err := auth.GetUserBySession(h.AuthStore, r)
 	if err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusUnauthorized)
@@ -324,7 +277,7 @@ func RemoveUserTagHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = models.RemoveUserTag(user.ID, tagIDInt)
+	err = h.UserTagStore.Remove(user.ID, tagIDInt)
 	if err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusInternalServerError)

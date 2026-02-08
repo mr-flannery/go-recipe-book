@@ -11,6 +11,7 @@ import (
 	"github.com/mr-flannery/go-recipe-book/src/config"
 	"github.com/mr-flannery/go-recipe-book/src/db"
 	"github.com/mr-flannery/go-recipe-book/src/handlers"
+	"github.com/mr-flannery/go-recipe-book/src/store/postgres"
 	"github.com/mr-flannery/go-recipe-book/src/utils"
 
 	_ "github.com/golang-migrate/migrate/v4/source/file"
@@ -26,73 +27,73 @@ func main() {
 	config := config.GetConfig()
 
 	slog.Info("Running migrations...")
-	// Run database migrations
 	err := db.RunMigrations()
 	if err != nil {
 		slog.Error("Failed to run migrations", "error", err)
 		panic(err)
 	}
 
-	// Get database connection
-	database, err := db.GetConnection()
+	slog.Info("Initializing database connection pool...")
+	database, err := db.InitPool()
 	if err != nil {
-		slog.Error("Failed to connect to database", "error", err)
+		slog.Error("Failed to initialize database pool", "error", err)
 		panic(err)
 	}
-	defer database.Close()
+	defer db.ClosePool()
 
-	// Create seed admin account
+	authStore := postgres.NewAuthStore(database)
+
 	slog.Info("Creating seed admin account...")
-	err = auth.CreateSeedAdmin(database, config.DB.Admin.Username, config.DB.Admin.Email, config.DB.Admin.Password)
+	err = auth.CreateSeedAdmin(authStore, config.DB.Admin.Username, config.DB.Admin.Email, config.DB.Admin.Password)
 	if err != nil {
 		slog.Error("Failed to create seed admin", "error", err)
 		panic(err)
 	}
 
-	// Start session cleanup routine
 	go func() {
 		for {
-			time.Sleep(1 * time.Hour) // Run cleanup every hour
-			if err := auth.CleanupExpiredSessions(database); err != nil {
+			time.Sleep(1 * time.Hour)
+			if err := auth.CleanupExpiredSessions(authStore); err != nil {
 				slog.Error("Failed to cleanup expired sessions", "error", err)
 			}
 		}
 	}()
 
-	// Create authentication middleware
-	userContext := auth.UserContextMiddleware()
+	recipeStore := postgres.NewRecipeStore(database)
+	tagStore := postgres.NewTagStore(database)
+	userTagStore := postgres.NewUserTagStore(database)
+	commentStore := postgres.NewCommentStore(database)
+	userStore := postgres.NewUserStore(database)
+
+	h := handlers.NewHandler(database, recipeStore, tagStore, userTagStore, commentStore, userStore, authStore)
+
+	userContext := auth.UserContextMiddleware(authStore)
 	requireAuth := auth.RequireAuth()
 	requireAPIKey := auth.RequireAPIKey()
 
-	// Create a new ServeMux
 	mux := http.NewServeMux()
 
-	// Static files (CSS, JS, images, etc.)
 	staticPath := filepath.Join(utils.GetCallerDir(0), "static")
 	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir(staticPath))))
 
-	// Serve robots.txt from root
 	mux.HandleFunc("GET /robots.txt", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, filepath.Join(staticPath, "robots.txt"))
 	})
 
-	// Home page
 	mux.Handle("/", userContext(http.HandlerFunc(handlers.HomeHandler)))
 
-	// Imprint page
 	mux.Handle("/imprint", userContext(http.HandlerFunc(handlers.ImprintHandler)))
 
-	// Auth routes
 	mux.HandleFunc("GET /login", handlers.GetLoginHandler)
-	mux.HandleFunc("POST /login", handlers.PostLoginHandler)
-	mux.HandleFunc("GET /logout", handlers.LogoutHandler)
+	mux.HandleFunc("POST /login", h.PostLoginHandler)
+	mux.HandleFunc("GET /logout", h.LogoutHandler)
 	mux.HandleFunc("GET /register", handlers.GetRegisterHandler)
-	mux.HandleFunc("POST /register", handlers.PostRegisterHandler)
+	mux.Handle("POST /register",
+		userContext(
+			http.HandlerFunc(h.PostRegisterHandler)))
 
-	// Admin routes - require authentication and admin privileges
 	requireAdminAuth := func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// Get current user from context
 			if !auth.IsUserAdmin(r.Context()) {
 				http.Error(w, "Access denied - admin privileges required", http.StatusForbidden)
 				return
@@ -106,88 +107,83 @@ func main() {
 		userContext(
 			requireAuth(
 				requireAdminAuth(
-					http.HandlerFunc(handlers.GetPendingRegistrationsHandler)))))
+					http.HandlerFunc(h.GetPendingRegistrationsHandler)))))
 	mux.Handle("POST /admin/registrations/{id}/approve",
 		userContext(
 			requireAuth(
 				requireAdminAuth(
-					http.HandlerFunc(handlers.ApproveRegistrationHandler)))))
+					http.HandlerFunc(h.ApproveRegistrationHandler)))))
 	mux.Handle("POST /admin/registrations/{id}/deny",
 		userContext(
 			requireAuth(
 				requireAdminAuth(
-					http.HandlerFunc(handlers.DenyRegistrationHandler)))))
+					http.HandlerFunc(h.DenyRegistrationHandler)))))
 
-	// Recipe routes with parameters
 	mux.Handle("GET /recipes/create",
 		userContext(
 			requireAuth(
-				http.HandlerFunc(handlers.GetCreateRecipeHandler))))
+				http.HandlerFunc(h.GetCreateRecipeHandler))))
 	mux.Handle("POST /recipes/create",
 		userContext(
 			requireAuth(
-				http.HandlerFunc(handlers.PostCreateRecipeHandler))))
+				http.HandlerFunc(h.PostCreateRecipeHandler))))
 	mux.Handle("GET /recipes/update",
 		userContext(
 			requireAuth(
-				http.HandlerFunc(handlers.GetUpdateRecipeHandler))))
+				http.HandlerFunc(h.GetUpdateRecipeHandler))))
 	mux.Handle("POST /recipes/update",
 		userContext(
 			requireAuth(
-				http.HandlerFunc(handlers.PostUpdateRecipeHandler))))
+				http.HandlerFunc(h.PostUpdateRecipeHandler))))
 	mux.Handle("DELETE /recipes/{id}/delete",
 		userContext(
 			requireAuth(
-				http.HandlerFunc(handlers.DeleteRecipeHandler))))
+				http.HandlerFunc(h.DeleteRecipeHandler))))
 	mux.Handle("GET /recipes",
 		userContext(
-			http.HandlerFunc(handlers.ListRecipesHandler)))
+			http.HandlerFunc(h.ListRecipesHandler)))
 	mux.Handle("GET /recipes/random",
 		userContext(
-			http.HandlerFunc(handlers.RandomRecipeHandler)))
+			http.HandlerFunc(h.RandomRecipeHandler)))
 	mux.Handle("POST /recipes/filter",
 		userContext(
-			http.HandlerFunc(handlers.FilterRecipesHTMXHandler)))
+			http.HandlerFunc(h.FilterRecipesHTMXHandler)))
 
-	// Recipe view route with ID parameter - /recipes/{id}
 	mux.Handle("GET /recipes/{id}",
 		userContext(
-			http.HandlerFunc(handlers.ViewRecipeHandler)))
+			http.HandlerFunc(h.ViewRecipeHandler)))
 
-	// Recipe comments route with ID parameter - /recipes/{id}/comments/htmx
 	mux.Handle("POST /recipes/{id}/comments/htmx",
 		userContext(
 			requireAuth(
-				http.HandlerFunc(handlers.CommentHTMXHandler))))
+				http.HandlerFunc(h.CommentHTMXHandler))))
 
-	// Tag routes
-	mux.HandleFunc("GET /api/tags/search", handlers.SearchTagsHandler)
+	mux.HandleFunc("GET /api/tags/search", h.SearchTagsHandler)
 	mux.Handle("GET /api/tags/user/search",
 		userContext(
 			requireAuth(
-				http.HandlerFunc(handlers.SearchUserTagsHandler))))
+				http.HandlerFunc(h.SearchUserTagsHandler))))
 	mux.Handle("POST /recipes/{id}/tags",
 		userContext(
 			requireAuth(
-				http.HandlerFunc(handlers.AddTagToRecipeHandler))))
+				http.HandlerFunc(h.AddTagToRecipeHandler))))
 	mux.Handle("DELETE /recipes/{id}/tags/{tagId}",
 		userContext(
 			requireAuth(
-				http.HandlerFunc(handlers.RemoveTagFromRecipeHandler))))
+				http.HandlerFunc(h.RemoveTagFromRecipeHandler))))
 	mux.Handle("POST /recipes/{id}/user-tags",
 		userContext(
 			requireAuth(
-				http.HandlerFunc(handlers.AddUserTagToRecipeHandler))))
+				http.HandlerFunc(h.AddUserTagToRecipeHandler))))
 	mux.Handle("DELETE /user-tags/{tagId}",
 		userContext(
 			requireAuth(
-				http.HandlerFunc(handlers.RemoveUserTagHandler))))
+				http.HandlerFunc(h.RemoveUserTagHandler))))
 
-	// API routes - protected by API key authentication
 	mux.HandleFunc("GET /api/health", handlers.APIHealthHandler)
 	mux.Handle("POST /api/recipe/upload",
 		requireAPIKey(
-			http.HandlerFunc(handlers.APICreateRecipeHandler)))
+			http.HandlerFunc(h.APICreateRecipeHandler)))
 
 	slog.Info("Ready to serve!")
 

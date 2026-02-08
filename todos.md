@@ -1,19 +1,24 @@
 - code reloading
   - Let's watch whether this actually works correctly now...
 - write tests
+  - primarily integration tests for the handler functions
+  - which means I gotta figure out how to mock the DB/do DI or something similar
 - refactor
+  - split models into different files, recipe, tags, comment, etc.
+  - openAPI spec + syncing
+  - the API endpoints should be restructured into
+    - pages `/recipe/`
+    - htmx, which will probably be `/htmx/`, gotta think about whether I can make them match the pages or whether they should rather be grouped with models or something
+    - API `/api/`, i.e. those endpoints that are actually used either from interactive components or from API clients
 - deploy
   - nginx https stuff
   - buy domain
   - register domain with Maileroo
 - fix the frigging css...
-- tagging!!!
-- split models into different files, recipe, tags, comment, etc.
-- openAPI spec + syncing
-- the API endpoints should be restructured into
-  - pages `/recipe/`
-  - htmx, which will probably be `/htmx/`, gotta think about whether I can make them match the pages or whether they should rather be grouped with models or something
-  - API `/api/`, i.e. those endpoints that are actually used either from interactive components or from API clients
+- polish tagging
+  - the ux is still shit, and the visuals as well
+  - also the suggestions should not show anything by default, and when searching it should not show tags that are already used on the recipe, only tags that are new
+
 - thhink about transaction handling for various operations, e.g. recipes and tags are separate tables
 - SQL prepared statements? is this code vulnerable to SQL injection right now?
 - there are a lot of inline structs, also a lot of duplicated ones

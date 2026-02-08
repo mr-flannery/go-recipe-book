@@ -2,7 +2,6 @@ package auth
 
 import (
 	"crypto/rand"
-	"database/sql"
 	"encoding/hex"
 	"fmt"
 	"net"
@@ -10,12 +9,12 @@ import (
 	"time"
 
 	"github.com/mr-flannery/go-recipe-book/src/config"
-	"github.com/mr-flannery/go-recipe-book/src/db"
+	"github.com/mr-flannery/go-recipe-book/src/store"
 )
 
 const (
-	sessionIDLength = 32             // 32 bytes = 256 bits
-	sessionDuration = 24 * time.Hour // 24 hours default
+	sessionIDLength = 32
+	sessionDuration = 24 * time.Hour
 )
 
 func cookieSettings() (string, bool) {
@@ -28,7 +27,6 @@ func cookieSettings() (string, bool) {
 	}
 }
 
-// Session represents a user session
 type Session struct {
 	ID        string
 	UserID    int
@@ -38,9 +36,7 @@ type Session struct {
 	UserAgent string
 }
 
-// CreateSession creates a new secure session for the user
-func CreateSession(userID int, ipAddress, userAgent string) (*Session, error) {
-	// Generate cryptographically secure session ID
+func CreateSession(authStore store.AuthStore, userID int, ipAddress, userAgent string) (*Session, error) {
 	sessionID, err := generateSecureSessionID()
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate session ID: %w", err)
@@ -58,95 +54,49 @@ func CreateSession(userID int, ipAddress, userAgent string) (*Session, error) {
 		UserAgent: userAgent,
 	}
 
-	// Store session in database
-	query := `
-		INSERT INTO sessions (id, user_id, created_at, expires_at, ip_address, user_agent)
-		VALUES ($1, $2, $3, $4, $5, $6)`
-
-	// Get database connection
-	database, err := db.GetConnection()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get database connection: %w", err)
+	storeSession := &store.Session{
+		ID:        sessionID,
+		UserID:    userID,
+		IPAddress: ipAddress,
+		UserAgent: userAgent,
 	}
-	defer database.Close()
 
-	_, err = database.Exec(query, session.ID, session.UserID, session.CreatedAt,
-		session.ExpiresAt, session.IPAddress, session.UserAgent)
+	err = authStore.CreateSession(storeSession)
 	if err != nil {
-		return nil, fmt.Errorf("failed to store session: %w", err)
+		return nil, err
 	}
 
 	return session, nil
 }
 
-// ValidateSession validates a session ID and returns the session if valid
-func ValidateSession(db *sql.DB, sessionID string) (*Session, error) {
-	if sessionID == "" {
-		return nil, fmt.Errorf("empty session ID")
-	}
-
-	var session Session
-	query := `
-		SELECT id, user_id, created_at, expires_at, ip_address, user_agent
-		FROM sessions 
-		WHERE id = $1 AND expires_at > NOW()`
-
-	err := db.QueryRow(query, sessionID).Scan(
-		&session.ID, &session.UserID, &session.CreatedAt,
-		&session.ExpiresAt, &session.IPAddress, &session.UserAgent)
-
+func ValidateSession(authStore store.AuthStore, sessionID string) (*Session, error) {
+	storeSession, err := authStore.GetSession(sessionID)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, fmt.Errorf("session not found or expired")
-		}
-		return nil, fmt.Errorf("failed to validate session: %w", err)
+		return nil, err
 	}
 
-	return &session, nil
+	return &Session{
+		ID:        storeSession.ID,
+		UserID:    storeSession.UserID,
+		IPAddress: storeSession.IPAddress,
+		UserAgent: storeSession.UserAgent,
+	}, nil
 }
 
-// InvalidateSession removes a session from the database
-func InvalidateSession(sessionID string) error {
-	// Get database connection
-	database, err := db.GetConnection()
-	if err != nil {
-		return fmt.Errorf("failed to get database connection: %w", err)
-	}
-	defer database.Close()
-
-	if sessionID == "" {
-		return nil // Nothing to invalidate
-	}
-
-	query := `DELETE FROM sessions WHERE id = $1`
-	_, err = database.Exec(query, sessionID)
-	if err != nil {
-		return fmt.Errorf("failed to invalidate session: %w", err)
-	}
-
-	return nil
+func InvalidateSession(authStore store.AuthStore, sessionID string) error {
+	return authStore.DeleteSession(sessionID)
 }
 
-// InvalidateAllUserSessions removes all sessions for a specific user
-func InvalidateAllUserSessions(db *sql.DB, userID int) error {
-	query := `DELETE FROM sessions WHERE user_id = $1`
-	_, err := db.Exec(query, userID)
-	if err != nil {
-		return fmt.Errorf("failed to invalidate user sessions: %w", err)
-	}
-
-	return nil
+func InvalidateAllUserSessions(authStore store.AuthStore, userID int) error {
+	return authStore.DeleteUserSessions(userID)
 }
 
-// CleanupExpiredSessions removes expired sessions from the database
-func CleanupExpiredSessions(db *sql.DB) error {
-	query := `DELETE FROM sessions WHERE expires_at <= NOW()`
-	result, err := db.Exec(query)
+func CleanupExpiredSessions(authStore store.AuthStore) error {
+	rowsAffected, err := authStore.DeleteExpiredSessions()
 	if err != nil {
-		return fmt.Errorf("failed to cleanup expired sessions: %w", err)
+		return err
 	}
 
-	rowsAffected, _ := result.RowsAffected()
 	if rowsAffected > 0 {
 		fmt.Printf("Cleaned up %d expired sessions\n", rowsAffected)
 	}
@@ -154,7 +104,6 @@ func CleanupExpiredSessions(db *sql.DB) error {
 	return nil
 }
 
-// SetSecureSessionCookie sets a secure session cookie
 func SetSecureSessionCookie(w http.ResponseWriter, sessionID string) {
 	cookieName, secure := cookieSettings()
 	cookie := &http.Cookie{
@@ -163,14 +112,13 @@ func SetSecureSessionCookie(w http.ResponseWriter, sessionID string) {
 		Path:     "/",
 		MaxAge:   int(sessionDuration.Seconds()),
 		HttpOnly: true,
-		Secure:   secure, // Set to true in production with HTTPS
+		Secure:   secure,
 		SameSite: http.SameSiteStrictMode,
 	}
 
 	http.SetCookie(w, cookie)
 }
 
-// ClearSessionCookie clears the session cookie
 func ClearSessionCookie(w http.ResponseWriter) {
 	cookieName, secure := cookieSettings()
 	cookie := &http.Cookie{
@@ -187,7 +135,6 @@ func ClearSessionCookie(w http.ResponseWriter) {
 	http.SetCookie(w, cookie)
 }
 
-// GetSessionFromRequest extracts session ID from request cookie
 func GetSessionFromRequest(r *http.Request) (string, error) {
 	cookieName, _ := cookieSettings()
 	cookie, err := r.Cookie(cookieName)
@@ -198,24 +145,19 @@ func GetSessionFromRequest(r *http.Request) (string, error) {
 	return cookie.Value, nil
 }
 
-// GetClientIP extracts the real client IP address from the request
 func GetClientIP(r *http.Request) string {
-	// Check X-Forwarded-For header first (for proxies/load balancers)
 	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
-		// Take the first IP in the chain
 		if ip := net.ParseIP(xff); ip != nil {
 			return ip.String()
 		}
 	}
 
-	// Check X-Real-IP header
 	if xri := r.Header.Get("X-Real-IP"); xri != "" {
 		if ip := net.ParseIP(xri); ip != nil {
 			return ip.String()
 		}
 	}
 
-	// Fall back to RemoteAddr
 	host, _, err := net.SplitHostPort(r.RemoteAddr)
 	if err != nil {
 		return r.RemoteAddr
@@ -224,47 +166,19 @@ func GetClientIP(r *http.Request) string {
 	return host
 }
 
-// ValidateSessionWithContext validates session and checks IP/User-Agent for additional security
-func ValidateSessionWithContext(db *sql.DB, sessionID, currentIP, currentUserAgent string) (*Session, error) {
-	session, err := ValidateSession(db, sessionID)
+func ValidateSessionWithContext(authStore store.AuthStore, sessionID, currentIP, currentUserAgent string) (*Session, error) {
+	session, err := ValidateSession(authStore, sessionID)
 	if err != nil {
 		return nil, err
 	}
 
-	// Optional: Check if IP address matches (can be disabled for mobile users)
-	// This is commented out as it can cause issues with mobile networks
-	// if session.IPAddress != currentIP {
-	//     return nil, fmt.Errorf("session IP mismatch")
-	// }
-
-	// Optional: Check if User-Agent matches (basic session hijacking protection)
-	// This is also commented out as it can cause issues with browser updates
-	// if session.UserAgent != currentUserAgent {
-	//     return nil, fmt.Errorf("session user agent mismatch")
-	// }
-
 	return session, nil
 }
 
-// ExtendSession extends the expiration time of a session
-func ExtendSession(db *sql.DB, sessionID string) error {
-	newExpiresAt := time.Now().Add(sessionDuration)
-
-	query := `UPDATE sessions SET expires_at = $1 WHERE id = $2 AND expires_at > NOW()`
-	result, err := db.Exec(query, newExpiresAt, sessionID)
-	if err != nil {
-		return fmt.Errorf("failed to extend session: %w", err)
-	}
-
-	rowsAffected, _ := result.RowsAffected()
-	if rowsAffected == 0 {
-		return fmt.Errorf("session not found or already expired")
-	}
-
-	return nil
+func ExtendSession(authStore store.AuthStore, sessionID string) error {
+	return authStore.ExtendSession(sessionID)
 }
 
-// generateSecureSessionID generates a cryptographically secure random session ID
 func generateSecureSessionID() (string, error) {
 	bytes := make([]byte, sessionIDLength)
 	if _, err := rand.Read(bytes); err != nil {
@@ -274,14 +188,6 @@ func generateSecureSessionID() (string, error) {
 	return hex.EncodeToString(bytes), nil
 }
 
-// GetActiveSessionCount returns the number of active sessions for a user
-func GetActiveSessionCount(db *sql.DB, userID int) (int, error) {
-	var count int
-	query := `SELECT COUNT(*) FROM sessions WHERE user_id = $1 AND expires_at > NOW()`
-	err := db.QueryRow(query, userID).Scan(&count)
-	if err != nil {
-		return 0, fmt.Errorf("failed to get session count: %w", err)
-	}
-
-	return count, nil
+func GetActiveSessionCount(authStore store.AuthStore, userID int) (int, error) {
+	return authStore.GetActiveSessionCount(userID)
 }

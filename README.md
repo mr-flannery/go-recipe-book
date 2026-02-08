@@ -41,6 +41,9 @@ reflex -r '\.go$|\.gohtml$|\.html$|\.tmpl$|\.tpl$' -s -- sh -c 'cd src && go run
 - Database migrations in `src/db/migrations/`
 - Live reloading with Reflex watches Go and template files
 
+### Architecture
+See [docs/architecture.md](docs/architecture.md) for details on the store/repository pattern used for data access.
+
 ### Manual Development
 For development without live reloading:
 ```sh
