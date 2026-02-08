@@ -1,6 +1,5 @@
 - code reloading
   - Let's watch whether this actually works correctly now...
-- prevent website from being crawled once it's live
 - write tests
 - refactor
 - deploy
@@ -9,6 +8,7 @@
   - register domain with Maileroo
 - fix the frigging css...
 - tagging!!!
+- openAPI spec + syncing
 - list recipes that share ingredients with the current recipe
   - this would reuqire first implement some form of structured ingredient logging, i.e. instead of just using text, it would require structured inputs that is backed by some database
   - and/or this can be parsed from the freetext input

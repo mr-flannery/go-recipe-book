@@ -564,6 +564,15 @@ textarea {
     width: 100px;
 }
 
+.filter-group-wide {
+    flex: 1;
+}
+
+.filter-group-wide input[type="text"] {
+    width: 100%;
+    max-width: 400px;
+}
+
 /* Comment Styles */
 .comments-section {
     margin-top: 40px;
@@ -843,6 +852,144 @@ textarea {
     .filter-group input[type="text"] {
         width: 100%;
     }
+}
+
+/* Tag Styles */
+.tags-section {
+    margin: 15px 0;
+}
+
+.tags-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+}
+
+.tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background-color: #e9ecef;
+    color: #495057;
+    padding: 4px 10px;
+    border-radius: 16px;
+    font-size: 0.85em;
+}
+
+.tag-author {
+    background-color: #007bff;
+    color: white;
+}
+
+.tag-user {
+    background-color: #28a745;
+    color: white;
+}
+
+.tag-remove {
+    background: none;
+    border: none;
+    color: inherit;
+    cursor: pointer;
+    padding: 0;
+    margin-left: 4px;
+    font-size: 1.1em;
+    line-height: 1;
+    opacity: 0.7;
+}
+
+.tag-remove:hover {
+    opacity: 1;
+}
+
+.tag-input-container {
+    position: relative;
+    display: inline-block;
+    min-width: 150px;
+}
+
+.tag-input {
+    border: 1px solid #ddd;
+    border-radius: 16px;
+    padding: 4px 12px;
+    font-size: 0.85em;
+    min-width: 120px;
+    outline: none;
+}
+
+.tag-input:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1);
+}
+
+.tag-suggestions {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 1000;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    display: none;
+}
+
+.tag-suggestions.show {
+    display: block;
+}
+
+.tag-suggestion {
+    padding: 8px 12px;
+    cursor: pointer;
+}
+
+.tag-suggestion:hover,
+.tag-suggestion.selected {
+    background-color: #f8f9fa;
+}
+
+.tag-suggestion-new {
+    color: #007bff;
+    font-style: italic;
+}
+
+.tags-label {
+    font-weight: bold;
+    color: #666;
+    font-size: 0.9em;
+    margin-right: 10px;
+}
+
+.recipe-tags {
+    margin: 10px 0;
+}
+
+.recipe-tags-inline {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+}
+
+.recipe-tags-inline .tag {
+    font-size: 0.75em;
+    padding: 2px 8px;
+}
+
+.recipe-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-bottom: 8px;
+}
+
+.tag-small {
+    font-size: 0.7em;
+    padding: 2px 6px;
 }
 
 /* Utility Classes */

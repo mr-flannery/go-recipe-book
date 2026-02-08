@@ -15,10 +15,8 @@
                 })
                 .then(response => {
                     if (response.ok) {
-                        // Redirect to recipes list on successful deletion
                         window.location.href = '/recipes';
                     } else {
-                        // Handle error
                         response.text().then(text => {
                             alert('Failed to delete recipe: ' + text);
                         });
@@ -27,6 +25,156 @@
                 .catch(error => {
                     alert('Error deleting recipe: ' + error.message);
                 });
+            }
+        }
+
+        function initTagInput(inputId, suggestionsId, searchUrl, addUrl, containerId, tagClass, isAuthor) {
+            const input = document.getElementById(inputId);
+            const suggestions = document.getElementById(suggestionsId);
+            const container = document.getElementById(containerId);
+            let selectedIndex = -1;
+            let currentSuggestions = [];
+
+            async function searchTags(query) {
+                try {
+                    const response = await fetch(`${searchUrl}?q=${encodeURIComponent(query)}`);
+                    const data = await response.json();
+                    return data.tags || [];
+                } catch (e) {
+                    return [];
+                }
+            }
+
+            function renderSuggestions(tags, query) {
+                currentSuggestions = tags;
+                selectedIndex = -1;
+                
+                if (tags.length === 0 && query.trim() === '') {
+                    suggestions.classList.remove('show');
+                    return;
+                }
+
+                let html = '';
+                tags.forEach((tag, i) => {
+                    html += `<div class="tag-suggestion" data-index="${i}" data-tag="${tag}">${tag}</div>`;
+                });
+
+                if (query.trim() !== '' && !tags.includes(query.toLowerCase().trim())) {
+                    html += `<div class="tag-suggestion tag-suggestion-new" data-index="${tags.length}" data-tag="${query.trim()}">Create "${query.trim()}"</div>`;
+                    currentSuggestions.push(query.trim());
+                }
+
+                if (html === '') {
+                    suggestions.classList.remove('show');
+                    return;
+                }
+
+                suggestions.innerHTML = html;
+                suggestions.classList.add('show');
+            }
+
+            async function addTag(tagName) {
+                if (!tagName.trim()) return;
+
+                const formData = new FormData();
+                formData.append('tag', tagName.trim());
+
+                try {
+                    const response = await fetch(addUrl, {
+                        method: 'POST',
+                        body: formData
+                    });
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        location.reload();
+                    } else {
+                        alert(data.error || 'Failed to add tag');
+                    }
+                } catch (e) {
+                    alert('Error adding tag');
+                }
+            }
+
+            input.addEventListener('input', async function() {
+                const query = this.value;
+                const tags = await searchTags(query);
+                renderSuggestions(tags, query);
+            });
+
+            input.addEventListener('keydown', function(e) {
+                const items = suggestions.querySelectorAll('.tag-suggestion');
+                
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    selectedIndex = Math.min(selectedIndex + 1, items.length - 1);
+                    items.forEach((item, i) => item.classList.toggle('selected', i === selectedIndex));
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    selectedIndex = Math.max(selectedIndex - 1, 0);
+                    items.forEach((item, i) => item.classList.toggle('selected', i === selectedIndex));
+                } else if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (selectedIndex >= 0 && currentSuggestions[selectedIndex]) {
+                        addTag(currentSuggestions[selectedIndex]);
+                    } else if (this.value.trim()) {
+                        addTag(this.value.trim());
+                    }
+                } else if (e.key === 'Escape') {
+                    suggestions.classList.remove('show');
+                }
+            });
+
+            suggestions.addEventListener('click', function(e) {
+                const item = e.target.closest('.tag-suggestion');
+                if (item) {
+                    addTag(item.dataset.tag);
+                }
+            });
+
+            document.addEventListener('click', function(e) {
+                if (!input.contains(e.target) && !suggestions.contains(e.target)) {
+                    suggestions.classList.remove('show');
+                }
+            });
+
+            input.addEventListener('focus', async function() {
+                if (this.value.trim() === '') {
+                    const tags = await searchTags('');
+                    renderSuggestions(tags, '');
+                }
+            });
+        }
+
+        async function removeTag(recipeId, tagId) {
+            try {
+                const response = await fetch(`/recipes/${recipeId}/tags/${tagId}`, {
+                    method: 'DELETE'
+                });
+                const data = await response.json();
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert(data.error || 'Failed to remove tag');
+                }
+            } catch (e) {
+                alert('Error removing tag');
+            }
+        }
+
+        async function removeUserTag(tagId) {
+            try {
+                const response = await fetch(`/user-tags/${tagId}`, {
+                    method: 'DELETE'
+                });
+                const data = await response.json();
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert(data.error || 'Failed to remove tag');
+                }
+            } catch (e) {
+                alert('Error removing tag');
             }
         }
     </script>
@@ -77,6 +225,49 @@
                 <div class="meta-value">{{.Recipe.CreatedAt.Format "Jan 2, 2006"}}</div>
             </div>
         </div>
+
+        <!-- Author Tags Section -->
+        <div class="tags-section">
+            <div class="tags-container">
+                <span class="tags-label">Tags:</span>
+                {{range .Tags}}
+                <span class="tag tag-author">
+                    {{.Name}}
+                    {{if $.IsAuthor}}
+                    <button class="tag-remove" onclick="removeTag({{$.Recipe.ID}}, {{.ID}})" title="Remove tag">&times;</button>
+                    {{end}}
+                </span>
+                {{end}}
+                {{if .IsAuthor}}
+                <div class="tag-input-container">
+                    <input type="text" id="author-tag-input" class="tag-input" placeholder="Add tag...">
+                    <div id="author-tag-suggestions" class="tag-suggestions"></div>
+                </div>
+                {{end}}
+                {{if and (not .Tags) (not .IsAuthor)}}
+                <span style="color: #999; font-style: italic;">No tags</span>
+                {{end}}
+            </div>
+        </div>
+
+        <!-- User Tags Section (only for logged-in users) -->
+        {{if .IsLoggedIn}}
+        <div class="tags-section">
+            <div class="tags-container">
+                <span class="tags-label">My Tags:</span>
+                {{range .UserTags}}
+                <span class="tag tag-user">
+                    {{.Name}}
+                    <button class="tag-remove" onclick="removeUserTag({{.ID}})" title="Remove tag">&times;</button>
+                </span>
+                {{end}}
+                <div class="tag-input-container">
+                    <input type="text" id="user-tag-input" class="tag-input" placeholder="Add personal tag...">
+                    <div id="user-tag-suggestions" class="tag-suggestions"></div>
+                </div>
+            </div>
+        </div>
+        {{end}}
     </div>
 
     <div class="recipe-section">
@@ -121,6 +312,17 @@
         <p><a href="/login">Login</a> to add a comment.</p>
         {{end}}
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            {{if .IsAuthor}}
+            initTagInput('author-tag-input', 'author-tag-suggestions', '/api/tags/search', '/recipes/{{.Recipe.ID}}/tags', 'author-tags-container', 'tag-author', true);
+            {{end}}
+            {{if .IsLoggedIn}}
+            initTagInput('user-tag-input', 'user-tag-suggestions', '/api/tags/user/search', '/recipes/{{.Recipe.ID}}/user-tags', 'user-tags-container', 'tag-user', false);
+            {{end}}
+        });
+    </script>
     {{ template "footer" .UserInfo }}
 </body>
 </html>

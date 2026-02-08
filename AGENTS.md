@@ -1,3 +1,5 @@
 - this project is written in Go and uses htmx and server-side templating for the frontend.
 - avoid code duplication for util functions. use a central util module instead. check if functions exists in util module before creating a new one.
 - don't add comment to code where its intent is obvious. only add comments if they add information that is not obvious from reading the code. 
+- DO NOT EVER, UNDER ANY CIRCUMSTANCES, USE ZERO-WIDTH WHITESPACE!
+- database migrations filenames must use the current datetime in format YYYYMMDDHHMMSS (e.g., 20260207151814_add_feature.up.sql)

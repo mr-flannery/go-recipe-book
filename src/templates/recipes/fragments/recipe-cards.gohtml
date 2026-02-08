@@ -15,6 +15,14 @@
             <div class="recipe-content">
                 <div class="recipe-title">{{.Title}}</div>
                 
+                {{if .Tags}}
+                <div class="recipe-tags">
+                    {{range .Tags}}
+                    <span class="tag tag-author tag-small">{{.Name}}</span>
+                    {{end}}
+                </div>
+                {{end}}
+                
                 <div class="recipe-ingredients">{{.IngredientsMD}}</div>
                 
                 <div class="recipe-meta">

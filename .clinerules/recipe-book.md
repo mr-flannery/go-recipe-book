@@ -1,2 +1,0 @@
-- this project's working directory is `src/`
-- always log using log/slog, never use fmt.Printf
