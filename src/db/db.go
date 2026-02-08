@@ -13,18 +13,63 @@ import (
 	"github.com/mr-flannery/go-recipe-book/src/utils"
 )
 
-// implement connection pool at some point in time?
-func GetConnection() (*sql.DB, error) {
-	config := config.GetConfig()
+var pool *sql.DB
+
+func InitPool() (*sql.DB, error) {
+	if pool != nil {
+		return pool, nil
+	}
+
+	cfg := config.GetConfig()
 
 	connectionString := fmt.Sprintf(
 		"host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
-		config.DB.Host,
-		config.DB.Port,
-		config.DB.User,
-		config.DB.Password,
-		config.DB.Name,
-		config.DB.SSLMode,
+		cfg.DB.Host,
+		cfg.DB.Port,
+		cfg.DB.User,
+		cfg.DB.Password,
+		cfg.DB.Name,
+		cfg.DB.SSLMode,
+	)
+
+	db, err := sql.Open("postgres", connectionString)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open database: %w", err)
+	}
+
+	if err := db.Ping(); err != nil {
+		return nil, fmt.Errorf("failed to ping database: %w", err)
+	}
+
+	db.SetMaxOpenConns(25)
+	db.SetMaxIdleConns(25)
+
+	pool = db
+	return pool, nil
+}
+
+func GetPool() *sql.DB {
+	return pool
+}
+
+func ClosePool() error {
+	if pool != nil {
+		return pool.Close()
+	}
+	return nil
+}
+
+func GetConnection() (*sql.DB, error) {
+	cfg := config.GetConfig()
+
+	connectionString := fmt.Sprintf(
+		"host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
+		cfg.DB.Host,
+		cfg.DB.Port,
+		cfg.DB.User,
+		cfg.DB.Password,
+		cfg.DB.Name,
+		cfg.DB.SSLMode,
 	)
 	return sql.Open("postgres", connectionString)
 }

@@ -6,10 +6,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/mr-flannery/go-recipe-book/src/db"
+	"github.com/mr-flannery/go-recipe-book/src/store"
 )
 
-// User represents a user in the system
 type User struct {
 	ID        int
 	Username  string
@@ -19,58 +18,92 @@ type User struct {
 	LastLogin *time.Time
 }
 
-// Authenticate verifies email and password against the database
-func Authenticate(email string, password string) (*User, error) {
-	var user User
-	var passwordHash string
-
-	query := `
-		SELECT id, username, email, password_hash, is_admin, is_active, last_login
-		FROM users 
-		WHERE email = $1 AND is_active = true`
-
-	// Get database connection
-	database, err := db.GetConnection()
-	if err != nil {
-		return &user, err
+func userFromAuthUser(au *store.AuthUser) *User {
+	if au == nil {
+		return nil
 	}
-	defer database.Close()
+	return &User{
+		ID:       au.ID,
+		Username: au.Username,
+		Email:    au.Email,
+		IsAdmin:  au.IsAdmin,
+		IsActive: au.IsActive,
+	}
+}
 
-	err = database.QueryRow(query, email).Scan(
-		&user.ID, &user.Username, &user.Email, &passwordHash,
-		&user.IsAdmin, &user.IsActive, &user.LastLogin)
-
+func Authenticate(authStore store.AuthStore, email string, password string) (*User, error) {
+	authUser, passwordHash, err := authStore.GetUserByEmail(email)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, fmt.Errorf("invalid email or password")
-		}
-		return nil, fmt.Errorf("authentication error: %w", err)
+		return nil, fmt.Errorf("invalid email or password")
 	}
 
-	// Verify password using Argon2id
 	if err := VerifyPassword(password, passwordHash); err != nil {
 		return nil, fmt.Errorf("invalid email or password")
 	}
 
-	// Update last login time
-	updateQuery := `UPDATE users SET last_login = NOW() WHERE id = $1`
-	_, err = database.Exec(updateQuery, user.ID)
-	if err != nil {
-		// Log error but don't fail authentication
-		fmt.Printf("Warning: failed to update last login for user %d: %v\n", user.ID, err)
+	if err := authStore.UpdateLastLogin(authUser.ID); err != nil {
+		fmt.Printf("Warning: failed to update last login for user %d: %v\n", authUser.ID, err)
 	}
 
-	return &user, nil
+	return userFromAuthUser(authUser), nil
 }
 
-// GetUserBySession retrieves user information from a session
-func GetUserBySession(db *sql.DB, r *http.Request) (*User, error) {
+func GetUserBySession(authStore store.AuthStore, r *http.Request) (*User, error) {
 	sessionID, err := GetSessionFromRequest(r)
 	if err != nil {
 		return nil, fmt.Errorf("no valid session: %w", err)
 	}
 
-	session, err := ValidateSession(db, sessionID)
+	session, err := authStore.GetSession(sessionID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid session: %w", err)
+	}
+
+	authUser, err := authStore.GetUserByID(session.UserID)
+	if err != nil {
+		return nil, fmt.Errorf("user not found: %w", err)
+	}
+
+	return userFromAuthUser(authUser), nil
+}
+
+func IsSessionValid(authStore store.AuthStore, r *http.Request) bool {
+	_, err := GetUserBySession(authStore, r)
+	return err == nil
+}
+
+func RequireAuth() func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			user := GetUserFromContext(r.Context())
+			if user == nil {
+				currentURL := r.URL.Path
+				if r.URL.RawQuery != "" {
+					currentURL += "?" + r.URL.RawQuery
+				}
+				redirectURL := "/login?redirect=" + currentURL
+				http.Redirect(w, r, redirectURL, http.StatusSeeOther)
+				return
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
+func GetUserIDByUsername(authStore store.AuthStore, username string) (int, error) {
+	return authStore.GetUserIDByUsername(username)
+}
+
+// Legacy functions that accept *sql.DB for backward compatibility during transition
+// These will be deprecated once all callers are updated
+
+func GetUserBySessionLegacy(db *sql.DB, r *http.Request) (*User, error) {
+	sessionID, err := GetSessionFromRequest(r)
+	if err != nil {
+		return nil, fmt.Errorf("no valid session: %w", err)
+	}
+
+	session, err := ValidateSessionLegacy(db, sessionID)
 	if err != nil {
 		return nil, fmt.Errorf("invalid session: %w", err)
 	}
@@ -92,50 +125,27 @@ func GetUserBySession(db *sql.DB, r *http.Request) (*User, error) {
 	return &user, nil
 }
 
-// IsSessionValid checks if the current request has a valid session
-func IsSessionValid(db *sql.DB, r *http.Request) bool {
-	_, err := GetUserBySession(db, r)
-	return err == nil
-}
-
-// RequireAuth creates middleware to enforce authentication
-// This middleware should be used AFTER UserContextMiddleware
-func RequireAuth() func(http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			user := GetUserFromContext(r.Context())
-			if user == nil {
-				// Include the current URL as redirect parameter
-				currentURL := r.URL.Path
-				if r.URL.RawQuery != "" {
-					currentURL += "?" + r.URL.RawQuery
-				}
-				redirectURL := "/login?redirect=" + currentURL
-				http.Redirect(w, r, redirectURL, http.StatusSeeOther)
-				return
-			}
-			next.ServeHTTP(w, r)
-		})
+func ValidateSessionLegacy(db *sql.DB, sessionID string) (*Session, error) {
+	if sessionID == "" {
+		return nil, fmt.Errorf("empty session ID")
 	}
-}
 
-// GetUserIDByUsername fetches the user ID for a given username from the database
-func GetUserIDByUsername(username string) (int, error) {
-	// Replace with actual database connection
-	db, err := sql.Open("postgres", "host=localhost port=5432 user=local-recipe-user password=local-recipe-password dbname=recipe-book sslmode=disable")
-	if err != nil {
-		return 0, fmt.Errorf("failed to connect to database: %v", err)
-	}
-	defer db.Close()
+	var session Session
+	query := `
+		SELECT id, user_id, created_at, expires_at, ip_address, user_agent
+		FROM sessions 
+		WHERE id = $1 AND expires_at > NOW()`
 
-	var userID int
-	err = db.QueryRow("SELECT id FROM users WHERE username = $1", username).Scan(&userID)
+	err := db.QueryRow(query, sessionID).Scan(
+		&session.ID, &session.UserID, &session.CreatedAt,
+		&session.ExpiresAt, &session.IPAddress, &session.UserAgent)
+
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return 0, fmt.Errorf("user not found")
+			return nil, fmt.Errorf("session not found or expired")
 		}
-		return 0, fmt.Errorf("failed to fetch user ID: %v", err)
+		return nil, fmt.Errorf("failed to validate session: %w", err)
 	}
 
-	return userID, nil
+	return &session, nil
 }
