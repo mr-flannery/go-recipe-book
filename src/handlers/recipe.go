@@ -144,6 +144,8 @@ func PostCreateRecipeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// TODO: does this need a transaction? if saving the tags fails, but the recipe itself has been saved, that's kinda weird
+	// probably a good idea to add a transaction
 	// Handle tags if provided
 	tagsStr := r.FormValue("tags")
 	if tagsStr != "" {

@@ -18,7 +18,6 @@ type TagSearchResponse struct {
 
 type TagResponse struct {
 	Success bool   `json:"success"`
-	Message string `json:"message,omitempty"`
 	Error   string `json:"error,omitempty"`
 }
 
@@ -153,7 +152,7 @@ func AddTagToRecipeHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(TagResponse{Success: true, Message: "Tag added successfully"})
+	json.NewEncoder(w).Encode(TagResponse{Success: true})
 }
 
 func RemoveTagFromRecipeHandler(w http.ResponseWriter, r *http.Request) {
@@ -223,7 +222,7 @@ func RemoveTagFromRecipeHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(TagResponse{Success: true, Message: "Tag removed successfully"})
+	json.NewEncoder(w).Encode(TagResponse{Success: true})
 }
 
 func AddUserTagToRecipeHandler(w http.ResponseWriter, r *http.Request) {
@@ -288,7 +287,7 @@ func AddUserTagToRecipeHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(TagResponse{Success: true, Message: "User tag added successfully"})
+	json.NewEncoder(w).Encode(TagResponse{Success: true})
 }
 
 func RemoveUserTagHandler(w http.ResponseWriter, r *http.Request) {
@@ -334,5 +333,5 @@ func RemoveUserTagHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(TagResponse{Success: true, Message: "User tag removed successfully"})
+	json.NewEncoder(w).Encode(TagResponse{Success: true})
 }
