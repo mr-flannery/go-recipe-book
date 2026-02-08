@@ -174,10 +174,6 @@ func main() {
 		userContext(
 			requireAuth(
 				http.HandlerFunc(handlers.RemoveTagFromRecipeHandler))))
-	mux.Handle("GET /recipes/{id}/user-tags",
-		userContext(
-			requireAuth(
-				http.HandlerFunc(handlers.GetRecipeUserTagsHandler))))
 	mux.Handle("POST /recipes/{id}/user-tags",
 		userContext(
 			requireAuth(
