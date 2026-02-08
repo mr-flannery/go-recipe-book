@@ -172,12 +172,8 @@ func ListRecipesHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	tagsMap, _ := models.GetTagsForRecipes(recipeIDs)
 
-	recipesWithTags := make([]models.RecipeWithTags, len(recipes))
-	for i, r := range recipes {
-		recipesWithTags[i] = models.RecipeWithTags{
-			Recipe: r,
-			Tags:   tagsMap[r.ID],
-		}
+	for i := range recipes {
+		recipes[i].Tags = tagsMap[recipes[i].ID]
 	}
 
 	// Get database connection to check user authentication
@@ -185,12 +181,12 @@ func ListRecipesHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		// If DB fails, assume not logged in
 		data := struct {
-			Recipes     []models.RecipeWithTags
+			Recipes     []models.Recipe
 			UserInfo    *auth.UserInfo
 			IsLoggedIn  bool
 			CurrentUser *auth.User
 		}{
-			Recipes:     recipesWithTags,
+			Recipes:     recipes,
 			UserInfo:    &auth.UserInfo{IsLoggedIn: false, IsAdmin: false, Username: ""},
 			IsLoggedIn:  false,
 			CurrentUser: nil,
@@ -210,12 +206,12 @@ func ListRecipesHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data := struct {
-		Recipes     []models.RecipeWithTags
+		Recipes     []models.Recipe
 		UserInfo    *auth.UserInfo
 		IsLoggedIn  bool
 		CurrentUser *auth.User
 	}{
-		Recipes:     recipesWithTags,
+		Recipes:     recipes,
 		UserInfo:    userInfo,
 		IsLoggedIn:  userInfo.IsLoggedIn,
 		CurrentUser: currentUser,
@@ -237,15 +233,13 @@ func GetUpdateRecipeHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	recipeIDInt, _ := strconv.Atoi(recipeID)
-	tags, _ := models.GetTagsByRecipeID(recipeIDInt)
+	recipe.Tags, _ = models.GetTagsByRecipeID(recipeIDInt)
 
 	data := struct {
 		Recipe   models.Recipe
-		Tags     []models.Tag
 		UserInfo *auth.UserInfo
 	}{
 		Recipe:   recipe,
-		Tags:     tags,
 		UserInfo: auth.GetUserInfoFromContext(r.Context()),
 	}
 
@@ -407,7 +401,7 @@ func ViewRecipeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tags, _ := models.GetTagsByRecipeID(recipeIDInt)
+	recipe.Tags, _ = models.GetTagsByRecipeID(recipeIDInt)
 
 	type CommentWithUsername struct {
 		models.Comment
@@ -432,7 +426,6 @@ func ViewRecipeHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		data := struct {
 			Recipe      models.Recipe
-			Tags        []models.Tag
 			UserTags    []models.UserTag
 			Comments    []CommentWithUsername
 			IsLoggedIn  bool
@@ -441,7 +434,6 @@ func ViewRecipeHandler(w http.ResponseWriter, r *http.Request) {
 			UserInfo    *auth.UserInfo
 		}{
 			Recipe:      recipe,
-			Tags:        tags,
 			UserTags:    nil,
 			Comments:    commentsWithUsernames,
 			IsLoggedIn:  false,
@@ -468,7 +460,6 @@ func ViewRecipeHandler(w http.ResponseWriter, r *http.Request) {
 
 	data := struct {
 		Recipe      models.Recipe
-		Tags        []models.Tag
 		UserTags    []models.UserTag
 		Comments    []CommentWithUsername
 		IsLoggedIn  bool
@@ -477,7 +468,6 @@ func ViewRecipeHandler(w http.ResponseWriter, r *http.Request) {
 		UserInfo    *auth.UserInfo
 	}{
 		Recipe:      recipe,
-		Tags:        tags,
 		UserTags:    userTags,
 		Comments:    commentsWithUsernames,
 		IsLoggedIn:  isLoggedIn,
@@ -690,12 +680,8 @@ func FilterRecipesHTMXHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	tagsMap, _ := models.GetTagsForRecipes(recipeIDs)
 
-	recipesWithTags := make([]models.RecipeWithTags, len(recipes))
-	for i, r := range recipes {
-		recipesWithTags[i] = models.RecipeWithTags{
-			Recipe: r,
-			Tags:   tagsMap[r.ID],
-		}
+	for i := range recipes {
+		recipes[i].Tags = tagsMap[recipes[i].ID]
 	}
 
 	// Get database connection to check user authentication
@@ -703,11 +689,11 @@ func FilterRecipesHTMXHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		// If DB fails, assume not logged in
 		data := struct {
-			Recipes     []models.RecipeWithTags
+			Recipes     []models.Recipe
 			IsLoggedIn  bool
 			CurrentUser *auth.User
 		}{
-			Recipes:     recipesWithTags,
+			Recipes:     recipes,
 			IsLoggedIn:  false,
 			CurrentUser: nil,
 		}
@@ -725,11 +711,11 @@ func FilterRecipesHTMXHandler(w http.ResponseWriter, r *http.Request) {
 	isLoggedIn := err == nil
 
 	data := struct {
-		Recipes     []models.RecipeWithTags
+		Recipes     []models.Recipe
 		IsLoggedIn  bool
 		CurrentUser *auth.User
 	}{
-		Recipes:     recipesWithTags,
+		Recipes:     recipes,
 		IsLoggedIn:  isLoggedIn,
 		CurrentUser: currentUser,
 	}

@@ -166,8 +166,6 @@ func main() {
 		userContext(
 			requireAuth(
 				http.HandlerFunc(handlers.SearchUserTagsHandler))))
-	mux.Handle("GET /recipes/{id}/tags",
-		http.HandlerFunc(handlers.GetRecipeTagsHandler))
 	mux.Handle("POST /recipes/{id}/tags",
 		userContext(
 			requireAuth(

@@ -38,6 +38,7 @@ type Recipe struct {
 	ParentID       *int
 	CreatedAt      time.Time
 	UpdatedAt      time.Time
+	Tags           []Tag
 }
 
 // ImageBase64 returns the base64 encoded image for display in templates
@@ -66,12 +67,6 @@ type UserTag struct {
 	UserID   int
 	RecipeID int
 	Name     string
-}
-
-// RecipeWithTags wraps a Recipe with its associated tags for display
-type RecipeWithTags struct {
-	Recipe
-	Tags []Tag
 }
 
 // Comment represents a comment on a recipe

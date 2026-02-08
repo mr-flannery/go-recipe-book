@@ -60,7 +60,7 @@
                 <label>Tags</label>
                 <div class="tags-section">
                     <div id="tags-container" class="tags-container">
-                        {{range .Tags}}
+                        {{range .Recipe.Tags}}
                         <span class="tag tag-author" data-tag="{{.Name}}">
                             {{.Name}}<button type="button" class="tag-remove" onclick="removeTag('{{.Name}}')">&times;</button>
                         </span>
@@ -71,7 +71,7 @@
                         </div>
                     </div>
                 </div>
-                <input type="hidden" id="tags-hidden" name="tags" value="{{range $i, $t := .Tags}}{{if $i}},{{end}}{{$t.Name}}{{end}}">
+                <input type="hidden" id="tags-hidden" name="tags" value="{{range $i, $t := .Recipe.Tags}}{{if $i}},{{end}}{{$t.Name}}{{end}}">
                 <div class="help-text">Add tags to help others find your recipe (e.g., vegetarian, quick, dessert)</div>
             </div>
 

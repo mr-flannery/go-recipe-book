@@ -230,7 +230,7 @@
         <div class="tags-section">
             <div class="tags-container">
                 <span class="tags-label">Tags:</span>
-                {{range .Tags}}
+                {{range .Recipe.Tags}}
                 <span class="tag tag-author">
                     {{.Name}}
                     {{if $.IsAuthor}}
@@ -244,7 +244,7 @@
                     <div id="author-tag-suggestions" class="tag-suggestions"></div>
                 </div>
                 {{end}}
-                {{if and (not .Tags) (not .IsAuthor)}}
+                {{if and (not .Recipe.Tags) (not .IsAuthor)}}
                 <span style="color: #999; font-style: italic;">No tags</span>
                 {{end}}
             </div>

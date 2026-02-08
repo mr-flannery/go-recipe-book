@@ -337,50 +337,6 @@ func RemoveUserTagHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(TagResponse{Success: true, Message: "User tag removed successfully"})
 }
 
-func GetRecipeTagsHandler(w http.ResponseWriter, r *http.Request) {
-	recipeID := r.PathValue("id")
-	if recipeID == "" {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(TagResponse{Success: false, Error: "Recipe ID is required"})
-		return
-	}
-
-	recipeIDInt, err := strconv.Atoi(recipeID)
-	if err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(TagResponse{Success: false, Error: "Invalid recipe ID"})
-		return
-	}
-
-	tags, err := models.GetTagsByRecipeID(recipeIDInt)
-	if err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(TagResponse{Success: false, Error: "Failed to get tags"})
-		return
-	}
-
-	type TagWithID struct {
-		ID   int    `json:"id"`
-		Name string `json:"name"`
-	}
-
-	response := struct {
-		Tags []TagWithID `json:"tags"`
-	}{
-		Tags: make([]TagWithID, len(tags)),
-	}
-
-	for i, tag := range tags {
-		response.Tags[i] = TagWithID{ID: tag.ID, Name: tag.Name}
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
-}
-
 func GetRecipeUserTagsHandler(w http.ResponseWriter, r *http.Request) {
 	recipeID := r.PathValue("id")
 	if recipeID == "" {
