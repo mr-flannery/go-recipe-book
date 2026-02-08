@@ -1,7 +1,6 @@
 package auth
 
 import (
-	"database/sql"
 	"fmt"
 	"net/http"
 	"time"
@@ -92,60 +91,4 @@ func RequireAuth() func(http.Handler) http.Handler {
 
 func GetUserIDByUsername(authStore store.AuthStore, username string) (int, error) {
 	return authStore.GetUserIDByUsername(username)
-}
-
-// Legacy functions that accept *sql.DB for backward compatibility during transition
-// These will be deprecated once all callers are updated
-
-func GetUserBySessionLegacy(db *sql.DB, r *http.Request) (*User, error) {
-	sessionID, err := GetSessionFromRequest(r)
-	if err != nil {
-		return nil, fmt.Errorf("no valid session: %w", err)
-	}
-
-	session, err := ValidateSessionLegacy(db, sessionID)
-	if err != nil {
-		return nil, fmt.Errorf("invalid session: %w", err)
-	}
-
-	var user User
-	query := `
-		SELECT id, username, email, is_admin, is_active, last_login
-		FROM users 
-		WHERE id = $1 AND is_active = true`
-
-	err = db.QueryRow(query, session.UserID).Scan(
-		&user.ID, &user.Username, &user.Email,
-		&user.IsAdmin, &user.IsActive, &user.LastLogin)
-
-	if err != nil {
-		return nil, fmt.Errorf("user not found: %w", err)
-	}
-
-	return &user, nil
-}
-
-func ValidateSessionLegacy(db *sql.DB, sessionID string) (*Session, error) {
-	if sessionID == "" {
-		return nil, fmt.Errorf("empty session ID")
-	}
-
-	var session Session
-	query := `
-		SELECT id, user_id, created_at, expires_at, ip_address, user_agent
-		FROM sessions 
-		WHERE id = $1 AND expires_at > NOW()`
-
-	err := db.QueryRow(query, sessionID).Scan(
-		&session.ID, &session.UserID, &session.CreatedAt,
-		&session.ExpiresAt, &session.IPAddress, &session.UserAgent)
-
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, fmt.Errorf("session not found or expired")
-		}
-		return nil, fmt.Errorf("failed to validate session: %w", err)
-	}
-
-	return &session, nil
 }

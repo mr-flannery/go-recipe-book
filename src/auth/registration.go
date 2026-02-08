@@ -1,7 +1,6 @@
 package auth
 
 import (
-	"database/sql"
 	"fmt"
 	"log/slog"
 	"time"
@@ -97,36 +96,6 @@ func CreateSeedAdmin(authStore store.AuthStore, username, email, password string
 	}
 
 	err = authStore.CreateUser(username, email, passwordHash, true)
-	if err != nil {
-		return fmt.Errorf("failed to create seed admin: %w", err)
-	}
-
-	fmt.Printf("Created seed admin account: %s\n", username)
-	return nil
-}
-
-// Legacy function for backward compatibility
-func CreateSeedAdminLegacy(db *sql.DB, username, email, password string) error {
-	var count int
-	err := db.QueryRow("SELECT COUNT(*) FROM users WHERE username = $1", username).Scan(&count)
-	if err != nil {
-		return fmt.Errorf("failed to check existing admin: %w", err)
-	}
-	if count > 0 {
-		slog.Info("Seed admin already exists, skipping creation", "username", username, "email", email)
-		return nil
-	}
-
-	passwordHash, err := HashPassword(password)
-	if err != nil {
-		return fmt.Errorf("failed to hash admin password: %w", err)
-	}
-
-	query := `
-		INSERT INTO users (username, email, password_hash, is_admin, is_active)
-		VALUES ($1, $2, $3, true, true)`
-
-	_, err = db.Exec(query, username, email, passwordHash)
 	if err != nil {
 		return fmt.Errorf("failed to create seed admin: %w", err)
 	}

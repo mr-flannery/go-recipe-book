@@ -2,7 +2,6 @@ package auth
 
 import (
 	"crypto/rand"
-	"database/sql"
 	"encoding/hex"
 	"fmt"
 	"net"
@@ -191,21 +190,4 @@ func generateSecureSessionID() (string, error) {
 
 func GetActiveSessionCount(authStore store.AuthStore, userID int) (int, error) {
 	return authStore.GetActiveSessionCount(userID)
-}
-
-// Legacy functions for backward compatibility during transition
-
-func CleanupExpiredSessionsLegacy(db *sql.DB) error {
-	query := `DELETE FROM sessions WHERE expires_at <= NOW()`
-	result, err := db.Exec(query)
-	if err != nil {
-		return fmt.Errorf("failed to cleanup expired sessions: %w", err)
-	}
-
-	rowsAffected, _ := result.RowsAffected()
-	if rowsAffected > 0 {
-		fmt.Printf("Cleaned up %d expired sessions\n", rowsAffected)
-	}
-
-	return nil
 }

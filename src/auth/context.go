@@ -73,11 +73,6 @@ func GetUserFromContext(ctx context.Context) *User {
 	}
 }
 
-func IsUserLoggedIn(ctx context.Context) bool {
-	userInfo := GetUserInfoFromContext(ctx)
-	return userInfo.IsLoggedIn
-}
-
 func IsUserAdmin(ctx context.Context) bool {
 	userInfo := GetUserInfoFromContext(ctx)
 	return userInfo.IsLoggedIn && userInfo.IsAdmin
