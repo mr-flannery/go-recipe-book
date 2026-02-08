@@ -76,10 +76,10 @@
             </div>
         </div>
 
-        {{template "tag-input-live" dict "ID" "author-tags" "Label" "Tags:" "Tags" .Recipe.Tags "TagClass" "tag-author" "CanEdit" .IsAuthor "Placeholder" "Add tag..." "SearchURL" "/api/tags/search" "AddURL" (printf "/recipes/%d/tags" .Recipe.ID) "DeleteURL" (printf "/recipes/%d/tags/{tagId}" .Recipe.ID)}}
+        {{template "tag-input-live" dict "ID" "author-tags" "Label" "Tags:" "Tags" .Recipe.Tags "TagClass" "tag-author" "CanEdit" .IsAuthor "Placeholder" "Add tag..." "SearchURL" "/api/tags/search" "AddURL" (printf "/recipes/%d/tags" .Recipe.ID) "DeleteURL" (printf "/recipes/%d/tags/:tagId" .Recipe.ID)}}
 
         {{if .IsLoggedIn}}
-        {{template "tag-input-live" dict "ID" "user-tags" "Label" "My Tags:" "Tags" .UserTags "TagClass" "tag-user" "CanEdit" true "Placeholder" "Add personal tag..." "SearchURL" "/api/tags/user/search" "AddURL" (printf "/recipes/%d/user-tags" .Recipe.ID) "DeleteURL" "/user-tags/{tagId}"}}
+        {{template "tag-input-live" dict "ID" "user-tags" "Label" "My Tags:" "Tags" .UserTags "TagClass" "tag-user" "CanEdit" true "Placeholder" "Add personal tag..." "SearchURL" "/api/tags/user/search" "AddURL" (printf "/recipes/%d/user-tags" .Recipe.ID) "DeleteURL" "/user-tags/:tagId"}}
         {{end}}
     </div>
 

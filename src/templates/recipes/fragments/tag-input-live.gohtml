@@ -41,7 +41,7 @@
     container.querySelectorAll('.tag-remove[data-tag-id]').forEach(function(btn) {
         btn.addEventListener('click', function() {
             var tagId = this.dataset.tagId;
-            fetch(deleteUrl.replace('{tagId}', tagId), {
+            fetch(deleteUrl.replace(':tagId', tagId), {
                 method: 'DELETE'
             })
             .then(function(response) { return response.json(); })
