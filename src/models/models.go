@@ -55,12 +55,6 @@ type Tag struct {
 	Name string
 }
 
-// RecipeTag represents the many-to-many relationship between recipes and tags
-type RecipeTag struct {
-	RecipeID int
-	TagID    int
-}
-
 // UserTag represents a personal tag that a user has added to a recipe
 type UserTag struct {
 	ID       int
@@ -771,42 +765,4 @@ func RemoveUserTag(userID int, tagID int) error {
 	}
 
 	return nil
-}
-
-// SetUserTagsForRecipe replaces all user tags on a recipe for a specific user
-func SetUserTagsForRecipe(userID int, recipeID int, tagNames []string) error {
-	dbConnection, err := db.GetConnection()
-	if err != nil {
-		return fmt.Errorf("failed to connect to database: %v", err)
-	}
-	defer dbConnection.Close()
-
-	tx, err := dbConnection.Begin()
-	if err != nil {
-		return fmt.Errorf("failed to begin transaction: %v", err)
-	}
-
-	_, err = tx.Exec("DELETE FROM user_tags WHERE user_id = $1 AND recipe_id = $2", userID, recipeID)
-	if err != nil {
-		tx.Rollback()
-		return fmt.Errorf("failed to clear existing user tags: %v", err)
-	}
-
-	for _, name := range tagNames {
-		normalizedName := strings.ToLower(strings.TrimSpace(name))
-		if normalizedName == "" {
-			continue
-		}
-
-		_, err = tx.Exec(
-			"INSERT INTO user_tags (user_id, recipe_id, name) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING",
-			userID, recipeID, normalizedName,
-		)
-		if err != nil {
-			tx.Rollback()
-			return fmt.Errorf("failed to add user tag: %v", err)
-		}
-	}
-
-	return tx.Commit()
 }

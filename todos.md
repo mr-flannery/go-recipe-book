@@ -8,6 +8,7 @@
   - register domain with Maileroo
 - fix the frigging css...
 - tagging!!!
+- split models into different files, recipe, tags, comment, etc.
 - openAPI spec + syncing
 - the API endpoints should be restructured into
   - pages `/recipe/`
