@@ -5,9 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Update Recipe - {{.Recipe.Title}}</title>
     <link rel="stylesheet" href="/static/css/styles.css">
+    {{template "tag-input-script"}}
 </head>
 <body>
-    {{ template "navbar" .UserInfo }}
+    {{template "navbar" .UserInfo}}
     <div class="navigation">
         <a href="/recipes/{{.Recipe.ID}}" class="btn btn-secondary">← Back to Recipe</a>
         <a href="/recipes" class="btn btn-secondary">All Recipes</a>
@@ -56,19 +57,7 @@
                 </div>
             </div>
 
-            <div class="form-group">
-                <label>Tags</label>
-                <div class="tags-section">
-                    <div id="tags-container" class="tags-container">
-                        <div class="tag-input-container">
-                            <input type="text" id="tag-input" class="tag-input" placeholder="Add tag...">
-                            <div id="tag-suggestions" class="tag-suggestions"></div>
-                        </div>
-                    </div>
-                </div>
-                <input type="hidden" id="tags-hidden" name="tags" value="{{range $i, $t := .Recipe.Tags}}{{if $i}},{{end}}{{$t.Name}}{{end}}">
-                <div class="help-text">Add tags to help others find your recipe (e.g., vegetarian, quick, dessert)</div>
-            </div>
+            {{template "tag-input-form" dict "ID" "tags" "InitialTags" (joinTagNames .Recipe.Tags)}}
 
             <div class="form-group">
                 <label for="ingredients">Ingredients (Markdown) *</label>
@@ -101,24 +90,6 @@
         </form>
     </div>
 
-    {{ template "tag-input-script" }}
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const tagsHidden = document.getElementById('tags-hidden');
-            const initialTags = tagsHidden.value ? tagsHidden.value.split(',').filter(t => t.trim()) : [];
-            
-            TagInputWidget.init({
-                inputId: 'tag-input',
-                suggestionsId: 'tag-suggestions',
-                containerId: 'tags-container',
-                hiddenFieldId: 'tags-hidden',
-                searchUrl: '/api/tags/search',
-                initialTags: initialTags,
-                tagClass: 'tag-author',
-                mode: 'local'
-            });
-        });
-    </script>
-    {{ template "footer" }}
+    {{template "footer"}}
 </body>
 </html>

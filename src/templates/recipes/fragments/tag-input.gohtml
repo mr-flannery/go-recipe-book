@@ -203,39 +203,3 @@
 })();
 </script>
 {{end}}
-
-{{define "tag-remove-script"}}
-<script>
-async function removeAuthorTag(recipeId, tagId) {
-    try {
-        const response = await fetch(`/recipes/${recipeId}/tags/${tagId}`, {
-            method: 'DELETE'
-        });
-        const data = await response.json();
-        if (data.success) {
-            location.reload();
-        } else {
-            alert(data.error || 'Failed to remove tag');
-        }
-    } catch (e) {
-        alert('Error removing tag');
-    }
-}
-
-async function removeUserTag(tagId) {
-    try {
-        const response = await fetch(`/user-tags/${tagId}`, {
-            method: 'DELETE'
-        });
-        const data = await response.json();
-        if (data.success) {
-            location.reload();
-        } else {
-            alert(data.error || 'Failed to remove tag');
-        }
-    } catch (e) {
-        alert('Error removing tag');
-    }
-}
-</script>
-{{end}}

@@ -1,0 +1,75 @@
+{{define "tag-input-live"}}
+<div class="tags-section">
+    <div id="{{.ID}}-container" class="tags-container tag-input-live-widget"
+         data-delete-url="{{.DeleteURL}}"
+         data-search-url="{{.SearchURL}}"
+         data-add-url="{{.AddURL}}"
+         data-tag-class="{{.TagClass}}">
+        <span class="tags-label">{{.Label}}</span>
+        {{range .Tags}}
+        <span class="tag {{$.TagClass}}">
+            {{.Name}}
+            {{if $.CanEdit}}
+            <button class="tag-remove" data-tag-id="{{.ID}}" title="Remove tag">&times;</button>
+            {{end}}
+        </span>
+        {{end}}
+        {{if .CanEdit}}
+        <div class="tag-input-container">
+            <input type="text" id="{{.ID}}-input" class="tag-input" placeholder="{{.Placeholder}}">
+            <div id="{{.ID}}-suggestions" class="tag-suggestions"></div>
+        </div>
+        {{end}}
+        {{if and (not .Tags) (not .CanEdit)}}
+        <span style="color: #999; font-style: italic;">No tags</span>
+        {{end}}
+    </div>
+</div>
+{{if .CanEdit}}
+<script>
+(function() {
+    var containers = document.querySelectorAll('.tag-input-live-widget');
+    var container = containers[containers.length - 1];
+    var containerId = container.id;
+    var widgetId = containerId.replace('-container', '');
+    var deleteUrl = container.dataset.deleteUrl;
+    var searchUrl = container.dataset.searchUrl;
+    var addUrl = container.dataset.addUrl;
+    var tagClass = container.dataset.tagClass;
+
+    container.querySelectorAll('.tag-remove[data-tag-id]').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            var tagId = this.dataset.tagId;
+            fetch(deleteUrl.replace('{tagId}', tagId), {
+                method: 'DELETE'
+            })
+            .then(function(response) { return response.json(); })
+            .then(function(data) {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert(data.error || 'Failed to remove tag');
+                }
+            })
+            .catch(function() {
+                alert('Error removing tag');
+            });
+        });
+    });
+
+    document.addEventListener('DOMContentLoaded', function() {
+        TagInputWidget.init({
+            inputId: widgetId + '-input',
+            suggestionsId: widgetId + '-suggestions',
+            containerId: containerId,
+            searchUrl: searchUrl,
+            addUrl: addUrl,
+            initialTags: [],
+            tagClass: tagClass,
+            mode: 'ajax'
+        });
+    });
+})();
+</script>
+{{end}}
+{{end}}
