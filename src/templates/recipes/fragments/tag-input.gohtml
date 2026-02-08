@@ -1,6 +1,7 @@
 {{define "tag-input-script"}}
 <script>
 (function() {
+    if (window.TagInputWidget) return;
     window.TagInputWidget = {
         init: function(config) {
             const {
