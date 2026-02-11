@@ -10,7 +10,7 @@ import (
 	"github.com/mr-flannery/go-recipe-book/src/store/mocks"
 )
 
-func TestCreateSession_Success(t *testing.T) {
+func TestCreateSession_ReturnsSessionWhenStoreSucceeds(t *testing.T) {
 	var capturedSession *store.Session
 	mockStore := &mocks.MockAuthStore{
 		CreateSessionFunc: func(session *store.Session) error {
@@ -46,7 +46,7 @@ func TestCreateSession_Success(t *testing.T) {
 	}
 }
 
-func TestCreateSession_StoreError(t *testing.T) {
+func TestCreateSession_ReturnsErrorWhenStoreFails(t *testing.T) {
 	mockStore := &mocks.MockAuthStore{
 		CreateSessionFunc: func(session *store.Session) error {
 			return errors.New("database error")
@@ -62,7 +62,7 @@ func TestCreateSession_StoreError(t *testing.T) {
 	}
 }
 
-func TestValidateSession_Success(t *testing.T) {
+func TestValidateSession_ReturnsSessionWhenItExists(t *testing.T) {
 	mockStore := &mocks.MockAuthStore{
 		GetSessionFunc: func(sessionID string) (*store.Session, error) {
 			return &store.Session{
@@ -89,7 +89,7 @@ func TestValidateSession_Success(t *testing.T) {
 	}
 }
 
-func TestValidateSession_NotFound(t *testing.T) {
+func TestValidateSession_ReturnsErrorWhenSessionNotFound(t *testing.T) {
 	mockStore := &mocks.MockAuthStore{
 		GetSessionFunc: func(sessionID string) (*store.Session, error) {
 			return nil, errors.New("session not found")
@@ -105,7 +105,7 @@ func TestValidateSession_NotFound(t *testing.T) {
 	}
 }
 
-func TestInvalidateSession(t *testing.T) {
+func TestInvalidateSession_DeletesSessionFromStore(t *testing.T) {
 	deletedSessionID := ""
 	mockStore := &mocks.MockAuthStore{
 		DeleteSessionFunc: func(sessionID string) error {
@@ -123,7 +123,7 @@ func TestInvalidateSession(t *testing.T) {
 	}
 }
 
-func TestInvalidateAllUserSessions(t *testing.T) {
+func TestInvalidateAllUserSessions_DeletesAllSessionsForUser(t *testing.T) {
 	deletedUserID := 0
 	mockStore := &mocks.MockAuthStore{
 		DeleteUserSessionsFunc: func(userID int) error {
@@ -141,8 +141,8 @@ func TestInvalidateAllUserSessions(t *testing.T) {
 	}
 }
 
-func TestCleanupExpiredSessions(t *testing.T) {
-	t.Run("cleans up sessions", func(t *testing.T) {
+func TestCleanupExpiredSessions_RemovesExpiredSessionsFromStore(t *testing.T) {
+	t.Run("successfully removes expired sessions", func(t *testing.T) {
 		mockStore := &mocks.MockAuthStore{
 			DeleteExpiredSessionsFunc: func() (int64, error) {
 				return 5, nil
@@ -155,7 +155,7 @@ func TestCleanupExpiredSessions(t *testing.T) {
 		}
 	})
 
-	t.Run("handles error", func(t *testing.T) {
+	t.Run("returns error when store fails", func(t *testing.T) {
 		mockStore := &mocks.MockAuthStore{
 			DeleteExpiredSessionsFunc: func() (int64, error) {
 				return 0, errors.New("database error")
@@ -169,7 +169,7 @@ func TestCleanupExpiredSessions(t *testing.T) {
 	})
 }
 
-func TestExtendSession(t *testing.T) {
+func TestExtendSession_ExtendsSessionExpiryInStore(t *testing.T) {
 	extendedSessionID := ""
 	mockStore := &mocks.MockAuthStore{
 		ExtendSessionFunc: func(sessionID string) error {
@@ -187,7 +187,7 @@ func TestExtendSession(t *testing.T) {
 	}
 }
 
-func TestGetActiveSessionCount(t *testing.T) {
+func TestGetActiveSessionCount_ReturnsCountOfActiveSessionsForUser(t *testing.T) {
 	mockStore := &mocks.MockAuthStore{
 		GetActiveSessionCountFunc: func(userID int) (int, error) {
 			if userID == 1 {
@@ -206,7 +206,7 @@ func TestGetActiveSessionCount(t *testing.T) {
 	}
 }
 
-func TestSetSecureSessionCookie(t *testing.T) {
+func TestSetSecureSessionCookie_SetsHttpOnlyStrictCookie(t *testing.T) {
 	rec := httptest.NewRecorder()
 	SetSecureSessionCookie(rec, "test-session-id")
 
@@ -227,7 +227,7 @@ func TestSetSecureSessionCookie(t *testing.T) {
 	}
 }
 
-func TestClearSessionCookie(t *testing.T) {
+func TestClearSessionCookie_SetsExpiredCookieToRemoveIt(t *testing.T) {
 	rec := httptest.NewRecorder()
 	ClearSessionCookie(rec)
 
@@ -245,8 +245,8 @@ func TestClearSessionCookie(t *testing.T) {
 	}
 }
 
-func TestGetSessionFromRequest(t *testing.T) {
-	t.Run("returns session ID from cookie", func(t *testing.T) {
+func TestGetSessionFromRequest_ExtractsSessionIDFromCookie(t *testing.T) {
+	t.Run("returns session ID when cookie is present", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/", nil)
 		req.AddCookie(&http.Cookie{Name: "session", Value: "my-session-id"})
 
@@ -259,7 +259,7 @@ func TestGetSessionFromRequest(t *testing.T) {
 		}
 	})
 
-	t.Run("returns error when no cookie", func(t *testing.T) {
+	t.Run("returns error when cookie is missing", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/", nil)
 
 		_, err := GetSessionFromRequest(req)
@@ -269,7 +269,7 @@ func TestGetSessionFromRequest(t *testing.T) {
 	})
 }
 
-func TestGetClientIP(t *testing.T) {
+func TestGetClientIP_ExtractsIPFromHeadersOrRemoteAddr(t *testing.T) {
 	tests := []struct {
 		name       string
 		headers    map[string]string
@@ -277,31 +277,31 @@ func TestGetClientIP(t *testing.T) {
 		expected   string
 	}{
 		{
-			name:       "from X-Forwarded-For",
+			name:       "returns IP from X-Forwarded-For header",
 			headers:    map[string]string{"X-Forwarded-For": "203.0.113.195"},
 			remoteAddr: "192.168.1.1:12345",
 			expected:   "203.0.113.195",
 		},
 		{
-			name:       "from X-Real-IP",
+			name:       "returns IP from X-Real-IP header",
 			headers:    map[string]string{"X-Real-IP": "198.51.100.178"},
 			remoteAddr: "192.168.1.1:12345",
 			expected:   "198.51.100.178",
 		},
 		{
-			name:       "from RemoteAddr",
+			name:       "returns IP from RemoteAddr when no headers",
 			headers:    map[string]string{},
 			remoteAddr: "10.0.0.1:54321",
 			expected:   "10.0.0.1",
 		},
 		{
-			name:       "X-Forwarded-For takes priority",
+			name:       "prioritizes X-Forwarded-For over X-Real-IP",
 			headers:    map[string]string{"X-Forwarded-For": "1.2.3.4", "X-Real-IP": "5.6.7.8"},
 			remoteAddr: "192.168.1.1:12345",
 			expected:   "1.2.3.4",
 		},
 		{
-			name:       "fallback to RemoteAddr without port",
+			name:       "strips port from RemoteAddr when used as fallback",
 			headers:    map[string]string{},
 			remoteAddr: "127.0.0.1",
 			expected:   "127.0.0.1",
@@ -324,7 +324,7 @@ func TestGetClientIP(t *testing.T) {
 	}
 }
 
-func TestValidateSessionWithContext(t *testing.T) {
+func TestValidateSessionWithContext_ReturnsSessionWhenValid(t *testing.T) {
 	mockStore := &mocks.MockAuthStore{
 		GetSessionFunc: func(sessionID string) (*store.Session, error) {
 			return &store.Session{

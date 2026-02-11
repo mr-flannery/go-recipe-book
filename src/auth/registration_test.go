@@ -8,7 +8,7 @@ import (
 	"github.com/mr-flannery/go-recipe-book/src/store/mocks"
 )
 
-func TestCreateRegistrationRequest_Success(t *testing.T) {
+func TestCreateRegistrationRequest_CreatesRequestWhenPasswordIsStrong(t *testing.T) {
 	var capturedUsername, capturedEmail, capturedHash string
 	mockStore := &mocks.MockAuthStore{
 		CreateRegistrationRequestFunc: func(username, email, passwordHash string) error {
@@ -34,7 +34,7 @@ func TestCreateRegistrationRequest_Success(t *testing.T) {
 	}
 }
 
-func TestCreateRegistrationRequest_WeakPassword(t *testing.T) {
+func TestCreateRegistrationRequest_ReturnsErrorWhenPasswordIsWeak(t *testing.T) {
 	mockStore := &mocks.MockAuthStore{}
 
 	err := CreateRegistrationRequest(mockStore, "user", "user@example.com", "weak")
@@ -43,7 +43,7 @@ func TestCreateRegistrationRequest_WeakPassword(t *testing.T) {
 	}
 }
 
-func TestCreateRegistrationRequest_StoreError(t *testing.T) {
+func TestCreateRegistrationRequest_ReturnsErrorWhenStoreFails(t *testing.T) {
 	mockStore := &mocks.MockAuthStore{
 		CreateRegistrationRequestFunc: func(username, email, passwordHash string) error {
 			return errors.New("duplicate email")
@@ -56,7 +56,7 @@ func TestCreateRegistrationRequest_StoreError(t *testing.T) {
 	}
 }
 
-func TestGetPendingRegistrations_Success(t *testing.T) {
+func TestGetPendingRegistrations_ReturnsListOfPendingRequests(t *testing.T) {
 	mockStore := &mocks.MockAuthStore{
 		GetPendingRegistrationsFunc: func() ([]store.RegistrationRequest, error) {
 			return []store.RegistrationRequest{
@@ -81,7 +81,7 @@ func TestGetPendingRegistrations_Success(t *testing.T) {
 	}
 }
 
-func TestGetPendingRegistrations_Empty(t *testing.T) {
+func TestGetPendingRegistrations_ReturnsEmptyListWhenNoPendingRequests(t *testing.T) {
 	mockStore := &mocks.MockAuthStore{
 		GetPendingRegistrationsFunc: func() ([]store.RegistrationRequest, error) {
 			return []store.RegistrationRequest{}, nil
@@ -97,7 +97,7 @@ func TestGetPendingRegistrations_Empty(t *testing.T) {
 	}
 }
 
-func TestGetPendingRegistrations_Error(t *testing.T) {
+func TestGetPendingRegistrations_ReturnsErrorWhenStoreFails(t *testing.T) {
 	mockStore := &mocks.MockAuthStore{
 		GetPendingRegistrationsFunc: func() ([]store.RegistrationRequest, error) {
 			return nil, errors.New("database error")
@@ -113,7 +113,7 @@ func TestGetPendingRegistrations_Error(t *testing.T) {
 	}
 }
 
-func TestApproveRegistration(t *testing.T) {
+func TestApproveRegistration_ApprovesRequestAndRecordsAdminID(t *testing.T) {
 	var approvedID, adminID int
 	mockStore := &mocks.MockAuthStore{
 		ApproveRegistrationFunc: func(requestID, aID int) error {
@@ -135,7 +135,7 @@ func TestApproveRegistration(t *testing.T) {
 	}
 }
 
-func TestRejectRegistration(t *testing.T) {
+func TestRejectRegistration_RejectsRequestWithReasonAndAdminID(t *testing.T) {
 	var rejectedID, adminID int
 	var capturedReason string
 	mockStore := &mocks.MockAuthStore{
@@ -162,7 +162,7 @@ func TestRejectRegistration(t *testing.T) {
 	}
 }
 
-func TestGetRegistrationRequestByID_Found(t *testing.T) {
+func TestGetRegistrationRequestByID_ReturnsRequestWhenItExists(t *testing.T) {
 	mockStore := &mocks.MockAuthStore{
 		GetPendingRegistrationsFunc: func() ([]store.RegistrationRequest, error) {
 			return []store.RegistrationRequest{
@@ -188,7 +188,7 @@ func TestGetRegistrationRequestByID_Found(t *testing.T) {
 	}
 }
 
-func TestGetRegistrationRequestByID_NotFound(t *testing.T) {
+func TestGetRegistrationRequestByID_ReturnsErrorWhenRequestNotFound(t *testing.T) {
 	mockStore := &mocks.MockAuthStore{
 		GetPendingRegistrationsFunc: func() ([]store.RegistrationRequest, error) {
 			return []store.RegistrationRequest{
@@ -209,7 +209,7 @@ func TestGetRegistrationRequestByID_NotFound(t *testing.T) {
 	}
 }
 
-func TestCreateSeedAdmin_NewUser(t *testing.T) {
+func TestCreateSeedAdmin_CreatesAdminUserWhenNotExists(t *testing.T) {
 	var createdUsername, createdEmail string
 	var createdAsAdmin bool
 	mockStore := &mocks.MockAuthStore{
@@ -239,7 +239,7 @@ func TestCreateSeedAdmin_NewUser(t *testing.T) {
 	}
 }
 
-func TestCreateSeedAdmin_AlreadyExists(t *testing.T) {
+func TestCreateSeedAdmin_SkipsCreationWhenUserAlreadyExists(t *testing.T) {
 	createUserCalled := false
 	mockStore := &mocks.MockAuthStore{
 		UserExistsFunc: func(username string) (bool, error) {
@@ -260,7 +260,7 @@ func TestCreateSeedAdmin_AlreadyExists(t *testing.T) {
 	}
 }
 
-func TestCreateSeedAdmin_UserExistsError(t *testing.T) {
+func TestCreateSeedAdmin_ReturnsErrorWhenUserExistsCheckFails(t *testing.T) {
 	mockStore := &mocks.MockAuthStore{
 		UserExistsFunc: func(username string) (bool, error) {
 			return false, errors.New("database error")
@@ -273,7 +273,7 @@ func TestCreateSeedAdmin_UserExistsError(t *testing.T) {
 	}
 }
 
-func TestCreateSeedAdmin_CreateUserError(t *testing.T) {
+func TestCreateSeedAdmin_ReturnsErrorWhenCreateUserFails(t *testing.T) {
 	mockStore := &mocks.MockAuthStore{
 		UserExistsFunc: func(username string) (bool, error) {
 			return false, nil

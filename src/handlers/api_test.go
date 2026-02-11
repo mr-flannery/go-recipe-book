@@ -12,7 +12,7 @@ import (
 	"github.com/mr-flannery/go-recipe-book/src/store/mocks"
 )
 
-func TestValidateRecipeRequest(t *testing.T) {
+func TestValidateRecipeRequest_ValidatesRequiredFieldsAndConstraints(t *testing.T) {
 	tests := []struct {
 		name    string
 		req     APIRecipeRequest
@@ -137,7 +137,7 @@ func TestValidateRecipeRequest(t *testing.T) {
 	}
 }
 
-func TestSendJSONError(t *testing.T) {
+func TestSendJSONError_SendsErrorResponseWithStatusCode(t *testing.T) {
 	rec := httptest.NewRecorder()
 	sendJSONError(rec, "test error message", http.StatusBadRequest)
 
@@ -163,7 +163,7 @@ func TestSendJSONError(t *testing.T) {
 	}
 }
 
-func TestSendJSONResponse(t *testing.T) {
+func TestSendJSONResponse_SendsSuccessResponseWithRecipeID(t *testing.T) {
 	rec := httptest.NewRecorder()
 	sendJSONResponse(rec, "Recipe created", 42)
 
@@ -192,8 +192,8 @@ func TestSendJSONResponse(t *testing.T) {
 	}
 }
 
-func TestAPIHealthHandler(t *testing.T) {
-	t.Run("GET request succeeds", func(t *testing.T) {
+func TestAPIHealthHandler_RespondsBasedOnHttpMethod(t *testing.T) {
+	t.Run("returns success when method is GET", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/api/health", nil)
 		rec := httptest.NewRecorder()
 
@@ -216,7 +216,7 @@ func TestAPIHealthHandler(t *testing.T) {
 		}
 	})
 
-	t.Run("POST request fails", func(t *testing.T) {
+	t.Run("returns method not allowed when method is POST", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodPost, "/api/health", nil)
 		rec := httptest.NewRecorder()
 
@@ -228,8 +228,8 @@ func TestAPIHealthHandler(t *testing.T) {
 	})
 }
 
-func TestAPICreateRecipeHandler(t *testing.T) {
-	t.Run("wrong method", func(t *testing.T) {
+func TestAPICreateRecipeHandler_CreatesRecipeBasedOnInput(t *testing.T) {
+	t.Run("returns method not allowed when method is not POST", func(t *testing.T) {
 		h := &Handler{}
 		req := httptest.NewRequest(http.MethodGet, "/api/recipe/upload", nil)
 		rec := httptest.NewRecorder()
@@ -241,7 +241,7 @@ func TestAPICreateRecipeHandler(t *testing.T) {
 		}
 	})
 
-	t.Run("invalid JSON", func(t *testing.T) {
+	t.Run("returns error when JSON is invalid", func(t *testing.T) {
 		h := &Handler{}
 		req := httptest.NewRequest(http.MethodPost, "/api/recipe/upload", bytes.NewBufferString("not json"))
 		rec := httptest.NewRecorder()
@@ -259,7 +259,7 @@ func TestAPICreateRecipeHandler(t *testing.T) {
 		}
 	})
 
-	t.Run("validation error", func(t *testing.T) {
+	t.Run("returns error when validation fails", func(t *testing.T) {
 		h := &Handler{}
 		body := `{"title": "", "ingredients_md": "test", "instructions_md": "test"}`
 		req := httptest.NewRequest(http.MethodPost, "/api/recipe/upload", bytes.NewBufferString(body))
@@ -278,7 +278,7 @@ func TestAPICreateRecipeHandler(t *testing.T) {
 		}
 	})
 
-	t.Run("successful creation", func(t *testing.T) {
+	t.Run("creates recipe and returns ID when input is valid", func(t *testing.T) {
 		mockAuthStore := &mocks.MockAuthStore{
 			GetUserIDByUsernameFunc: func(username string) (int, error) {
 				return 1, nil
@@ -322,7 +322,7 @@ func TestAPICreateRecipeHandler(t *testing.T) {
 		}
 	})
 
-	t.Run("with base64 image", func(t *testing.T) {
+	t.Run("decodes and stores base64 image when provided", func(t *testing.T) {
 		mockAuthStore := &mocks.MockAuthStore{
 			GetUserIDByUsernameFunc: func(username string) (int, error) {
 				return 1, nil
@@ -361,7 +361,7 @@ func TestAPICreateRecipeHandler(t *testing.T) {
 		}
 	})
 
-	t.Run("with data URI image", func(t *testing.T) {
+	t.Run("strips data URI prefix before decoding image", func(t *testing.T) {
 		mockAuthStore := &mocks.MockAuthStore{
 			GetUserIDByUsernameFunc: func(username string) (int, error) {
 				return 1, nil
@@ -400,7 +400,7 @@ func TestAPICreateRecipeHandler(t *testing.T) {
 		}
 	})
 
-	t.Run("invalid base64 image", func(t *testing.T) {
+	t.Run("returns error when base64 image is invalid", func(t *testing.T) {
 		mockAuthStore := &mocks.MockAuthStore{
 			GetUserIDByUsernameFunc: func(username string) (int, error) {
 				return 1, nil
@@ -433,7 +433,7 @@ func TestAPICreateRecipeHandler(t *testing.T) {
 		}
 	})
 
-	t.Run("recipe save failure", func(t *testing.T) {
+	t.Run("returns error when store fails to save recipe", func(t *testing.T) {
 		mockAuthStore := &mocks.MockAuthStore{
 			GetUserIDByUsernameFunc: func(username string) (int, error) {
 				return 1, nil

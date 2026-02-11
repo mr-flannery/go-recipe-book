@@ -10,7 +10,7 @@ import (
 	"github.com/mr-flannery/go-recipe-book/src/store/mocks"
 )
 
-func TestUserContextMiddleware_ValidSession(t *testing.T) {
+func TestUserContextMiddleware_PopulatesContextWhenSessionIsValid(t *testing.T) {
 	mockStore := &mocks.MockAuthStore{
 		GetSessionFunc: func(sessionID string) (*store.Session, error) {
 			return &store.Session{ID: sessionID, UserID: 1}, nil
@@ -57,7 +57,7 @@ func TestUserContextMiddleware_ValidSession(t *testing.T) {
 	}
 }
 
-func TestUserContextMiddleware_NoSession(t *testing.T) {
+func TestUserContextMiddleware_SetsGuestInfoWhenNoSessionPresent(t *testing.T) {
 	mockStore := &mocks.MockAuthStore{}
 	middleware := UserContextMiddleware(mockStore)
 	var capturedUserInfo *UserInfo
@@ -89,7 +89,7 @@ func TestUserContextMiddleware_NoSession(t *testing.T) {
 	}
 }
 
-func TestGetUserInfoFromContext_WithUserInfo(t *testing.T) {
+func TestGetUserInfoFromContext_ReturnsUserInfoWhenPresent(t *testing.T) {
 	userInfo := &UserInfo{
 		IsLoggedIn: true,
 		IsAdmin:    false,
@@ -110,7 +110,7 @@ func TestGetUserInfoFromContext_WithUserInfo(t *testing.T) {
 	}
 }
 
-func TestGetUserInfoFromContext_NoUserInfo(t *testing.T) {
+func TestGetUserInfoFromContext_ReturnsDefaultWhenNoUserInfoPresent(t *testing.T) {
 	ctx := context.Background()
 
 	result := GetUserInfoFromContext(ctx)
@@ -125,7 +125,7 @@ func TestGetUserInfoFromContext_NoUserInfo(t *testing.T) {
 	}
 }
 
-func TestGetUserFromContext_LoggedIn(t *testing.T) {
+func TestGetUserFromContext_ReturnsUserWhenLoggedIn(t *testing.T) {
 	userInfo := &UserInfo{
 		IsLoggedIn: true,
 		IsAdmin:    true,
@@ -149,7 +149,7 @@ func TestGetUserFromContext_LoggedIn(t *testing.T) {
 	}
 }
 
-func TestGetUserFromContext_NotLoggedIn(t *testing.T) {
+func TestGetUserFromContext_ReturnsNilWhenNotLoggedIn(t *testing.T) {
 	userInfo := &UserInfo{
 		IsLoggedIn: false,
 	}
@@ -161,29 +161,29 @@ func TestGetUserFromContext_NotLoggedIn(t *testing.T) {
 	}
 }
 
-func TestIsUserAdmin(t *testing.T) {
+func TestIsUserAdmin_ReturnsTrueOnlyWhenLoggedInAndAdmin(t *testing.T) {
 	tests := []struct {
 		name     string
 		userInfo *UserInfo
 		expected bool
 	}{
 		{
-			name:     "logged in admin",
+			name:     "returns true when logged in and admin",
 			userInfo: &UserInfo{IsLoggedIn: true, IsAdmin: true},
 			expected: true,
 		},
 		{
-			name:     "logged in non-admin",
+			name:     "returns false when logged in but not admin",
 			userInfo: &UserInfo{IsLoggedIn: true, IsAdmin: false},
 			expected: false,
 		},
 		{
-			name:     "not logged in with admin flag",
+			name:     "returns false when not logged in even with admin flag",
 			userInfo: &UserInfo{IsLoggedIn: false, IsAdmin: true},
 			expected: false,
 		},
 		{
-			name:     "not logged in",
+			name:     "returns false when not logged in and not admin",
 			userInfo: &UserInfo{IsLoggedIn: false, IsAdmin: false},
 			expected: false,
 		},
@@ -200,7 +200,7 @@ func TestIsUserAdmin(t *testing.T) {
 	}
 }
 
-func TestGetUsernameFromContext(t *testing.T) {
+func TestGetUsernameFromContext_ReturnsUsernameFromUserInfo(t *testing.T) {
 	userInfo := &UserInfo{Username: "myuser"}
 	ctx := context.WithValue(context.Background(), userInfoKey, userInfo)
 
@@ -210,7 +210,7 @@ func TestGetUsernameFromContext(t *testing.T) {
 	}
 }
 
-func TestGetUserIDFromContext(t *testing.T) {
+func TestGetUserIDFromContext_ReturnsUserIDFromUserInfo(t *testing.T) {
 	userInfo := &UserInfo{UserID: 123}
 	ctx := context.WithValue(context.Background(), userInfoKey, userInfo)
 

@@ -11,7 +11,7 @@ import (
 	"github.com/mr-flannery/go-recipe-book/src/store/mocks"
 )
 
-func TestAuthenticate_Success(t *testing.T) {
+func TestAuthenticate_ReturnsUserWhenCredentialsAreValid(t *testing.T) {
 	password := "TestPassword123!"
 	hash, _ := HashPassword(password)
 
@@ -48,7 +48,7 @@ func TestAuthenticate_Success(t *testing.T) {
 	}
 }
 
-func TestAuthenticate_UserNotFound(t *testing.T) {
+func TestAuthenticate_ReturnsErrorWhenUserDoesNotExist(t *testing.T) {
 	mockStore := &mocks.MockAuthStore{
 		GetUserByEmailFunc: func(email string) (*store.AuthUser, string, error) {
 			return nil, "", errors.New("user not found")
@@ -67,7 +67,7 @@ func TestAuthenticate_UserNotFound(t *testing.T) {
 	}
 }
 
-func TestAuthenticate_WrongPassword(t *testing.T) {
+func TestAuthenticate_ReturnsErrorWhenPasswordIsIncorrect(t *testing.T) {
 	hash, _ := HashPassword("CorrectPassword123!")
 
 	mockStore := &mocks.MockAuthStore{
@@ -94,7 +94,7 @@ func TestAuthenticate_WrongPassword(t *testing.T) {
 	}
 }
 
-func TestAuthenticate_UpdateLastLoginError(t *testing.T) {
+func TestAuthenticate_SucceedsEvenWhenUpdateLastLoginFails(t *testing.T) {
 	password := "TestPassword123!"
 	hash, _ := HashPassword(password)
 
@@ -122,7 +122,7 @@ func TestAuthenticate_UpdateLastLoginError(t *testing.T) {
 	}
 }
 
-func TestGetUserBySession_Success(t *testing.T) {
+func TestGetUserBySession_ReturnsUserWhenSessionIsValid(t *testing.T) {
 	mockStore := &mocks.MockAuthStore{
 		GetSessionFunc: func(sessionID string) (*store.Session, error) {
 			return &store.Session{
@@ -159,7 +159,7 @@ func TestGetUserBySession_Success(t *testing.T) {
 	}
 }
 
-func TestGetUserBySession_NoCookie(t *testing.T) {
+func TestGetUserBySession_ReturnsErrorWhenNoCookiePresent(t *testing.T) {
 	mockStore := &mocks.MockAuthStore{}
 
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
@@ -173,7 +173,7 @@ func TestGetUserBySession_NoCookie(t *testing.T) {
 	}
 }
 
-func TestGetUserBySession_InvalidSession(t *testing.T) {
+func TestGetUserBySession_ReturnsErrorWhenSessionIsInvalid(t *testing.T) {
 	mockStore := &mocks.MockAuthStore{
 		GetSessionFunc: func(sessionID string) (*store.Session, error) {
 			return nil, errors.New("session not found")
@@ -192,7 +192,7 @@ func TestGetUserBySession_InvalidSession(t *testing.T) {
 	}
 }
 
-func TestGetUserBySession_UserNotFound(t *testing.T) {
+func TestGetUserBySession_ReturnsErrorWhenUserDoesNotExist(t *testing.T) {
 	mockStore := &mocks.MockAuthStore{
 		GetSessionFunc: func(sessionID string) (*store.Session, error) {
 			return &store.Session{
@@ -217,7 +217,7 @@ func TestGetUserBySession_UserNotFound(t *testing.T) {
 	}
 }
 
-func TestIsSessionValid(t *testing.T) {
+func TestIsSessionValid_ReturnsTrueOrFalseBasedOnSessionValidity(t *testing.T) {
 	tests := []struct {
 		name     string
 		mock     *mocks.MockAuthStore
@@ -225,7 +225,7 @@ func TestIsSessionValid(t *testing.T) {
 		expected bool
 	}{
 		{
-			name: "valid session",
+			name: "returns true when session is valid",
 			mock: &mocks.MockAuthStore{
 				GetSessionFunc: func(sessionID string) (*store.Session, error) {
 					return &store.Session{ID: sessionID, UserID: 1}, nil
@@ -238,13 +238,13 @@ func TestIsSessionValid(t *testing.T) {
 			expected: true,
 		},
 		{
-			name:     "no cookie",
+			name:     "returns false when no cookie present",
 			mock:     &mocks.MockAuthStore{},
 			cookie:   nil,
 			expected: false,
 		},
 		{
-			name: "invalid session",
+			name: "returns false when session is invalid",
 			mock: &mocks.MockAuthStore{
 				GetSessionFunc: func(sessionID string) (*store.Session, error) {
 					return nil, errors.New("not found")
@@ -270,7 +270,7 @@ func TestIsSessionValid(t *testing.T) {
 	}
 }
 
-func TestGetUserIDByUsername(t *testing.T) {
+func TestGetUserIDByUsername_ReturnsIDWhenUserExistsAndErrorWhenNot(t *testing.T) {
 	mockStore := &mocks.MockAuthStore{
 		GetUserIDByUsernameFunc: func(username string) (int, error) {
 			if username == "admin" {
@@ -294,10 +294,10 @@ func TestGetUserIDByUsername(t *testing.T) {
 	}
 }
 
-func TestRequireAuth(t *testing.T) {
+func TestRequireAuth_ControlsAccessBasedOnAuthenticationStatus(t *testing.T) {
 	middleware := RequireAuth()
 
-	t.Run("redirects when not logged in", func(t *testing.T) {
+	t.Run("redirects to login when user not authenticated", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/protected?foo=bar", nil)
 		rec := httptest.NewRecorder()
 
@@ -318,7 +318,7 @@ func TestRequireAuth(t *testing.T) {
 		}
 	})
 
-	t.Run("allows access when logged in", func(t *testing.T) {
+	t.Run("allows access when user is authenticated", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/protected", nil)
 		userInfo := &UserInfo{IsLoggedIn: true, UserID: 1, Username: "testuser"}
 		req = req.WithContext(context.WithValue(req.Context(), userInfoKey, userInfo))
@@ -341,15 +341,15 @@ func TestRequireAuth(t *testing.T) {
 	})
 }
 
-func TestUserFromAuthUser(t *testing.T) {
-	t.Run("nil input returns nil", func(t *testing.T) {
+func TestUserFromAuthUser_ConvertsAuthUserToUser(t *testing.T) {
+	t.Run("returns nil when input is nil", func(t *testing.T) {
 		result := userFromAuthUser(nil)
 		if result != nil {
 			t.Error("expected nil, got non-nil")
 		}
 	})
 
-	t.Run("converts correctly", func(t *testing.T) {
+	t.Run("correctly maps all fields from AuthUser to User", func(t *testing.T) {
 		authUser := &store.AuthUser{
 			ID:       42,
 			Username: "testuser",

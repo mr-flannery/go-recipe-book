@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestHashPassword_Success(t *testing.T) {
+func TestHashPassword_ReturnsArgon2idHashWhenPasswordIsStrong(t *testing.T) {
 	password := "ValidPassword123!"
 
 	hash, err := HashPassword(password)
@@ -20,7 +20,7 @@ func TestHashPassword_Success(t *testing.T) {
 	}
 }
 
-func TestHashPassword_WeakPassword(t *testing.T) {
+func TestHashPassword_ReturnsErrorWhenPasswordIsWeak(t *testing.T) {
 	tests := []struct {
 		name     string
 		password string
@@ -46,7 +46,7 @@ func TestHashPassword_WeakPassword(t *testing.T) {
 	}
 }
 
-func TestHashPassword_DifferentSalts(t *testing.T) {
+func TestHashPassword_ProducesDifferentHashesForSamePassword(t *testing.T) {
 	password := "SamePassword123!"
 
 	hash1, _ := HashPassword(password)
@@ -57,7 +57,7 @@ func TestHashPassword_DifferentSalts(t *testing.T) {
 	}
 }
 
-func TestVerifyPassword_Success(t *testing.T) {
+func TestVerifyPassword_SucceedsWhenPasswordMatchesHash(t *testing.T) {
 	password := "MySecurePassword123!"
 	hash, _ := HashPassword(password)
 
@@ -67,7 +67,7 @@ func TestVerifyPassword_Success(t *testing.T) {
 	}
 }
 
-func TestVerifyPassword_WrongPassword(t *testing.T) {
+func TestVerifyPassword_ReturnsErrorWhenPasswordDoesNotMatch(t *testing.T) {
 	password := "CorrectPassword123!"
 	hash, _ := HashPassword(password)
 
@@ -77,7 +77,7 @@ func TestVerifyPassword_WrongPassword(t *testing.T) {
 	}
 }
 
-func TestVerifyPassword_InvalidHash(t *testing.T) {
+func TestVerifyPassword_ReturnsErrorWhenHashIsInvalid(t *testing.T) {
 	tests := []struct {
 		name string
 		hash string
@@ -99,7 +99,7 @@ func TestVerifyPassword_InvalidHash(t *testing.T) {
 	}
 }
 
-func TestValidatePasswordStrength(t *testing.T) {
+func TestValidatePasswordStrength_ValidatesRequirements(t *testing.T) {
 	tests := []struct {
 		name     string
 		password string
@@ -127,7 +127,7 @@ func TestValidatePasswordStrength(t *testing.T) {
 	}
 }
 
-func TestParsePasswordHash_Valid(t *testing.T) {
+func TestParsePasswordHash_ParsesValidArgon2idHash(t *testing.T) {
 	password := "TestPassword123!"
 	hash, _ := HashPassword(password)
 
@@ -155,7 +155,7 @@ func TestParsePasswordHash_Valid(t *testing.T) {
 	}
 }
 
-func TestParsePasswordHash_Invalid(t *testing.T) {
+func TestParsePasswordHash_ReturnsErrorForInvalidHash(t *testing.T) {
 	tests := []struct {
 		name string
 		hash string

@@ -6,8 +6,8 @@ import (
 	"testing"
 )
 
-func TestGetCallerDir(t *testing.T) {
-	t.Run("skip 0 returns this test file directory", func(t *testing.T) {
+func TestGetCallerDir_ReturnsDirectoryOfCallerBasedOnSkip(t *testing.T) {
+	t.Run("returns test file directory when skip is 0", func(t *testing.T) {
 		dir := GetCallerDir(0)
 
 		if dir == "" {
@@ -19,7 +19,7 @@ func TestGetCallerDir(t *testing.T) {
 		}
 	})
 
-	t.Run("returns absolute path", func(t *testing.T) {
+	t.Run("always returns an absolute path", func(t *testing.T) {
 		dir := GetCallerDir(0)
 
 		if !filepath.IsAbs(dir) {
@@ -27,7 +27,7 @@ func TestGetCallerDir(t *testing.T) {
 		}
 	})
 
-	t.Run("helper function with skip 1", func(t *testing.T) {
+	t.Run("returns caller directory when called through helper with skip 1", func(t *testing.T) {
 		dir := helperGetCallerDir()
 
 		if !strings.HasSuffix(dir, "utils") {
@@ -40,7 +40,7 @@ func helperGetCallerDir() string {
 	return GetCallerDir(1)
 }
 
-func TestGetCallerDir_ConsistentResults(t *testing.T) {
+func TestGetCallerDir_ReturnsConsistentResultsOnMultipleCalls(t *testing.T) {
 	dir1 := GetCallerDir(0)
 	dir2 := GetCallerDir(0)
 
