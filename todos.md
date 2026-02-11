@@ -1,8 +1,16 @@
-- code reloading
-  - Let's watch whether this actually works correctly now...
 - write tests
   - primarily integration tests for the handler functions
   - which means I gotta figure out how to mock the DB/do DI or something similar
+
+```
+What Wasn't Tested (and Why)
+- src/handlers/home.go, src/handlers/recipe.go: These handlers render HTML templates, making them harder to unit test without a full template mocking strategy. They would be better suited for integration tests.
+- src/store/postgres/: Database stores require go-sqlmock or a real database for proper testing. This would be integration testing rather than unit testing.
+- src/config/: Depends on file system and global state (singleton pattern)
+- src/mail/: Requires mocking external Maileroo client
+- src/db/: Database connection/migration code - better suited for integration tests
+```
+
 - refactor
   - split models into different files, recipe, tags, comment, etc.
   - openAPI spec + syncing

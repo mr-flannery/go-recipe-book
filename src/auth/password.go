@@ -26,7 +26,6 @@ var (
 	ErrInvalidPasswordHash = errors.New("invalid password hash format")
 )
 
-// PasswordHash represents a hashed password with its salt and parameters
 type PasswordHash struct {
 	Hash    []byte
 	Salt    []byte
@@ -36,23 +35,18 @@ type PasswordHash struct {
 	KeyLen  uint32
 }
 
-// HashPassword creates a secure Argon2id hash of the password
 func HashPassword(password string) (string, error) {
-	// Validate password strength first
 	if err := ValidatePasswordStrength(password); err != nil {
 		return "", err
 	}
 
-	// Generate random salt
 	salt := make([]byte, saltLength)
 	if _, err := rand.Read(salt); err != nil {
 		return "", fmt.Errorf("failed to generate salt: %w", err)
 	}
 
-	// Generate hash using Argon2id
 	hash := argon2.IDKey([]byte(password), salt, argon2Time, argon2Memory, argon2Threads, argon2KeyLen)
 
-	// Encode as string: $argon2id$v=19$m=65536,t=3,p=4$salt$hash
 	encoded := fmt.Sprintf("$argon2id$v=19$m=%d,t=%d,p=%d$%x$%x",
 		argon2Memory, argon2Time, argon2Threads, salt, hash)
 
