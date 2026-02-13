@@ -10,6 +10,7 @@ import (
 	"github.com/mr-flannery/go-recipe-book/src/config"
 	"github.com/mr-flannery/go-recipe-book/src/mail"
 	"github.com/mr-flannery/go-recipe-book/src/templates"
+	"github.com/mr-flannery/go-recipe-book/src/utils"
 )
 
 type LoginData struct {
@@ -25,8 +26,11 @@ func GetLoginHandler(w http.ResponseWriter, r *http.Request) {
 		UserInfo:    auth.GetUserInfoFromContext(r.Context()),
 	}
 
+	theme := utils.GetThemeFromRequest(r)
+	templateName := utils.GetThemedTemplateName("login.gohtml", theme)
+
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	err := templates.Templates.ExecuteTemplate(w, "login.gohtml", data)
+	err := templates.Templates.ExecuteTemplate(w, templateName, data)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
@@ -38,6 +42,9 @@ func (h *Handler) PostLoginHandler(w http.ResponseWriter, r *http.Request) {
 	password := r.FormValue("password")
 	redirectURL := r.FormValue("redirect")
 
+	theme := utils.GetThemeFromRequest(r)
+	templateName := utils.GetThemedTemplateName("login.gohtml", theme)
+
 	user, err := auth.Authenticate(h.AuthStore, email, password)
 	if err != nil {
 		data := LoginData{
@@ -46,7 +53,7 @@ func (h *Handler) PostLoginHandler(w http.ResponseWriter, r *http.Request) {
 			UserInfo:    auth.GetUserInfoFromContext(r.Context()),
 		}
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		err := templates.Templates.ExecuteTemplate(w, "login.gohtml", data)
+		err := templates.Templates.ExecuteTemplate(w, templateName, data)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
@@ -67,6 +74,8 @@ func (h *Handler) PostLoginHandler(w http.ResponseWriter, r *http.Request) {
 	finalRedirectURL := "/"
 	if redirectURL != "" {
 		finalRedirectURL = redirectURL
+	} else {
+		finalRedirectURL = utils.BuildURLWithTheme("/", theme)
 	}
 
 	http.Redirect(w, r, finalRedirectURL, http.StatusSeeOther)
@@ -79,7 +88,9 @@ func (h *Handler) LogoutHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	auth.ClearSessionCookie(w)
-	http.Redirect(w, r, "/", http.StatusSeeOther)
+	theme := utils.GetThemeFromRequest(r)
+	redirectURL := utils.BuildURLWithTheme("/", theme)
+	http.Redirect(w, r, redirectURL, http.StatusSeeOther)
 }
 
 type RegisterData struct {
@@ -95,8 +106,11 @@ func GetRegisterHandler(w http.ResponseWriter, r *http.Request) {
 		UserInfo: auth.GetUserInfoFromContext(r.Context()),
 	}
 
+	theme := utils.GetThemeFromRequest(r)
+	templateName := utils.GetThemedTemplateName("register.gohtml", theme)
+
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	err := templates.Templates.ExecuteTemplate(w, "register.gohtml", data)
+	err := templates.Templates.ExecuteTemplate(w, templateName, data)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
@@ -109,6 +123,9 @@ func (h *Handler) PostRegisterHandler(w http.ResponseWriter, r *http.Request) {
 	password := r.FormValue("password")
 	confirmPassword := r.FormValue("confirm_password")
 
+	theme := utils.GetThemeFromRequest(r)
+	templateName := utils.GetThemedTemplateName("register.gohtml", theme)
+
 	data := RegisterData{
 		Username: username,
 		Email:    email,
@@ -118,7 +135,7 @@ func (h *Handler) PostRegisterHandler(w http.ResponseWriter, r *http.Request) {
 	if password != confirmPassword {
 		data.Error = "Passwords do not match"
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		templates.Templates.ExecuteTemplate(w, "register.gohtml", data)
+		templates.Templates.ExecuteTemplate(w, templateName, data)
 		return
 	}
 
@@ -127,7 +144,7 @@ func (h *Handler) PostRegisterHandler(w http.ResponseWriter, r *http.Request) {
 		slog.Error("Failed to create registration request", "error", err)
 		data.Error = err.Error()
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		templates.Templates.ExecuteTemplate(w, "register.gohtml", data)
+		templates.Templates.ExecuteTemplate(w, templateName, data)
 		return
 	}
 
@@ -140,7 +157,7 @@ func (h *Handler) PostRegisterHandler(w http.ResponseWriter, r *http.Request) {
 
 	data.Success = "Registration request submitted successfully! An administrator will review your request and you will receive an email when it's approved."
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	templates.Templates.ExecuteTemplate(w, "register.gohtml", data)
+	templates.Templates.ExecuteTemplate(w, templateName, data)
 }
 
 type PendingRegistrationsData struct {
@@ -163,8 +180,11 @@ func (h *Handler) GetPendingRegistrationsHandler(w http.ResponseWriter, r *http.
 		UserInfo:      auth.GetUserInfoFromContext(r.Context()),
 	}
 
+	theme := utils.GetThemeFromRequest(r)
+	templateName := utils.GetThemedTemplateName("pending-registrations.gohtml", theme)
+
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	err = templates.Templates.ExecuteTemplate(w, "pending-registrations.gohtml", data)
+	err = templates.Templates.ExecuteTemplate(w, templateName, data)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
@@ -210,7 +230,12 @@ func (h *Handler) ApproveRegistrationHandler(w http.ResponseWriter, r *http.Requ
 
 	slog.Info("Registration approved", "admin_id", user.ID, "registration_id", registrationID, "username", regRequest.Username)
 
-	http.Redirect(w, r, "/admin/registrations?success=Registration approved successfully", http.StatusSeeOther)
+	theme := utils.GetThemeFromRequest(r)
+	redirectURL := "/admin/registrations?success=Registration approved successfully"
+	if theme != utils.ThemeDefault {
+		redirectURL += "&theme=" + string(theme)
+	}
+	http.Redirect(w, r, redirectURL, http.StatusSeeOther)
 }
 
 func (h *Handler) DenyRegistrationHandler(w http.ResponseWriter, r *http.Request) {
@@ -249,5 +274,10 @@ func (h *Handler) DenyRegistrationHandler(w http.ResponseWriter, r *http.Request
 
 	slog.Info("Registration denied", "admin_id", user.ID, "registration_id", registrationID, "username", regRequest.Username)
 
-	http.Redirect(w, r, "/admin/registrations?success=Registration denied successfully", http.StatusSeeOther)
+	theme := utils.GetThemeFromRequest(r)
+	redirectURL := "/admin/registrations?success=Registration denied successfully"
+	if theme != utils.ThemeDefault {
+		redirectURL += "&theme=" + string(theme)
+	}
+	http.Redirect(w, r, redirectURL, http.StatusSeeOther)
 }

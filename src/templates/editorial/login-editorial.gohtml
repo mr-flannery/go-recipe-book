@@ -1,0 +1,59 @@
+{{define "login-editorial.gohtml"}}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Taste Magazine</title>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <link rel="stylesheet" href="/static/css/editorial.css">
+</head>
+<body>
+    {{template "navbar-editorial" .UserInfo}}
+
+    <main class="main-content-editorial">
+        <div class="page-header-editorial">
+            <h1>Welcome Back</h1>
+            <p>Sign in to access your account</p>
+        </div>
+
+        <div class="form-container-editorial">
+            <form id="login" method="POST" action="/login">
+                {{if .Error}}
+                <div class="error-editorial">{{.Error}}</div>
+                {{end}}
+                
+                <div class="form-group-editorial">
+                    <label for="email">Email Address</label>
+                    <input type="email" id="email" name="email" placeholder="your@email.com" required>
+                </div>
+                
+                <div class="form-group-editorial">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" placeholder="Enter your password" required>
+                </div>
+                
+                {{if .RedirectURL}}
+                <input type="hidden" name="redirect" value="{{.RedirectURL}}">
+                {{end}}
+                
+                <div class="form-actions-editorial" style="border-top: none; padding-top: 0;">
+                    <button type="submit" class="btn-editorial primary" style="width: 100%;">Sign In</button>
+                </div>
+            </form>
+            
+            <div style="text-align: center; margin-top: 25px; padding-top: 25px; border-top: 1px solid var(--rule);">
+                <p style="color: var(--muted); margin-bottom: 10px;">
+                    Don't have an account? <a href="/register">Register here</a>
+                </p>
+                <p>
+                    <a href="/" style="color: var(--muted);">Back to Home</a>
+                </p>
+            </div>
+        </div>
+    </main>
+
+    {{template "footer-editorial" .UserInfo}}
+</body>
+</html>
+{{end}}

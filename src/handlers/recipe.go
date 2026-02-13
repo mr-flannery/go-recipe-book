@@ -12,15 +12,20 @@ import (
 	"github.com/mr-flannery/go-recipe-book/src/auth"
 	"github.com/mr-flannery/go-recipe-book/src/models"
 	"github.com/mr-flannery/go-recipe-book/src/templates"
+	"github.com/mr-flannery/go-recipe-book/src/utils"
 )
 
 func (h *Handler) GetCreateRecipeHandler(w http.ResponseWriter, r *http.Request) {
+	theme := utils.GetThemeFromRequest(r)
 	data := struct {
 		UserInfo *auth.UserInfo
+		Theme    utils.Theme
 	}{
 		UserInfo: auth.GetUserInfoFromContext(r.Context()),
+		Theme:    theme,
 	}
-	err := templates.Templates.ExecuteTemplate(w, "create.gohtml", data)
+	templateName := utils.GetThemedTemplateName("create.gohtml", theme)
+	err := templates.Templates.ExecuteTemplate(w, templateName, data)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
@@ -132,7 +137,9 @@ func (h *Handler) PostCreateRecipeHandler(w http.ResponseWriter, r *http.Request
 	}
 
 	slog.Info("Recipe created successfully", "id", recipeID, "title", recipe.Title, "author", user.Username)
-	http.Redirect(w, r, fmt.Sprintf("/recipes/%d", recipeID), http.StatusSeeOther)
+	theme := utils.GetThemeFromRequest(r)
+	redirectURL := utils.BuildURLWithTheme(fmt.Sprintf("/recipes/%d", recipeID), theme)
+	http.Redirect(w, r, redirectURL, http.StatusSeeOther)
 }
 
 func (h *Handler) ListRecipesHandler(w http.ResponseWriter, r *http.Request) {
@@ -158,19 +165,23 @@ func (h *Handler) ListRecipesHandler(w http.ResponseWriter, r *http.Request) {
 		currentUser, _ = auth.GetUserBySession(h.AuthStore, r)
 	}
 
+	theme := utils.GetThemeFromRequest(r)
 	data := struct {
 		Recipes     []models.Recipe
 		UserInfo    *auth.UserInfo
 		IsLoggedIn  bool
 		CurrentUser *auth.User
+		Theme       utils.Theme
 	}{
 		Recipes:     recipes,
 		UserInfo:    userInfo,
 		IsLoggedIn:  userInfo.IsLoggedIn,
 		CurrentUser: currentUser,
+		Theme:       theme,
 	}
 
-	err = templates.Templates.ExecuteTemplate(w, "list.gohtml", data)
+	templateName := utils.GetThemedTemplateName("list.gohtml", theme)
+	err = templates.Templates.ExecuteTemplate(w, templateName, data)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
@@ -187,15 +198,19 @@ func (h *Handler) GetUpdateRecipeHandler(w http.ResponseWriter, r *http.Request)
 	recipeIDInt, _ := strconv.Atoi(recipeID)
 	recipe.Tags, _ = h.TagStore.GetByRecipeID(recipeIDInt)
 
+	theme := utils.GetThemeFromRequest(r)
 	data := struct {
 		Recipe   models.Recipe
 		UserInfo *auth.UserInfo
+		Theme    utils.Theme
 	}{
 		Recipe:   recipe,
 		UserInfo: auth.GetUserInfoFromContext(r.Context()),
+		Theme:    theme,
 	}
 
-	err = templates.Templates.ExecuteTemplate(w, "update.gohtml", data)
+	templateName := utils.GetThemedTemplateName("update.gohtml", theme)
+	err = templates.Templates.ExecuteTemplate(w, templateName, data)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
@@ -310,7 +325,9 @@ func (h *Handler) PostUpdateRecipeHandler(w http.ResponseWriter, r *http.Request
 	}
 
 	slog.Info("Recipe updated successfully", "id", recipeID, "title", updatedRecipe.Title, "author", user.Username)
-	http.Redirect(w, r, fmt.Sprintf("/recipes/%d", recipeID), http.StatusSeeOther)
+	theme := utils.GetThemeFromRequest(r)
+	redirectURL := utils.BuildURLWithTheme(fmt.Sprintf("/recipes/%d", recipeID), theme)
+	http.Redirect(w, r, redirectURL, http.StatusSeeOther)
 }
 
 func (h *Handler) ViewRecipeHandler(w http.ResponseWriter, r *http.Request) {
@@ -364,6 +381,7 @@ func (h *Handler) ViewRecipeHandler(w http.ResponseWriter, r *http.Request) {
 		userTags, _ = h.UserTagStore.GetByRecipeID(currentUser.ID, recipeIDInt)
 	}
 
+	theme := utils.GetThemeFromRequest(r)
 	data := struct {
 		Recipe      models.Recipe
 		UserTags    []models.UserTag
@@ -372,6 +390,7 @@ func (h *Handler) ViewRecipeHandler(w http.ResponseWriter, r *http.Request) {
 		CurrentUser *auth.User
 		IsAuthor    bool
 		UserInfo    *auth.UserInfo
+		Theme       utils.Theme
 	}{
 		Recipe:      recipe,
 		UserTags:    userTags,
@@ -380,9 +399,11 @@ func (h *Handler) ViewRecipeHandler(w http.ResponseWriter, r *http.Request) {
 		CurrentUser: currentUser,
 		IsAuthor:    isAuthor,
 		UserInfo:    userInfo,
+		Theme:       theme,
 	}
 
-	err = templates.Templates.ExecuteTemplate(w, "view.gohtml", data)
+	templateName := utils.GetThemedTemplateName("view.gohtml", theme)
+	err = templates.Templates.ExecuteTemplate(w, templateName, data)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
@@ -483,13 +504,16 @@ func (h *Handler) DeleteRecipeHandler(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) RandomRecipeHandler(w http.ResponseWriter, r *http.Request) {
 	recipeID, err := h.RecipeStore.GetRandomID()
+	theme := utils.GetThemeFromRequest(r)
 	if err != nil {
 		slog.Error("Failed to get random recipe", "error", err)
-		http.Redirect(w, r, "/recipes", http.StatusSeeOther)
+		redirectURL := utils.BuildURLWithTheme("/recipes", theme)
+		http.Redirect(w, r, redirectURL, http.StatusSeeOther)
 		return
 	}
 
-	http.Redirect(w, r, fmt.Sprintf("/recipes/%d", recipeID), http.StatusSeeOther)
+	redirectURL := utils.BuildURLWithTheme(fmt.Sprintf("/recipes/%d", recipeID), theme)
+	http.Redirect(w, r, redirectURL, http.StatusSeeOther)
 }
 
 func (h *Handler) FilterRecipesHTMXHandler(w http.ResponseWriter, r *http.Request) {

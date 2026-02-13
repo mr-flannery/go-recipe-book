@@ -1,0 +1,60 @@
+{{define "home-editorial.gohtml"}}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Taste - The Culinary Journal</title>
+    <link rel="stylesheet" href="/static/css/editorial.css">
+</head>
+<body>
+    {{template "navbar-editorial" .}}
+
+    <main class="main-content-editorial">
+        <div class="page-header-editorial">
+            <h1>The Art of Cooking</h1>
+            <p>A curated collection of recipes for the discerning home chef</p>
+        </div>
+
+        <div class="stats-strip-editorial">
+            <div class="stat-box-editorial">
+                <div class="stat-number-editorial">500+</div>
+                <div class="stat-label-editorial">Recipes</div>
+            </div>
+            <div class="stat-box-editorial">
+                <div class="stat-number-editorial">50</div>
+                <div class="stat-label-editorial">Contributors</div>
+            </div>
+            <div class="stat-box-editorial">
+                <div class="stat-number-editorial">12</div>
+                <div class="stat-label-editorial">Categories</div>
+            </div>
+            <div class="stat-box-editorial">
+                <div class="stat-number-editorial">2025</div>
+                <div class="stat-label-editorial">Est.</div>
+            </div>
+        </div>
+
+        <div class="pull-quote-editorial">
+            "Cooking is like love. It should be entered into with abandon or not at all."
+            <br><span style="font-size: 0.9rem; color: var(--muted);">&mdash; Harriet Van Horne</span>
+        </div>
+
+        <div class="card-editorial" style="max-width: 700px; margin: 40px auto; text-align: center;">
+            <p style="font-size: 18px; line-height: 1.9; margin-bottom: 30px;">
+                Welcome to <strong>Taste</strong>, where culinary tradition meets modern innovation. 
+                Our collection features carefully curated recipes from passionate home cooks and 
+                professional chefs alike. Each recipe tells a story, captures a moment, and 
+                invites you to create something extraordinary in your own kitchen.
+            </p>
+            <div style="display: flex; gap: 15px; justify-content: center;">
+                <a href="/recipes" class="btn-editorial primary">Browse Recipes</a>
+                <a href="/recipes/create" class="btn-editorial">Submit a Recipe</a>
+            </div>
+        </div>
+    </main>
+
+    {{template "footer-editorial" .}}
+</body>
+</html>
+{{end}}

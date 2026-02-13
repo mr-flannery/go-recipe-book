@@ -21,25 +21,19 @@ The app will be available at http://localhost:8080
 
 ## Development
 
-### Live Reloading with Reflex
+### Live Reloading with Air
 For development with automatic server restarts on file changes:
 
 ```sh
-# Using the dev script
-./dev.sh
-
-# Or directly with Reflex
-reflex -r '\.go$|\.gohtml$|\.html$|\.tmpl$|\.tpl$' -s -- sh -c 'cd src && go run main.go'
-
-# Or using VSCode launch configuration
-# Select "Launch Server with Live Reload (Reflex)" from the debug panel
+make dev
 ```
+
+This uses [Air](https://github.com/air-verse/air) for live reloading. Configuration is in `.air.toml`.
 
 ### Project Structure
 - Go code is in `src/` directory
 - Templates in `src/templates/`
 - Database migrations in `src/db/migrations/`
-- Live reloading with Reflex watches Go and template files
 
 ### Architecture
 See [docs/architecture.md](docs/architecture.md) for details on the store/repository pattern used for data access.

@@ -1,0 +1,156 @@
+{{define "view-editorial.gohtml"}}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{.Recipe.Title}} - Taste Magazine</title>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <link rel="stylesheet" href="/static/css/editorial.css">
+    <script>
+        function deleteRecipe(recipeId) {
+            if (confirm('Are you sure you want to delete this recipe? This action cannot be undone.')) {
+                fetch(`/recipes/${recipeId}/delete`, {
+                    method: 'DELETE',
+                    credentials: 'same-origin'
+                })
+                .then(response => {
+                    if (response.ok) {
+                        window.location.href = '/recipes';
+                    } else {
+                        response.text().then(text => {
+                            alert('Failed to delete recipe: ' + text);
+                        });
+                    }
+                })
+                .catch(error => {
+                    alert('Error deleting recipe: ' + error.message);
+                });
+            }
+        }
+    </script>
+</head>
+<body>
+    {{template "navbar-editorial" .UserInfo}}
+
+    <main class="main-content-editorial">
+        <div class="navigation-editorial">
+            <a href="/recipes" class="btn-editorial">Back to Recipes</a>
+            {{if .IsAuthor}}
+            <a href="/recipes/update?id={{.Recipe.ID}}" class="btn-editorial">Edit Recipe</a>
+            <button onclick="deleteRecipe({{.Recipe.ID}})" class="btn-editorial danger">Delete Recipe</button>
+            {{end}}
+        </div>
+
+        <article class="recipe-header-editorial">
+            {{if .Recipe.Tags}}
+            <span class="category-tag">{{(index .Recipe.Tags 0).Name}}</span>
+            {{end}}
+            <h1>{{.Recipe.Title}}</h1>
+            
+            {{if .Recipe.ImageBase64}}
+            <img src="data:image/jpeg;base64,{{.Recipe.ImageBase64}}" alt="{{.Recipe.Title}}" class="recipe-image-large-editorial">
+            {{end}}
+
+            <div class="recipe-meta-editorial">
+                {{if .Recipe.PrepTime}}
+                <div class="meta-item-editorial">
+                    <span class="meta-label">Prep Time</span>
+                    <span class="meta-value">{{.Recipe.PrepTime}} min</span>
+                </div>
+                {{end}}
+                
+                {{if .Recipe.CookTime}}
+                <div class="meta-item-editorial">
+                    <span class="meta-label">Cook Time</span>
+                    <span class="meta-value">{{.Recipe.CookTime}} min</span>
+                </div>
+                {{end}}
+                
+                {{if .Recipe.Calories}}
+                <div class="meta-item-editorial">
+                    <span class="meta-label">Calories</span>
+                    <span class="meta-value">{{.Recipe.Calories}}</span>
+                </div>
+                {{end}}
+                
+                <div class="meta-item-editorial">
+                    <span class="meta-label">Published</span>
+                    <span class="meta-value">{{.Recipe.CreatedAt.Format "Jan 2, 2006"}}</span>
+                </div>
+            </div>
+
+            {{if .Recipe.Tags}}
+            <div class="tags-container-editorial">
+                <span class="tags-label-editorial">Tags:</span>
+                {{range .Recipe.Tags}}
+                <span class="tag-editorial tag-author">{{.Name}}</span>
+                {{end}}
+            </div>
+            {{end}}
+
+            {{if .IsLoggedIn}}
+            {{if .UserTags}}
+            <div class="tags-container-editorial">
+                <span class="tags-label-editorial">My Tags:</span>
+                {{range .UserTags}}
+                <span class="tag-editorial tag-user">{{.Name}}</span>
+                {{end}}
+            </div>
+            {{end}}
+            {{end}}
+        </article>
+
+        <section class="recipe-section-editorial">
+            <h2>Ingredients</h2>
+            <div class="content">{{.Recipe.IngredientsMD}}</div>
+        </section>
+
+        <section class="recipe-section-editorial">
+            <h2>Instructions</h2>
+            <div class="content">{{.Recipe.InstructionsMD}}</div>
+        </section>
+
+        <section class="comments-section-editorial">
+            <h2>Reader Comments (<span id="comment-count">{{len .Comments}}</span>)</h2>
+
+            <div id="comments-list">
+                {{range .Comments}}
+                <div class="comment-editorial">
+                    <div class="comment-header-editorial">
+                        <strong>{{.Username}}</strong> &mdash; {{.CreatedAt.Format "Jan 2, 2006 at 3:04 PM"}}
+                    </div>
+                    <div class="comment-content-editorial">{{.ContentMD}}</div>
+                </div>
+                {{else}}
+                <p id="no-comments" style="color: var(--muted); font-style: italic;">
+                    No comments yet. Be the first to share your thoughts!
+                </p>
+                {{end}}
+            </div>
+
+            {{if .IsLoggedIn}}
+            <div style="margin-top: 40px; padding-top: 30px; border-top: 1px solid var(--rule);">
+                <h3 style="font-size: 1.3rem; margin-bottom: 20px;">Leave a Comment</h3>
+                <form hx-post="/recipes/{{.Recipe.ID}}/comments/htmx" 
+                      hx-target="#comments-list" 
+                      hx-swap="afterbegin"
+                      hx-on::after-request="this.reset(); document.getElementById('comment-count').textContent = parseInt(document.getElementById('comment-count').textContent) + 1; const noComments = document.getElementById('no-comments'); if (noComments) noComments.style.display = 'none';">
+                    <div class="form-group-editorial">
+                        <textarea name="comment" placeholder="Share your thoughts about this recipe..." required style="min-height: 100px;"></textarea>
+                    </div>
+                    <button type="submit" class="btn-editorial primary">Post Comment</button>
+                </form>
+            </div>
+            {{else}}
+            <p style="margin-top: 30px; color: var(--muted);">
+                <a href="/login">Sign in</a> to leave a comment.
+            </p>
+            {{end}}
+        </section>
+    </main>
+
+    {{template "footer-editorial" .UserInfo}}
+</body>
+</html>
+{{end}}

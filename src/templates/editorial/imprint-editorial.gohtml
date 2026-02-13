@@ -1,0 +1,51 @@
+{{define "imprint-editorial.gohtml"}}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Imprint - Taste Magazine</title>
+    <link rel="stylesheet" href="/static/css/editorial.css">
+</head>
+<body>
+    {{template "navbar-editorial" .}}
+
+    <main class="main-content-editorial">
+        <div class="page-header-editorial">
+            <h1>Imprint</h1>
+            <p>Legal Information & Contact</p>
+        </div>
+
+        <div class="card-editorial" style="max-width: 700px; margin: 0 auto;">
+            <h2 style="font-size: 1.5rem; margin-bottom: 20px;">Legal Information</h2>
+            <p style="line-height: 1.8; margin-bottom: 30px;">
+                This is the imprint page for Taste Magazine Recipe Collection.
+            </p>
+            
+            <h3 style="font-size: 1.2rem; margin-bottom: 15px; padding-top: 20px; border-top: 1px solid var(--rule);">Contact Information</h3>
+            <p style="line-height: 2; margin-bottom: 30px;">
+                Taste Magazine<br>
+                Email: info@recipebook.com<br>
+                Phone: +1 (555) 123-4567
+            </p>
+            
+            <h3 style="font-size: 1.2rem; margin-bottom: 15px; padding-top: 20px; border-top: 1px solid var(--rule);">Responsible for Content</h3>
+            <p style="margin-bottom: 30px;">
+                Recipe Book Team
+            </p>
+            
+            <h3 style="font-size: 1.2rem; margin-bottom: 15px; padding-top: 20px; border-top: 1px solid var(--rule);">Disclaimer</h3>
+            <p style="line-height: 1.8; color: var(--muted);">
+                The information contained on this website is for general information purposes only. 
+                While we endeavor to keep the information up to date and correct, we make no 
+                representations or warranties of any kind, express or implied, about the completeness, 
+                accuracy, reliability, suitability or availability with respect to the website or the 
+                information, products, services, or related graphics contained on the website for any purpose.
+            </p>
+        </div>
+    </main>
+
+    {{template "footer-editorial" .}}
+</body>
+</html>
+{{end}}

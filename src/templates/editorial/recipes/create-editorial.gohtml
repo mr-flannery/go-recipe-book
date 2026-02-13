@@ -1,0 +1,215 @@
+{{define "create-editorial.gohtml"}}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Submit a Recipe - Taste Magazine</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.css">
+    <link rel="stylesheet" href="/static/css/editorial.css">
+</head>
+<body>
+    {{template "navbar-editorial" .UserInfo}}
+
+    <main class="main-content-editorial">
+        <div class="navigation-editorial">
+            <a href="/recipes" class="btn-editorial">Back to Recipes</a>
+        </div>
+
+        <div class="page-header-editorial">
+            <h1>Submit a Recipe</h1>
+            <p>Share your culinary creation with our community</p>
+        </div>
+
+        <div class="card-editorial" style="max-width: 800px; margin: 0 auto;">
+            <form method="POST" enctype="multipart/form-data">
+                <div class="form-group-editorial">
+                    <label for="title">Recipe Title *</label>
+                    <input type="text" id="title" name="title" required placeholder="Enter a descriptive title for your recipe">
+                </div>
+
+                <div class="form-group-editorial">
+                    <label for="image">Recipe Image</label>
+                    <input type="file" id="image" name="image" accept="image/*">
+                    <div class="help-text-editorial">Upload an image of your finished dish (optional)</div>
+                    
+                    <div id="image-preview-section" class="image-preview-section-editorial">
+                        <div id="preview-container" class="preview-container-editorial">
+                            <div class="preview-label-editorial">Image Preview & Cropping</div>
+                            <div class="preview-grid-editorial">
+                                <div>
+                                    <div class="preview-label-editorial">Crop your image:</div>
+                                    <div id="crop-container" class="crop-container-editorial">
+                                        <img id="crop-image" src="" alt="Crop preview">
+                                    </div>
+                                    <div class="crop-controls-editorial">
+                                        <button type="button" id="reset-crop" class="btn-editorial" style="padding: 8px 15px; font-size: 9px;">Reset</button>
+                                        <button type="button" id="zoom-in" class="btn-editorial" style="padding: 8px 15px; font-size: 9px;">Zoom In</button>
+                                        <button type="button" id="zoom-out" class="btn-editorial" style="padding: 8px 15px; font-size: 9px;">Zoom Out</button>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="preview-label-editorial">16:9 Preview:</div>
+                                    <div class="preview-16-9-editorial">
+                                        <img id="preview-result" src="" alt="16:9 preview">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <input type="hidden" id="cropped-image-data" name="cropped_image_data">
+                </div>
+
+                <div class="form-row-editorial">
+                    <div class="form-group-editorial">
+                        <label for="preptime">Prep Time (minutes)</label>
+                        <input type="number" id="preptime" name="preptime" min="0" placeholder="15">
+                    </div>
+                    <div class="form-group-editorial">
+                        <label for="cooktime">Cook Time (minutes)</label>
+                        <input type="number" id="cooktime" name="cooktime" min="0" placeholder="30">
+                    </div>
+                    <div class="form-group-editorial">
+                        <label for="calories">Calories (per serving)</label>
+                        <input type="number" id="calories" name="calories" min="0" placeholder="350">
+                    </div>
+                </div>
+
+                {{template "tag-input-form" dict "ID" "tags" "InitialTags" ""}}
+
+                <div class="form-group-editorial">
+                    <label for="ingredients">Ingredients (Markdown) *</label>
+                    <textarea id="ingredients" name="ingredients" required placeholder="List your ingredients here. You can use Markdown formatting:
+
+- 2 cups all-purpose flour
+- 1 tsp baking powder
+- 1/2 cup sugar
+- **Optional:** 1 tsp vanilla extract"></textarea>
+                    <div class="help-text-editorial">Use Markdown formatting for better presentation. Each ingredient on a new line.</div>
+                </div>
+
+                <div class="form-group-editorial">
+                    <label for="instructions">Instructions (Markdown) *</label>
+                    <textarea id="instructions" name="instructions" required placeholder="Provide step-by-step instructions. You can use Markdown formatting:
+
+1. **Preheat** oven to 350F (175C)
+2. In a large bowl, mix dry ingredients
+3. Add wet ingredients and stir until combined
+4. Bake for 25-30 minutes until golden brown
+
+*Tip: Let cool for 5 minutes before serving*"></textarea>
+                    <div class="help-text-editorial">Use numbered lists, bold text, and other Markdown formatting to make instructions clear.</div>
+                </div>
+
+                <div class="form-actions-editorial">
+                    <button type="submit" class="btn-editorial primary">Submit Recipe</button>
+                    <a href="/recipes" class="btn-editorial">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </main>
+
+    <script>
+        let cropper = null;
+        const imageInput = document.getElementById('image');
+        const previewSection = document.getElementById('image-preview-section');
+        const previewContainer = document.getElementById('preview-container');
+        const cropImage = document.getElementById('crop-image');
+        const previewResult = document.getElementById('preview-result');
+        const croppedImageData = document.getElementById('cropped-image-data');
+
+        imageInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const imageUrl = e.target.result;
+                    
+                    previewSection.classList.add('has-image');
+                    previewContainer.style.display = 'block';
+                    
+                    cropImage.src = imageUrl;
+                    previewResult.src = imageUrl;
+                    
+                    cropImage.onload = function() {
+                        if (cropper) {
+                            cropper.destroy();
+                        }
+                        
+                        cropper = new Cropper(cropImage, {
+                            aspectRatio: 16 / 9,
+                            viewMode: 1,
+                            autoCropArea: 1,
+                            responsive: true,
+                            restore: false,
+                            guides: true,
+                            center: true,
+                            highlight: false,
+                            cropBoxMovable: true,
+                            cropBoxResizable: true,
+                            toggleDragModeOnDblclick: false,
+                            crop: function(event) {
+                                updatePreview();
+                            }
+                        });
+                    };
+                };
+                reader.readAsDataURL(file);
+            } else {
+                previewSection.classList.remove('has-image');
+                previewContainer.style.display = 'none';
+                if (cropper) {
+                    cropper.destroy();
+                    cropper = null;
+                }
+            }
+        });
+
+        function updatePreview() {
+            if (!cropper) return;
+            
+            const canvas = cropper.getCroppedCanvas({
+                width: 800,
+                height: 450,
+                imageSmoothingEnabled: true,
+                imageSmoothingQuality: 'high'
+            });
+            
+            if (canvas) {
+                const croppedImageUrl = canvas.toDataURL('image/jpeg', 0.9);
+                previewResult.src = croppedImageUrl;
+                croppedImageData.value = croppedImageUrl;
+            }
+        }
+
+        document.getElementById('reset-crop').addEventListener('click', function() {
+            if (cropper) {
+                cropper.reset();
+            }
+        });
+
+        document.getElementById('zoom-in').addEventListener('click', function() {
+            if (cropper) {
+                cropper.zoom(0.1);
+            }
+        });
+
+        document.getElementById('zoom-out').addEventListener('click', function() {
+            if (cropper) {
+                cropper.zoom(-0.1);
+            }
+        });
+
+        document.querySelector('form').addEventListener('submit', function(e) {
+            if (cropper && imageInput.files[0]) {
+                updatePreview();
+            }
+        });
+    </script>
+
+    {{template "footer-editorial" .UserInfo}}
+</body>
+</html>
+{{end}}
