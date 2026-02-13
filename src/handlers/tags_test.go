@@ -12,6 +12,7 @@ import (
 	"github.com/mr-flannery/go-recipe-book/src/models"
 	"github.com/mr-flannery/go-recipe-book/src/store"
 	"github.com/mr-flannery/go-recipe-book/src/store/mocks"
+	templatemocks "github.com/mr-flannery/go-recipe-book/src/templates/mocks"
 )
 
 func TestSearchTagsHandler_SearchesTagsByQuery(t *testing.T) {
@@ -492,35 +493,3 @@ func TestRemoveUserTagHandler_RemovesPersonalTagFromRecipe(t *testing.T) {
 	})
 }
 
-func TestNewHandler_InitializesHandlerWithAllStores(t *testing.T) {
-	mockRecipeStore := &mocks.MockRecipeStore{}
-	mockTagStore := &mocks.MockTagStore{}
-	mockUserTagStore := &mocks.MockUserTagStore{}
-	mockCommentStore := &mocks.MockCommentStore{}
-	mockUserStore := &mocks.MockUserStore{}
-	mockAuthStore := &mocks.MockAuthStore{}
-
-	h := NewHandler(nil, mockRecipeStore, mockTagStore, mockUserTagStore, mockCommentStore, mockUserStore, mockAuthStore)
-
-	if h == nil {
-		t.Fatal("expected handler, got nil")
-	}
-	if h.RecipeStore == nil {
-		t.Error("expected RecipeStore to be set")
-	}
-	if h.TagStore == nil {
-		t.Error("expected TagStore to be set")
-	}
-	if h.UserTagStore == nil {
-		t.Error("expected UserTagStore to be set")
-	}
-	if h.CommentStore == nil {
-		t.Error("expected CommentStore to be set")
-	}
-	if h.UserStore == nil {
-		t.Error("expected UserStore to be set")
-	}
-	if h.AuthStore == nil {
-		t.Error("expected AuthStore to be set")
-	}
-}

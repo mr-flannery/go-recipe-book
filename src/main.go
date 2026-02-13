@@ -12,6 +12,7 @@ import (
 	"github.com/mr-flannery/go-recipe-book/src/db"
 	"github.com/mr-flannery/go-recipe-book/src/handlers"
 	"github.com/mr-flannery/go-recipe-book/src/store/postgres"
+	"github.com/mr-flannery/go-recipe-book/src/templates"
 	"github.com/mr-flannery/go-recipe-book/src/utils"
 
 	_ "github.com/golang-migrate/migrate/v4/source/file"
@@ -64,8 +65,9 @@ func main() {
 	userTagStore := postgres.NewUserTagStore(database)
 	commentStore := postgres.NewCommentStore(database)
 	userStore := postgres.NewUserStore(database)
+	renderer := templates.NewRenderer(templates.Templates)
 
-	h := handlers.NewHandler(database, recipeStore, tagStore, userTagStore, commentStore, userStore, authStore)
+	h := handlers.NewHandler(database, recipeStore, tagStore, userTagStore, commentStore, userStore, authStore, renderer)
 
 	userContext := auth.UserContextMiddleware(authStore)
 	requireAuth := auth.RequireAuth()
@@ -80,17 +82,15 @@ func main() {
 		http.ServeFile(w, r, filepath.Join(staticPath, "robots.txt"))
 	})
 
-	mux.Handle("/", userContext(http.HandlerFunc(handlers.HomeHandler)))
+	mux.Handle("/", userContext(http.HandlerFunc(h.HomeHandler)))
 
-	mux.Handle("/imprint", userContext(http.HandlerFunc(handlers.ImprintHandler)))
+	mux.Handle("/imprint", userContext(http.HandlerFunc(h.ImprintHandler)))
 
-	mux.HandleFunc("GET /login", handlers.GetLoginHandler)
-	mux.HandleFunc("POST /login", h.PostLoginHandler)
+	mux.Handle("GET /login", userContext(http.HandlerFunc(h.GetLoginHandler)))
+	mux.Handle("POST /login", userContext(http.HandlerFunc(h.PostLoginHandler)))
 	mux.HandleFunc("GET /logout", h.LogoutHandler)
-	mux.HandleFunc("GET /register", handlers.GetRegisterHandler)
-	mux.Handle("POST /register",
-		userContext(
-			http.HandlerFunc(h.PostRegisterHandler)))
+	mux.Handle("GET /register", userContext(http.HandlerFunc(h.GetRegisterHandler)))
+	mux.Handle("POST /register", userContext(http.HandlerFunc(h.PostRegisterHandler)))
 
 	requireAdminAuth := func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
