@@ -40,14 +40,14 @@ a { color: var(--accent); text-decoration: none; transition: color 0.2s; }
 a:hover { color: var(--ink); }
 
 /* Masthead */
-.masthead-editorial {
+.masthead {
     border-bottom: 1px solid var(--ink);
     padding: 12px 0;
     text-align: center;
     background: var(--paper);
 }
 
-.date-line-editorial {
+.date-line {
     font-family: 'Montserrat', sans-serif;
     font-size: 9px;
     letter-spacing: 4px;
@@ -55,7 +55,7 @@ a:hover { color: var(--ink); }
     color: var(--muted);
 }
 
-.publication-title-editorial {
+.publication-title {
     font-family: 'Cormorant Garamond', serif;
     font-size: 3rem;
     font-weight: 400;
@@ -66,13 +66,13 @@ a:hover { color: var(--ink); }
 }
 
 /* Navbar */
-.navbar-editorial {
+.navbar {
     border-bottom: 3px double var(--ink);
     padding: 12px 0;
     background: var(--paper);
 }
 
-.navbar-editorial-inner {
+.navbar-inner {
     max-width: 1200px;
     margin: 0 auto;
     padding: 0 40px;
@@ -81,7 +81,7 @@ a:hover { color: var(--ink); }
     align-items: center;
 }
 
-.navbar-brand-editorial {
+.navbar-brand {
     font-family: 'Cormorant Garamond', serif;
     font-size: 1.8rem;
     font-weight: 500;
@@ -91,13 +91,13 @@ a:hover { color: var(--ink); }
     text-transform: uppercase;
 }
 
-.navbar-menu-editorial {
+.navbar-menu {
     display: flex;
     align-items: center;
     gap: 30px;
 }
 
-.nav-link-editorial {
+.nav-link {
     font-family: 'Montserrat', sans-serif;
     font-size: 9px;
     letter-spacing: 3px;
@@ -109,12 +109,12 @@ a:hover { color: var(--ink); }
     transition: all 0.2s;
 }
 
-.nav-link-editorial:hover {
+.nav-link:hover {
     color: var(--accent);
     border-bottom-color: var(--accent);
 }
 
-.user-greeting-editorial {
+.user-greeting {
     font-family: 'Cormorant Garamond', serif;
     font-style: italic;
     color: var(--muted);
@@ -122,14 +122,14 @@ a:hover { color: var(--ink); }
 }
 
 /* Main content */
-.main-content-editorial {
+.main-content {
     max-width: 1200px;
     margin: 0 auto;
     padding: 50px 40px;
 }
 
 /* Buttons */
-.btn-editorial {
+.btn {
     display: inline-block;
     padding: 12px 30px;
     font-family: 'Montserrat', sans-serif;
@@ -144,45 +144,45 @@ a:hover { color: var(--ink); }
     transition: all 0.2s ease;
 }
 
-.btn-editorial:hover {
+.btn:hover {
     background: var(--ink);
     color: var(--paper);
 }
 
-.btn-editorial.primary {
+.btn.primary {
     background: var(--accent);
     border-color: var(--accent);
     color: white;
 }
 
-.btn-editorial.primary:hover {
+.btn.primary:hover {
     background: #6b0000;
     border-color: #6b0000;
 }
 
-.btn-editorial.danger {
+.btn.danger {
     border-color: var(--error);
     color: var(--error);
 }
 
-.btn-editorial.danger:hover {
+.btn.danger:hover {
     background: var(--error);
     color: white;
 }
 
 /* Forms */
-.form-container-editorial {
+.form-container {
     max-width: 480px;
     margin: 0 auto;
     padding: 50px;
     border: 1px solid var(--rule);
 }
 
-.form-group-editorial {
+.form-group {
     margin-bottom: 25px;
 }
 
-.form-group-editorial label {
+.form-group label {
     display: block;
     font-family: 'Montserrat', sans-serif;
     font-size: 9px;
@@ -192,9 +192,9 @@ a:hover { color: var(--ink); }
     margin-bottom: 10px;
 }
 
-.form-group-editorial input,
-.form-group-editorial textarea,
-.form-group-editorial select {
+.form-group input,
+.form-group textarea,
+.form-group select {
     width: 100%;
     padding: 14px;
     font-family: 'Cormorant Garamond', serif;
@@ -205,32 +205,32 @@ a:hover { color: var(--ink); }
     transition: border-color 0.2s;
 }
 
-.form-group-editorial input:focus,
-.form-group-editorial textarea:focus,
-.form-group-editorial select:focus {
+.form-group input:focus,
+.form-group textarea:focus,
+.form-group select:focus {
     outline: none;
     border-color: var(--ink);
 }
 
-.form-group-editorial input::placeholder,
-.form-group-editorial textarea::placeholder {
+.form-group input::placeholder,
+.form-group textarea::placeholder {
     color: var(--muted);
     font-style: italic;
 }
 
-.form-group-editorial textarea {
+.form-group textarea {
     min-height: 150px;
     resize: vertical;
     line-height: 1.8;
 }
 
-.form-row-editorial {
+.form-row {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 20px;
 }
 
-.help-text-editorial {
+.help-text {
     font-size: 13px;
     color: var(--muted);
     margin-top: 8px;
@@ -238,7 +238,7 @@ a:hover { color: var(--ink); }
 }
 
 /* Messages */
-.error-editorial {
+.error {
     background: #fef2f2;
     border: 1px solid var(--error);
     color: var(--error);
@@ -247,7 +247,7 @@ a:hover { color: var(--ink); }
     font-size: 14px;
 }
 
-.success-editorial {
+.success {
     background: #f0fdf4;
     border: 1px solid var(--success);
     color: var(--success);
@@ -257,41 +257,41 @@ a:hover { color: var(--ink); }
 }
 
 /* Cards */
-.card-editorial {
+.card {
     border: 1px solid var(--rule);
     padding: 30px;
     transition: box-shadow 0.2s;
 }
 
-.card-editorial:hover {
+.card:hover {
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
 }
 
 /* Recipe cards grid */
-.recipe-grid-editorial {
+.recipe-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
     gap: 30px;
 }
 
-.recipe-card-editorial {
+.recipe-card {
     border: 1px solid var(--rule);
     background: var(--paper);
     transition: all 0.2s;
 }
 
-.recipe-card-editorial:hover {
+.recipe-card:hover {
     box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
 }
 
-.recipe-card-editorial .recipe-image {
+.recipe-card .recipe-image {
     width: 100%;
     height: 220px;
     object-fit: cover;
     border-bottom: 1px solid var(--rule);
 }
 
-.recipe-card-editorial .no-image {
+.recipe-card .no-image {
     width: 100%;
     height: 220px;
     background: #f5f5f5;
@@ -303,11 +303,11 @@ a:hover { color: var(--ink); }
     border-bottom: 1px solid var(--rule);
 }
 
-.recipe-card-editorial .recipe-content {
+.recipe-card .recipe-content {
     padding: 25px;
 }
 
-.recipe-card-editorial .category-tag {
+.recipe-card .category-tag {
     font-family: 'Montserrat', sans-serif;
     font-size: 9px;
     letter-spacing: 3px;
@@ -317,7 +317,7 @@ a:hover { color: var(--ink); }
     display: block;
 }
 
-.recipe-card-editorial .recipe-title {
+.recipe-card .recipe-title {
     font-family: 'Cormorant Garamond', serif;
     font-size: 1.4rem;
     color: var(--ink);
@@ -325,7 +325,7 @@ a:hover { color: var(--ink); }
     line-height: 1.3;
 }
 
-.recipe-card-editorial .recipe-excerpt {
+.recipe-card .recipe-excerpt {
     font-size: 15px;
     color: var(--muted);
     line-height: 1.6;
@@ -336,7 +336,7 @@ a:hover { color: var(--ink); }
     overflow: hidden;
 }
 
-.recipe-card-editorial .recipe-meta {
+.recipe-card .recipe-meta {
     display: flex;
     gap: 20px;
     font-family: 'Montserrat', sans-serif;
@@ -346,14 +346,14 @@ a:hover { color: var(--ink); }
     border-top: 1px solid var(--rule);
 }
 
-.recipe-card-editorial .recipe-actions {
+.recipe-card .recipe-actions {
     display: flex;
     gap: 10px;
     margin-top: 20px;
 }
 
 /* Tags */
-.tag-editorial {
+.tag {
     display: inline-block;
     padding: 3px 10px;
     font-family: 'Montserrat', sans-serif;
@@ -365,16 +365,16 @@ a:hover { color: var(--ink); }
     margin: 2px;
 }
 
-.tag-editorial.tag-author {
+.tag.tag-author {
     color: var(--accent);
     border-color: var(--accent);
 }
 
-.tag-editorial.tag-user {
+.tag.tag-user {
     background: #f5f5f5;
 }
 
-.tags-container-editorial {
+.tags-container {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
@@ -382,7 +382,7 @@ a:hover { color: var(--ink); }
     margin: 15px 0;
 }
 
-.tags-label-editorial {
+.tags-label {
     font-family: 'Montserrat', sans-serif;
     font-size: 9px;
     letter-spacing: 3px;
@@ -392,7 +392,7 @@ a:hover { color: var(--ink); }
 }
 
 /* Recipe detail */
-.recipe-header-editorial {
+.recipe-header {
     max-width: 800px;
     margin: 0 auto;
     padding-bottom: 40px;
@@ -400,7 +400,7 @@ a:hover { color: var(--ink); }
     margin-bottom: 40px;
 }
 
-.recipe-header-editorial .category-tag {
+.recipe-header .category-tag {
     font-family: 'Montserrat', sans-serif;
     font-size: 9px;
     letter-spacing: 3px;
@@ -410,20 +410,20 @@ a:hover { color: var(--ink); }
     display: block;
 }
 
-.recipe-header-editorial h1 {
+.recipe-header h1 {
     font-size: 3rem;
     line-height: 1.2;
     margin-bottom: 20px;
 }
 
-.recipe-image-large-editorial {
+.recipe-image-large {
     max-width: 800px;
     width: 100%;
     margin: 30px auto;
     display: block;
 }
 
-.recipe-meta-editorial {
+.recipe-meta {
     display: flex;
     justify-content: center;
     gap: 30px;
@@ -433,11 +433,11 @@ a:hover { color: var(--ink); }
     margin: 30px 0;
 }
 
-.meta-item-editorial {
+.meta-item {
     text-align: center;
 }
 
-.meta-item-editorial .meta-label {
+.meta-item .meta-label {
     font-family: 'Montserrat', sans-serif;
     font-size: 9px;
     letter-spacing: 3px;
@@ -447,45 +447,45 @@ a:hover { color: var(--ink); }
     display: block;
 }
 
-.meta-item-editorial .meta-value {
+.meta-item .meta-value {
     font-family: 'Cormorant Garamond', serif;
     font-size: 1.5rem;
     color: var(--ink);
 }
 
 /* Recipe sections */
-.recipe-section-editorial {
+.recipe-section {
     max-width: 700px;
     margin: 50px auto;
 }
 
-.recipe-section-editorial h2 {
+.recipe-section h2 {
     font-size: 1.8rem;
     padding-bottom: 15px;
     border-bottom: 1px solid var(--rule);
     margin-bottom: 25px;
 }
 
-.recipe-section-editorial .content {
+.recipe-section .content {
     font-size: 18px;
     line-height: 2;
     color: var(--ink);
 }
 
 /* Comments */
-.comments-section-editorial {
+.comments-section {
     max-width: 700px;
     margin: 60px auto 0;
     padding-top: 40px;
     border-top: 3px double var(--ink);
 }
 
-.comment-editorial {
+.comment {
     padding: 25px 0;
     border-bottom: 1px solid var(--rule);
 }
 
-.comment-header-editorial {
+.comment-header {
     font-family: 'Montserrat', sans-serif;
     font-size: 11px;
     letter-spacing: 1px;
@@ -493,23 +493,23 @@ a:hover { color: var(--ink); }
     margin-bottom: 10px;
 }
 
-.comment-header-editorial strong {
+.comment-header strong {
     color: var(--ink);
 }
 
-.comment-content-editorial {
+.comment-content {
     font-size: 16px;
     line-height: 1.8;
 }
 
 /* Filters */
-.filters-editorial {
+.filters {
     border: 1px solid var(--rule);
     padding: 30px;
     margin-bottom: 40px;
 }
 
-.filters-editorial h3 {
+.filters h3 {
     font-family: 'Montserrat', sans-serif;
     font-size: 10px;
     letter-spacing: 3px;
@@ -519,19 +519,19 @@ a:hover { color: var(--ink); }
     border-bottom: 1px solid var(--rule);
 }
 
-.filter-row-editorial {
+.filter-row {
     display: flex;
     gap: 20px;
     flex-wrap: wrap;
     margin-bottom: 15px;
 }
 
-.filter-group-editorial {
+.filter-group {
     flex: 1;
     min-width: 200px;
 }
 
-.filter-group-editorial label {
+.filter-group label {
     display: block;
     font-family: 'Montserrat', sans-serif;
     font-size: 9px;
@@ -541,8 +541,8 @@ a:hover { color: var(--ink); }
     margin-bottom: 8px;
 }
 
-.filter-group-editorial input,
-.filter-group-editorial select {
+.filter-group input,
+.filter-group select {
     width: 100%;
     padding: 10px;
     font-family: 'Cormorant Garamond', serif;
@@ -552,14 +552,14 @@ a:hover { color: var(--ink); }
 }
 
 /* Footer */
-.footer-editorial {
+.footer {
     text-align: center;
     padding: 40px;
     border-top: 3px double var(--ink);
     margin-top: 60px;
 }
 
-.footer-text-editorial {
+.footer-text {
     font-family: 'Montserrat', sans-serif;
     font-size: 9px;
     letter-spacing: 3px;
@@ -567,11 +567,11 @@ a:hover { color: var(--ink); }
     color: var(--muted);
 }
 
-.footer-links-editorial {
+.footer-links {
     margin-top: 15px;
 }
 
-.footer-links-editorial a {
+.footer-links a {
     font-family: 'Montserrat', sans-serif;
     font-size: 9px;
     letter-spacing: 2px;
@@ -579,12 +579,12 @@ a:hover { color: var(--ink); }
     color: var(--muted);
 }
 
-.footer-links-editorial a:hover {
+.footer-links a:hover {
     color: var(--accent);
 }
 
 /* Navigation breadcrumb */
-.navigation-editorial {
+.navigation {
     display: flex;
     gap: 15px;
     margin-bottom: 30px;
@@ -593,18 +593,18 @@ a:hover { color: var(--ink); }
 }
 
 /* Page header */
-.page-header-editorial {
+.page-header {
     text-align: center;
     margin-bottom: 50px;
     padding-bottom: 30px;
     border-bottom: 1px solid var(--rule);
 }
 
-.page-header-editorial h1 {
+.page-header h1 {
     font-size: 2.5rem;
 }
 
-.page-header-editorial p {
+.page-header p {
     font-size: 16px;
     color: var(--muted);
     font-style: italic;
@@ -612,26 +612,26 @@ a:hover { color: var(--ink); }
 }
 
 /* Admin specific */
-.registration-card-editorial {
+.registration-card {
     border: 1px solid var(--rule);
     padding: 30px;
     margin-bottom: 20px;
 }
 
-.registration-card-editorial h3 {
+.registration-card h3 {
     font-size: 1.3rem;
     margin-bottom: 15px;
     padding-bottom: 15px;
     border-bottom: 1px solid var(--rule);
 }
 
-.detail-row-editorial {
+.detail-row {
     display: flex;
     padding: 12px 0;
     border-bottom: 1px solid var(--rule);
 }
 
-.detail-label-editorial {
+.detail-label {
     width: 120px;
     font-family: 'Montserrat', sans-serif;
     font-size: 9px;
@@ -640,11 +640,11 @@ a:hover { color: var(--ink); }
     color: var(--muted);
 }
 
-.detail-value-editorial {
+.detail-value {
     color: var(--ink);
 }
 
-.action-buttons-editorial {
+.action-buttons {
     display: flex;
     gap: 15px;
     margin-top: 25px;
@@ -653,37 +653,37 @@ a:hover { color: var(--ink); }
 }
 
 /* Image upload/preview */
-.image-preview-section-editorial {
+.image-preview-section {
     margin: 20px 0;
     padding: 20px;
     border: 1px dashed var(--rule);
 }
 
-.preview-container-editorial {
+.preview-container {
     display: none;
 }
 
-.image-preview-section-editorial.has-image .preview-container-editorial {
+.image-preview-section.has-image .preview-container {
     display: block;
 }
 
-.crop-container-editorial {
+.crop-container {
     max-width: 500px;
     margin: 0 auto;
 }
 
-.crop-container-editorial img {
+.crop-container img {
     max-width: 100%;
 }
 
-.preview-grid-editorial {
+.preview-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 30px;
     margin-top: 20px;
 }
 
-.preview-label-editorial {
+.preview-label {
     font-family: 'Montserrat', sans-serif;
     font-size: 9px;
     letter-spacing: 2px;
@@ -692,36 +692,36 @@ a:hover { color: var(--ink); }
     margin-bottom: 10px;
 }
 
-.preview-16-9-editorial {
+.preview-16-9 {
     aspect-ratio: 16/9;
     overflow: hidden;
     border: 1px solid var(--rule);
 }
 
-.preview-16-9-editorial img {
+.preview-16-9 img {
     width: 100%;
     height: 100%;
     object-fit: cover;
 }
 
-.crop-controls-editorial {
+.crop-controls {
     display: flex;
     gap: 10px;
     margin-top: 15px;
 }
 
 /* Current image display */
-.current-image-editorial {
+.current-image {
     margin: 15px 0;
 }
 
-.current-image-editorial img {
+.current-image img {
     max-width: 300px;
     border: 1px solid var(--rule);
 }
 
 /* Form actions */
-.form-actions-editorial {
+.form-actions {
     display: flex;
     gap: 15px;
     margin-top: 30px;
@@ -730,24 +730,24 @@ a:hover { color: var(--ink); }
 }
 
 /* Stats strip */
-.stats-strip-editorial {
+.stats-strip {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     border: 1px solid var(--ink);
     margin: 40px 0;
 }
 
-.stat-box-editorial {
+.stat-box {
     padding: 30px 20px;
     text-align: center;
     border-right: 1px solid var(--rule);
 }
 
-.stat-box-editorial:last-child {
+.stat-box:last-child {
     border-right: none;
 }
 
-.stat-number-editorial {
+.stat-number {
     font-family: 'Cormorant Garamond', serif;
     font-size: 2.5rem;
     font-weight: 400;
@@ -755,7 +755,7 @@ a:hover { color: var(--ink); }
     margin-bottom: 8px;
 }
 
-.stat-label-editorial {
+.stat-label {
     font-family: 'Montserrat', sans-serif;
     font-size: 9px;
     letter-spacing: 3px;
@@ -765,52 +765,52 @@ a:hover { color: var(--ink); }
 
 /* Responsive */
 @media (max-width: 768px) {
-    .form-row-editorial { grid-template-columns: 1fr; }
-    .recipe-meta-editorial { flex-direction: column; gap: 20px; }
-    .preview-grid-editorial { grid-template-columns: 1fr; }
-    .stats-strip-editorial { grid-template-columns: repeat(2, 1fr); }
-    .stat-box-editorial:nth-child(2) { border-right: none; }
-    .stat-box-editorial:nth-child(1),
-    .stat-box-editorial:nth-child(2) { border-bottom: 1px solid var(--rule); }
+    .form-row { grid-template-columns: 1fr; }
+    .recipe-meta { flex-direction: column; gap: 20px; }
+    .preview-grid { grid-template-columns: 1fr; }
+    .stats-strip { grid-template-columns: repeat(2, 1fr); }
+    .stat-box:nth-child(2) { border-right: none; }
+    .stat-box:nth-child(1),
+    .stat-box:nth-child(2) { border-bottom: 1px solid var(--rule); }
 }
 
 /* Tag input widget styling for editorial theme */
-.tag-input-editorial {
+.tag-input {
     border: 1px solid var(--rule);
     padding: 8px 12px;
     font-family: 'Cormorant Garamond', serif;
     font-size: 15px;
 }
 
-.tag-suggestions-editorial {
+.tag-suggestions {
     background: var(--paper);
     border: 1px solid var(--rule);
     max-height: 200px;
     overflow-y: auto;
 }
 
-.tag-suggestion-editorial {
+.tag-suggestion {
     padding: 10px 15px;
     cursor: pointer;
     transition: background 0.2s;
 }
 
-.tag-suggestion-editorial:hover {
+.tag-suggestion:hover {
     background: #f5f5f5;
 }
 
 /* No results message */
-.no-results-editorial {
+.no-results {
     text-align: center;
     padding: 60px 40px;
     border: 1px solid var(--rule);
 }
 
-.no-results-editorial h2 {
+.no-results h2 {
     margin-bottom: 15px;
 }
 
-.no-results-editorial p {
+.no-results p {
     color: var(--muted);
     margin-bottom: 25px;
 }
@@ -819,7 +819,7 @@ a:hover { color: var(--ink); }
 .inline-form { display: inline; }
 
 /* Pull quote */
-.pull-quote-editorial {
+.pull-quote {
     font-family: 'Cormorant Garamond', serif;
     font-size: 1.5rem;
     font-style: italic;

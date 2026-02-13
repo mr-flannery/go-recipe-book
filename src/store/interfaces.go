@@ -79,8 +79,11 @@ type AuthStore interface {
 	CreateRegistrationRequest(username, email, passwordHash string) error
 	GetPendingRegistrations() ([]RegistrationRequest, error)
 	ApproveRegistration(requestID, adminID int) error
-	RejectRegistration(requestID, adminID int, reason string) error
+	RejectRegistration(requestID, adminID int) error
 
 	CreateUser(username, email, passwordHash string, isAdmin bool) error
 	UserExists(username string) (bool, error)
+
+	GetAllUsers() ([]AuthUser, error)
+	DeleteUser(userID int) error
 }

@@ -1,4 +1,4 @@
-{{define "register-editorial.gohtml"}}
+{{define "register.gohtml"}}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -8,48 +8,48 @@
     <link rel="stylesheet" href="/static/css/editorial.css">
 </head>
 <body>
-    {{template "navbar-editorial" .UserInfo}}
+    {{template "navbar" .UserInfo}}
 
-    <main class="main-content-editorial">
-        <div class="page-header-editorial">
+    <main class="main-content">
+        <div class="page-header">
             <h1>Join Taste</h1>
             <p>Create an account to contribute recipes and engage with our community</p>
         </div>
 
-        <div class="form-container-editorial">
+        <div class="form-container">
             {{if .Error}}
-            <div class="error-editorial">{{.Error}}</div>
+            <div class="error">{{.Error}}</div>
             {{end}}
             
             {{if .Success}}
-            <div class="success-editorial">{{.Success}}</div>
+            <div class="success">{{.Success}}</div>
             {{else}}
             <form method="POST" action="/register">
-                <div class="form-group-editorial">
+                <div class="form-group">
                     <label for="username">Username</label>
                     <input type="text" id="username" name="username" value="{{.Username}}" placeholder="Choose a username" required>
                 </div>
                 
-                <div class="form-group-editorial">
+                <div class="form-group">
                     <label for="email">Email Address</label>
                     <input type="email" id="email" name="email" value="{{.Email}}" placeholder="your@email.com" required>
                 </div>
                 
-                <div class="form-group-editorial">
+                <div class="form-group">
                     <label for="password">Password</label>
                     <input type="password" id="password" name="password" placeholder="Create a secure password" required>
-                    <div class="help-text-editorial">
+                    <div class="help-text">
                         Password must be at least 8 characters with uppercase, lowercase, number, and special character.
                     </div>
                 </div>
                 
-                <div class="form-group-editorial">
+                <div class="form-group">
                     <label for="confirm_password">Confirm Password</label>
                     <input type="password" id="confirm_password" name="confirm_password" placeholder="Confirm your password" required>
                 </div>
                 
-                <div class="form-actions-editorial" style="border-top: none; padding-top: 0;">
-                    <button type="submit" class="btn-editorial primary" style="width: 100%;">Create Account</button>
+                <div class="form-actions" style="border-top: none; padding-top: 0;">
+                    <button type="submit" class="btn primary" style="width: 100%;">Send Registration Request</button>
                 </div>
             </form>
             {{end}}
@@ -62,7 +62,7 @@
         </div>
     </main>
 
-    {{template "footer-editorial" .UserInfo}}
+    {{template "footer" .UserInfo}}
 </body>
 </html>
 {{end}}

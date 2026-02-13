@@ -17,9 +17,11 @@ type MockAuthStore struct {
 	CreateRegistrationRequestFunc func(username, email, passwordHash string) error
 	GetPendingRegistrationsFunc   func() ([]store.RegistrationRequest, error)
 	ApproveRegistrationFunc       func(requestID, adminID int) error
-	RejectRegistrationFunc        func(requestID, adminID int, reason string) error
+	RejectRegistrationFunc        func(requestID, adminID int) error
 	CreateUserFunc                func(username, email, passwordHash string, isAdmin bool) error
 	UserExistsFunc                func(username string) (bool, error)
+	GetAllUsersFunc               func() ([]store.AuthUser, error)
+	DeleteUserFunc                func(userID int) error
 }
 
 func (m *MockAuthStore) GetUserByEmail(email string) (*store.AuthUser, string, error) {
@@ -120,9 +122,9 @@ func (m *MockAuthStore) ApproveRegistration(requestID, adminID int) error {
 	return nil
 }
 
-func (m *MockAuthStore) RejectRegistration(requestID, adminID int, reason string) error {
+func (m *MockAuthStore) RejectRegistration(requestID, adminID int) error {
 	if m.RejectRegistrationFunc != nil {
-		return m.RejectRegistrationFunc(requestID, adminID, reason)
+		return m.RejectRegistrationFunc(requestID, adminID)
 	}
 	return nil
 }
@@ -139,4 +141,18 @@ func (m *MockAuthStore) UserExists(username string) (bool, error) {
 		return m.UserExistsFunc(username)
 	}
 	return false, nil
+}
+
+func (m *MockAuthStore) GetAllUsers() ([]store.AuthUser, error) {
+	if m.GetAllUsersFunc != nil {
+		return m.GetAllUsersFunc()
+	}
+	return nil, nil
+}
+
+func (m *MockAuthStore) DeleteUser(userID int) error {
+	if m.DeleteUserFunc != nil {
+		return m.DeleteUserFunc(userID)
+	}
+	return nil
 }

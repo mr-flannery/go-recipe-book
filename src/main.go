@@ -118,6 +118,16 @@ func main() {
 			requireAuth(
 				requireAdminAuth(
 					http.HandlerFunc(h.DenyRegistrationHandler)))))
+	mux.Handle("GET /admin/users",
+		userContext(
+			requireAuth(
+				requireAdminAuth(
+					http.HandlerFunc(h.GetUsersHandler)))))
+	mux.Handle("DELETE /admin/users/{id}",
+		userContext(
+			requireAuth(
+				requireAdminAuth(
+					http.HandlerFunc(h.DeleteUserHandler)))))
 
 	mux.Handle("GET /recipes/create",
 		userContext(

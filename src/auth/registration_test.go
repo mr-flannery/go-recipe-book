@@ -137,17 +137,15 @@ func TestApproveRegistration_ApprovesRequestAndRecordsAdminID(t *testing.T) {
 
 func TestRejectRegistration_RejectsRequestWithReasonAndAdminID(t *testing.T) {
 	var rejectedID, adminID int
-	var capturedReason string
 	mockStore := &mocks.MockAuthStore{
-		RejectRegistrationFunc: func(requestID, aID int, reason string) error {
+		RejectRegistrationFunc: func(requestID, aID int) error {
 			rejectedID = requestID
 			adminID = aID
-			capturedReason = reason
 			return nil
 		},
 	}
 
-	err := RejectRegistration(mockStore, 10, 2, "spam account")
+	err := RejectRegistration(mockStore, 10, 2)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -156,9 +154,6 @@ func TestRejectRegistration_RejectsRequestWithReasonAndAdminID(t *testing.T) {
 	}
 	if adminID != 2 {
 		t.Errorf("expected adminID 2, got %d", adminID)
-	}
-	if capturedReason != "spam account" {
-		t.Errorf("expected reason 'spam account', got %s", capturedReason)
 	}
 }
 

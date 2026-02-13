@@ -1,4 +1,4 @@
-{{define "imprint-editorial.gohtml"}}
+{{define "imprint.gohtml"}}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -8,15 +8,15 @@
     <link rel="stylesheet" href="/static/css/editorial.css">
 </head>
 <body>
-    {{template "navbar-editorial" .}}
+    {{template "navbar" .}}
 
-    <main class="main-content-editorial">
-        <div class="page-header-editorial">
+    <main class="main-content">
+        <div class="page-header">
             <h1>Imprint</h1>
             <p>Legal Information & Contact</p>
         </div>
 
-        <div class="card-editorial" style="max-width: 700px; margin: 0 auto;">
+        <div class="card" style="max-width: 700px; margin: 0 auto;">
             <h2 style="font-size: 1.5rem; margin-bottom: 20px;">Legal Information</h2>
             <p style="line-height: 1.8; margin-bottom: 30px;">
                 This is the imprint page for Taste Magazine Recipe Collection.
@@ -45,7 +45,7 @@
         </div>
     </main>
 
-    {{template "footer-editorial" .}}
+    {{template "footer" .}}
 </body>
 </html>
 {{end}}

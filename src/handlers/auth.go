@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"fmt"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -115,7 +114,7 @@ func (h *Handler) PostRegisterHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	conf := config.GetConfig()
-	approvalURL := fmt.Sprintf("http://localhost:8080/admin/registrations")
+	approvalURL := "http://localhost:8080/admin/registrations"
 	err = mail.SendNewRegistrationNotification(conf.DB.Admin.Email, conf.DB.Admin.Username, username, email, approvalURL)
 	if err != nil {
 		slog.Error("Failed to send admin notification email", "error", err)
@@ -216,8 +215,7 @@ func (h *Handler) DenyRegistrationHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	reason := "Registration denied by administrator"
-	err = auth.RejectRegistration(h.AuthStore, registrationID, user.ID, reason)
+	err = auth.RejectRegistration(h.AuthStore, registrationID, user.ID)
 	if err != nil {
 		slog.Error("Failed to deny registration", "error", err)
 		http.Error(w, "Failed to deny registration", http.StatusInternalServerError)
@@ -227,4 +225,70 @@ func (h *Handler) DenyRegistrationHandler(w http.ResponseWriter, r *http.Request
 	slog.Info("Registration denied", "admin_id", user.ID, "registration_id", registrationID, "username", regRequest.Username)
 
 	http.Redirect(w, r, "/admin/registrations?success=Registration denied successfully", http.StatusSeeOther)
+}
+
+type UsersData struct {
+	Users    []auth.User
+	Success  string
+	Error    string
+	UserInfo *auth.UserInfo
+}
+
+func (h *Handler) GetUsersHandler(w http.ResponseWriter, r *http.Request) {
+	users, err := auth.GetAllUsers(h.AuthStore)
+	if err != nil {
+		slog.Error("Failed to get users", "error", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	data := UsersData{
+		Users:    users,
+		Success:  r.URL.Query().Get("success"),
+		UserInfo: auth.GetUserInfoFromContext(r.Context()),
+	}
+	h.Renderer.RenderPage(w, "users.gohtml", data)
+}
+
+func (h *Handler) DeleteUserHandler(w http.ResponseWriter, r *http.Request) {
+	idStr := r.PathValue("id")
+	if idStr == "" {
+		http.Error(w, "Missing user ID", http.StatusBadRequest)
+		return
+	}
+
+	userID, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "Invalid user ID", http.StatusBadRequest)
+		return
+	}
+
+	currentUser := auth.GetUserInfoFromContext(r.Context())
+	if currentUser.UserID == userID {
+		http.Error(w, "Cannot delete your own account", http.StatusForbidden)
+		return
+	}
+
+	targetUser, err := h.AuthStore.GetUserByID(userID)
+	if err != nil {
+		http.Error(w, "User not found", http.StatusNotFound)
+		return
+	}
+
+	if targetUser.IsAdmin {
+		http.Error(w, "Cannot delete admin users", http.StatusForbidden)
+		return
+	}
+
+	err = auth.DeleteUser(h.AuthStore, userID)
+	if err != nil {
+		slog.Error("Failed to delete user", "error", err, "user_id", userID)
+		http.Error(w, "Failed to delete user", http.StatusInternalServerError)
+		return
+	}
+
+	slog.Info("User deleted", "admin_id", currentUser.UserID, "deleted_user_id", userID, "deleted_username", targetUser.Username)
+
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("User deleted successfully"))
 }

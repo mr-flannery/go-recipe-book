@@ -12,7 +12,6 @@ import (
 	"github.com/mr-flannery/go-recipe-book/src/models"
 	"github.com/mr-flannery/go-recipe-book/src/store"
 	"github.com/mr-flannery/go-recipe-book/src/store/mocks"
-	templatemocks "github.com/mr-flannery/go-recipe-book/src/templates/mocks"
 )
 
 func TestSearchTagsHandler_SearchesTagsByQuery(t *testing.T) {
@@ -492,4 +491,3 @@ func TestRemoveUserTagHandler_RemovesPersonalTagFromRecipe(t *testing.T) {
 		}
 	})
 }
-

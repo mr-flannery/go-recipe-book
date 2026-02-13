@@ -1,0 +1,71 @@
+{{define "pending-registrations.gohtml"}}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pending Registrations - Taste Magazine Admin</title>
+    <link rel="stylesheet" href="/static/css/editorial.css">
+</head>
+<body>
+    {{template "navbar" .UserInfo}}
+
+    <main class="main-content">
+        <div class="page-header">
+            <h1>Admin Panel</h1>
+            <h2>Pending Registration Requests</h2>
+        </div>
+
+        <div style="max-width: 800px; margin: 0 auto;">
+            {{if .Success}}
+            <div class="success">{{.Success}}</div>
+            {{end}}
+            
+            {{if .Error}}
+            <div class="error">{{.Error}}</div>
+            {{end}}
+
+            {{if .Registrations}}
+            {{range .Registrations}}
+            <div class="registration-card">
+                <h3>{{.Username}}</h3>
+                <div style="font-size: 12px; color: var(--muted); margin-bottom: 20px;">
+                    Requested: {{.RequestedAt.Format "January 2, 2006 at 3:04 PM"}}
+                </div>
+                
+                <div class="detail-row">
+                    <span class="detail-label">Username</span>
+                    <span class="detail-value">{{.Username}}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Email</span>
+                    <span class="detail-value">{{.Email}}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Status</span>
+                    <span class="detail-value">{{.Status}}</span>
+                </div>
+                
+                <div class="action-buttons">
+                    <form method="POST" action="/admin/registrations/{{.ID}}/approve" class="inline-form">
+                        <button type="submit" class="btn primary">Approve</button>
+                    </form>
+                    <form method="POST" action="/admin/registrations/{{.ID}}/deny" class="inline-form">
+                        <button type="submit" class="btn danger">Deny</button>
+                    </form>
+                </div>
+            </div>
+            {{end}}
+            {{else}}
+            <div class="no-results">
+                <h2>No Pending Requests</h2>
+                <p>All registration requests have been processed.</p>
+            </div>
+            {{end}}
+        </div>
+    </main>
+
+    {{template "footer" .UserInfo}}
+</body>
+</html>
+{{end}}

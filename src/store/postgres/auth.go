@@ -286,13 +286,13 @@ func (s *AuthStore) ApproveRegistration(requestID, adminID int) error {
 	return nil
 }
 
-func (s *AuthStore) RejectRegistration(requestID, adminID int, reason string) error {
+func (s *AuthStore) RejectRegistration(requestID, adminID int) error {
 	query := `
 		UPDATE registration_requests 
-		SET status = 'rejected', reviewed_by = $1, reviewed_at = NOW(), notes = $2
-		WHERE id = $3 AND status = 'pending'`
+		SET status = 'rejected', reviewed_by = $1, reviewed_at = NOW()
+		WHERE id = $2 AND status = 'pending'`
 
-	result, err := s.db.Exec(query, adminID, reason, requestID)
+	result, err := s.db.Exec(query, adminID, requestID)
 	if err != nil {
 		return fmt.Errorf("failed to reject registration request: %w", err)
 	}
@@ -325,4 +325,48 @@ func (s *AuthStore) UserExists(username string) (bool, error) {
 		return false, fmt.Errorf("failed to check existing user: %w", err)
 	}
 	return count > 0, nil
+}
+
+func (s *AuthStore) GetAllUsers() ([]store.AuthUser, error) {
+	query := `
+		SELECT id, username, email, COALESCE(is_admin, false), COALESCE(is_active, true)
+		FROM users
+		ORDER BY username ASC`
+
+	rows, err := s.db.Query(query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query users: %w", err)
+	}
+	defer rows.Close()
+
+	var users []store.AuthUser
+	for rows.Next() {
+		var user store.AuthUser
+		err := rows.Scan(&user.ID, &user.Username, &user.Email, &user.IsAdmin, &user.IsActive)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan user: %w", err)
+		}
+		users = append(users, user)
+	}
+
+	return users, nil
+}
+
+func (s *AuthStore) DeleteUser(userID int) error {
+	_, err := s.db.Exec("DELETE FROM sessions WHERE user_id = $1", userID)
+	if err != nil {
+		return fmt.Errorf("failed to delete user sessions: %w", err)
+	}
+
+	result, err := s.db.Exec("DELETE FROM users WHERE id = $1", userID)
+	if err != nil {
+		return fmt.Errorf("failed to delete user: %w", err)
+	}
+
+	rowsAffected, _ := result.RowsAffected()
+	if rowsAffected == 0 {
+		return fmt.Errorf("user not found")
+	}
+
+	return nil
 }

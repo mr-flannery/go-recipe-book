@@ -34,10 +34,11 @@ var funcMap = template.FuncMap{
 	},
 }
 
-func loadTemplatesRecursive(root string) (*template.Template, error) {
+func loadTemplatesForTheme(root string, theme string) (*template.Template, error) {
 	var files []string
+	themeDir := filepath.Join(root, theme)
 
-	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
+	err := filepath.WalkDir(themeDir, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
@@ -52,7 +53,24 @@ func loadTemplatesRecursive(root string) (*template.Template, error) {
 		return nil, err
 	}
 
+	// Also load shared fragments (not theme-specific)
+	fragmentsDir := filepath.Join(root, "recipes", "fragments")
+	err = filepath.WalkDir(fragmentsDir, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+
+		if !d.IsDir() && strings.HasSuffix(path, ".gohtml") {
+			files = append(files, path)
+		}
+		return nil
+	})
+
+	if err != nil && !strings.Contains(err.Error(), "no such file") {
+		return nil, err
+	}
+
 	return template.New("").Funcs(funcMap).ParseFiles(files...)
 }
 
-var Templates = template.Must(loadTemplatesRecursive(utils.GetCallerDir(0)))
+var Templates = template.Must(loadTemplatesForTheme(utils.GetCallerDir(0), "editorial"))

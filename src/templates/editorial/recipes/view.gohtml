@@ -1,4 +1,4 @@
-{{define "view-editorial.gohtml"}}
+{{define "view.gohtml"}}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -31,96 +31,96 @@
     </script>
 </head>
 <body>
-    {{template "navbar-editorial" .UserInfo}}
+    {{template "navbar" .UserInfo}}
 
-    <main class="main-content-editorial">
-        <div class="navigation-editorial">
-            <a href="/recipes" class="btn-editorial">Back to Recipes</a>
+    <main class="main-content">
+        <div class="navigation">
+            <a href="/recipes" class="btn">Back to Recipes</a>
             {{if .IsAuthor}}
-            <a href="/recipes/update?id={{.Recipe.ID}}" class="btn-editorial">Edit Recipe</a>
-            <button onclick="deleteRecipe({{.Recipe.ID}})" class="btn-editorial danger">Delete Recipe</button>
+            <a href="/recipes/update?id={{.Recipe.ID}}" class="btn">Edit Recipe</a>
+            <button onclick="deleteRecipe({{.Recipe.ID}})" class="btn danger">Delete Recipe</button>
             {{end}}
         </div>
 
-        <article class="recipe-header-editorial">
+        <article class="recipe-header">
             {{if .Recipe.Tags}}
             <span class="category-tag">{{(index .Recipe.Tags 0).Name}}</span>
             {{end}}
             <h1>{{.Recipe.Title}}</h1>
             
             {{if .Recipe.ImageBase64}}
-            <img src="data:image/jpeg;base64,{{.Recipe.ImageBase64}}" alt="{{.Recipe.Title}}" class="recipe-image-large-editorial">
+            <img src="data:image/jpeg;base64,{{.Recipe.ImageBase64}}" alt="{{.Recipe.Title}}" class="recipe-image-large">
             {{end}}
 
-            <div class="recipe-meta-editorial">
+            <div class="recipe-meta">
                 {{if .Recipe.PrepTime}}
-                <div class="meta-item-editorial">
+                <div class="meta-item">
                     <span class="meta-label">Prep Time</span>
                     <span class="meta-value">{{.Recipe.PrepTime}} min</span>
                 </div>
                 {{end}}
                 
                 {{if .Recipe.CookTime}}
-                <div class="meta-item-editorial">
+                <div class="meta-item">
                     <span class="meta-label">Cook Time</span>
                     <span class="meta-value">{{.Recipe.CookTime}} min</span>
                 </div>
                 {{end}}
                 
                 {{if .Recipe.Calories}}
-                <div class="meta-item-editorial">
+                <div class="meta-item">
                     <span class="meta-label">Calories</span>
                     <span class="meta-value">{{.Recipe.Calories}}</span>
                 </div>
                 {{end}}
                 
-                <div class="meta-item-editorial">
+                <div class="meta-item">
                     <span class="meta-label">Published</span>
                     <span class="meta-value">{{.Recipe.CreatedAt.Format "Jan 2, 2006"}}</span>
                 </div>
             </div>
 
             {{if .Recipe.Tags}}
-            <div class="tags-container-editorial">
-                <span class="tags-label-editorial">Tags:</span>
+            <div class="tags-container">
+                <span class="tags-label">Tags:</span>
                 {{range .Recipe.Tags}}
-                <span class="tag-editorial tag-author">{{.Name}}</span>
+                <span class="tag tag-author">{{.Name}}</span>
                 {{end}}
             </div>
             {{end}}
 
             {{if .IsLoggedIn}}
             {{if .UserTags}}
-            <div class="tags-container-editorial">
-                <span class="tags-label-editorial">My Tags:</span>
+            <div class="tags-container">
+                <span class="tags-label">My Tags:</span>
                 {{range .UserTags}}
-                <span class="tag-editorial tag-user">{{.Name}}</span>
+                <span class="tag tag-user">{{.Name}}</span>
                 {{end}}
             </div>
             {{end}}
             {{end}}
         </article>
 
-        <section class="recipe-section-editorial">
+        <section class="recipe-section">
             <h2>Ingredients</h2>
             <div class="content">{{.Recipe.IngredientsMD}}</div>
         </section>
 
-        <section class="recipe-section-editorial">
+        <section class="recipe-section">
             <h2>Instructions</h2>
             <div class="content">{{.Recipe.InstructionsMD}}</div>
         </section>
 
-        <section class="comments-section-editorial">
+        <section class="comments-section">
             <h2>Reader Comments (<span id="comment-count">{{len .Comments}}</span>)</h2>
 
             <div id="comments-list">
                 {{range .Comments}}
-                <div class="comment-editorial">
-                    <div class="comment-header-editorial">
+                <div class="comment">
+                    <div class="comment-header">
                         <strong>{{.Username}}</strong> &mdash; {{.CreatedAt.Format "Jan 2, 2006 at 3:04 PM"}}
                     </div>
-                    <div class="comment-content-editorial">{{.ContentMD}}</div>
+                    <div class="comment-content">{{.ContentMD}}</div>
                 </div>
                 {{else}}
                 <p id="no-comments" style="color: var(--muted); font-style: italic;">
@@ -136,10 +136,10 @@
                       hx-target="#comments-list" 
                       hx-swap="afterbegin"
                       hx-on::after-request="this.reset(); document.getElementById('comment-count').textContent = parseInt(document.getElementById('comment-count').textContent) + 1; const noComments = document.getElementById('no-comments'); if (noComments) noComments.style.display = 'none';">
-                    <div class="form-group-editorial">
+                    <div class="form-group">
                         <textarea name="comment" placeholder="Share your thoughts about this recipe..." required style="min-height: 100px;"></textarea>
                     </div>
-                    <button type="submit" class="btn-editorial primary">Post Comment</button>
+                    <button type="submit" class="btn primary">Post Comment</button>
                 </form>
             </div>
             {{else}}
@@ -150,7 +150,7 @@
         </section>
     </main>
 
-    {{template "footer-editorial" .UserInfo}}
+    {{template "footer" .UserInfo}}
 </body>
 </html>
 {{end}}

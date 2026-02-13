@@ -1,4 +1,4 @@
-{{define "home-editorial.gohtml"}}
+{{define "home.gohtml"}}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -8,39 +8,39 @@
     <link rel="stylesheet" href="/static/css/editorial.css">
 </head>
 <body>
-    {{template "navbar-editorial" .}}
+    {{template "navbar" .}}
 
-    <main class="main-content-editorial">
-        <div class="page-header-editorial">
+    <main class="main-content">
+        <div class="page-header">
             <h1>The Art of Cooking</h1>
             <p>A curated collection of recipes for the discerning home chef</p>
         </div>
 
-        <div class="stats-strip-editorial">
-            <div class="stat-box-editorial">
-                <div class="stat-number-editorial">500+</div>
-                <div class="stat-label-editorial">Recipes</div>
+        <div class="stats-strip">
+            <div class="stat-box">
+                <div class="stat-number">500+</div>
+                <div class="stat-label">Recipes</div>
             </div>
-            <div class="stat-box-editorial">
-                <div class="stat-number-editorial">50</div>
-                <div class="stat-label-editorial">Contributors</div>
+            <div class="stat-box">
+                <div class="stat-number">50</div>
+                <div class="stat-label">Contributors</div>
             </div>
-            <div class="stat-box-editorial">
-                <div class="stat-number-editorial">12</div>
-                <div class="stat-label-editorial">Categories</div>
+            <div class="stat-box">
+                <div class="stat-number">12</div>
+                <div class="stat-label">Categories</div>
             </div>
-            <div class="stat-box-editorial">
-                <div class="stat-number-editorial">2025</div>
-                <div class="stat-label-editorial">Est.</div>
+            <div class="stat-box">
+                <div class="stat-number">2025</div>
+                <div class="stat-label">Est.</div>
             </div>
         </div>
 
-        <div class="pull-quote-editorial">
+        <div class="pull-quote">
             "Cooking is like love. It should be entered into with abandon or not at all."
             <br><span style="font-size: 0.9rem; color: var(--muted);">&mdash; Harriet Van Horne</span>
         </div>
 
-        <div class="card-editorial" style="max-width: 700px; margin: 40px auto; text-align: center;">
+        <div class="card" style="max-width: 700px; margin: 40px auto; text-align: center;">
             <p style="font-size: 18px; line-height: 1.9; margin-bottom: 30px;">
                 Welcome to <strong>Taste</strong>, where culinary tradition meets modern innovation. 
                 Our collection features carefully curated recipes from passionate home cooks and 
@@ -48,13 +48,13 @@
                 invites you to create something extraordinary in your own kitchen.
             </p>
             <div style="display: flex; gap: 15px; justify-content: center;">
-                <a href="/recipes" class="btn-editorial primary">Browse Recipes</a>
-                <a href="/recipes/create" class="btn-editorial">Submit a Recipe</a>
+                <a href="/recipes" class="btn primary">Browse Recipes</a>
+                <a href="/recipes/create" class="btn">Submit a Recipe</a>
             </div>
         </div>
     </main>
 
-    {{template "footer-editorial" .}}
+    {{template "footer" .}}
 </body>
 </html>
 {{end}}

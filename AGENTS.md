@@ -5,3 +5,4 @@
 - database migrations filenames must use the current datetime in format YYYYMMDDHHMMSS (e.g., 20260207151814_add_feature.up.sql)
 - avoid code duplication where possible and resonable. if you create a struct, and the same struct already exists, put the definition somewhere central and use it consistently instead of redefining it multiple times
 - unit test functions should follow the naming convention: "TestThingUnderTest_BehavesLikeXWhenY" (e.g., TestAuthenticate_ReturnsUserWhenCredentialsAreValid, TestHashPassword_ReturnsErrorWhenPasswordIsWeak)
+- the template that's under active development is editorial. ignore other templates for now when doing any changes.

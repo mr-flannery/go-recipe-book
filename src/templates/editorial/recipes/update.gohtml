@@ -1,4 +1,4 @@
-{{define "update-editorial.gohtml"}}
+{{define "update.gohtml"}}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -8,52 +8,52 @@
     <link rel="stylesheet" href="/static/css/editorial.css">
 </head>
 <body>
-    {{template "navbar-editorial" .UserInfo}}
+    {{template "navbar" .UserInfo}}
 
-    <main class="main-content-editorial">
-        <div class="navigation-editorial">
-            <a href="/recipes/{{.Recipe.ID}}" class="btn-editorial">Back to Recipe</a>
-            <a href="/recipes" class="btn-editorial">All Recipes</a>
+    <main class="main-content">
+        <div class="navigation">
+            <a href="/recipes/{{.Recipe.ID}}" class="btn">Back to Recipe</a>
+            <a href="/recipes" class="btn">All Recipes</a>
         </div>
 
-        <div class="page-header-editorial">
+        <div class="page-header">
             <h1>Edit Recipe</h1>
             <p>Make changes to your recipe</p>
         </div>
 
-        <div class="card-editorial" style="max-width: 800px; margin: 0 auto;">
+        <div class="card" style="max-width: 800px; margin: 0 auto;">
             <form method="POST" enctype="multipart/form-data">
                 <input type="hidden" name="id" value="{{.Recipe.ID}}">
                 
-                <div class="form-group-editorial">
+                <div class="form-group">
                     <label for="title">Recipe Title *</label>
                     <input type="text" id="title" name="title" value="{{.Recipe.Title}}" required placeholder="Enter a descriptive title for your recipe">
                 </div>
 
-                <div class="form-group-editorial">
+                <div class="form-group">
                     <label for="image">Recipe Image</label>
-                    <div class="current-image-editorial">
+                    <div class="current-image">
                         {{if .Recipe.ImageBase64}}
                         <img src="data:image/jpeg;base64,{{.Recipe.ImageBase64}}" alt="Current recipe image">
-                        <div class="help-text-editorial">Current image (upload a new one to replace)</div>
+                        <div class="help-text">Current image (upload a new one to replace)</div>
                         {{else}}
                         <div style="padding: 20px; border: 1px dashed var(--rule); color: var(--muted);">No current image</div>
                         {{end}}
                     </div>
                     <input type="file" id="image" name="image" accept="image/*" style="margin-top: 15px;">
-                    <div class="help-text-editorial">Upload a new image to replace the current one (optional)</div>
+                    <div class="help-text">Upload a new image to replace the current one (optional)</div>
                 </div>
 
-                <div class="form-row-editorial">
-                    <div class="form-group-editorial">
+                <div class="form-row">
+                    <div class="form-group">
                         <label for="preptime">Prep Time (minutes)</label>
                         <input type="number" id="preptime" name="preptime" value="{{.Recipe.PrepTime}}" min="0" placeholder="15">
                     </div>
-                    <div class="form-group-editorial">
+                    <div class="form-group">
                         <label for="cooktime">Cook Time (minutes)</label>
                         <input type="number" id="cooktime" name="cooktime" value="{{.Recipe.CookTime}}" min="0" placeholder="30">
                     </div>
-                    <div class="form-group-editorial">
+                    <div class="form-group">
                         <label for="calories">Calories (per serving)</label>
                         <input type="number" id="calories" name="calories" value="{{.Recipe.Calories}}" min="0" placeholder="350">
                     </div>
@@ -61,27 +61,27 @@
 
                 {{template "tag-input-form" dict "ID" "tags" "InitialTags" (joinTagNames .Recipe.Tags)}}
 
-                <div class="form-group-editorial">
+                <div class="form-group">
                     <label for="ingredients">Ingredients (Markdown) *</label>
                     <textarea id="ingredients" name="ingredients" required placeholder="List your ingredients here...">{{.Recipe.IngredientsMD}}</textarea>
-                    <div class="help-text-editorial">Use Markdown formatting for better presentation. Each ingredient on a new line.</div>
+                    <div class="help-text">Use Markdown formatting for better presentation. Each ingredient on a new line.</div>
                 </div>
 
-                <div class="form-group-editorial">
+                <div class="form-group">
                     <label for="instructions">Instructions (Markdown) *</label>
                     <textarea id="instructions" name="instructions" required placeholder="Provide step-by-step instructions...">{{.Recipe.InstructionsMD}}</textarea>
-                    <div class="help-text-editorial">Use numbered lists, bold text, and other Markdown formatting to make instructions clear.</div>
+                    <div class="help-text">Use numbered lists, bold text, and other Markdown formatting to make instructions clear.</div>
                 </div>
 
-                <div class="form-actions-editorial">
-                    <button type="submit" class="btn-editorial primary">Update Recipe</button>
-                    <a href="/recipes/{{.Recipe.ID}}" class="btn-editorial">Cancel</a>
+                <div class="form-actions">
+                    <button type="submit" class="btn primary">Update Recipe</button>
+                    <a href="/recipes/{{.Recipe.ID}}" class="btn">Cancel</a>
                 </div>
             </form>
         </div>
     </main>
 
-    {{template "footer-editorial" .UserInfo}}
+    {{template "footer" .UserInfo}}
 </body>
 </html>
 {{end}}

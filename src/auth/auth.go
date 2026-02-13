@@ -92,3 +92,26 @@ func RequireAuth() func(http.Handler) http.Handler {
 func GetUserIDByUsername(authStore store.AuthStore, username string) (int, error) {
 	return authStore.GetUserIDByUsername(username)
 }
+
+func GetAllUsers(authStore store.AuthStore) ([]User, error) {
+	authUsers, err := authStore.GetAllUsers()
+	if err != nil {
+		return nil, err
+	}
+
+	users := make([]User, len(authUsers))
+	for i, au := range authUsers {
+		users[i] = User{
+			ID:       au.ID,
+			Username: au.Username,
+			Email:    au.Email,
+			IsAdmin:  au.IsAdmin,
+			IsActive: au.IsActive,
+		}
+	}
+	return users, nil
+}
+
+func DeleteUser(authStore store.AuthStore, userID int) error {
+	return authStore.DeleteUser(userID)
+}

@@ -1,4 +1,4 @@
-{{define "list-editorial.gohtml"}}
+{{define "list.gohtml"}}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -31,40 +31,40 @@
     </script>
 </head>
 <body>
-    {{template "navbar-editorial" .UserInfo}}
+    {{template "navbar" .UserInfo}}
 
-    <main class="main-content-editorial">
-        <div class="page-header-editorial">
+    <main class="main-content">
+        <div class="page-header">
             <h1>Recipe Collection</h1>
             <p>Discover culinary inspiration for every occasion</p>
             <div style="margin-top: 20px;">
-                <a href="/recipes/create" class="btn-editorial primary">Submit a Recipe</a>
+                <a href="/recipes/create" class="btn primary">Submit a Recipe</a>
             </div>
         </div>
 
-        <div class="filters-editorial">
+        <div class="filters">
             <h3>Filter Recipes</h3>
             <form hx-post="/recipes/filter" hx-target="#recipe-results" hx-trigger="input delay:300ms, change">
-                <div class="filter-row-editorial">
-                    <div class="filter-group-editorial" style="flex: 2;">
+                <div class="filter-row">
+                    <div class="filter-group" style="flex: 2;">
                         <label for="search">Search</label>
                         <input type="text" id="search" name="search" placeholder="Search title, ingredients, instructions...">
                     </div>
-                    <div class="filter-group-editorial" style="flex: 0; min-width: auto;">
+                    <div class="filter-group" style="flex: 0; min-width: auto;">
                         <label>&nbsp;</label>
-                        <button type="button" class="btn-editorial" onclick="clearFilters()">Clear All</button>
+                        <button type="button" class="btn" onclick="clearFilters()">Clear All</button>
                     </div>
                 </div>
                 
-                <div class="filter-row-editorial">
-                    <div class="filter-group-editorial" style="flex: 2;">
+                <div class="filter-row">
+                    <div class="filter-group" style="flex: 2;">
                         <label for="tags">Tags</label>
                         <input type="text" id="tags" name="tags" placeholder="e.g., vegetarian, quick (comma-separated)">
                     </div>
                 </div>
                 
-                <div class="filter-row-editorial">
-                    <div class="filter-group-editorial">
+                <div class="filter-row">
+                    <div class="filter-group">
                         <label for="calories_op">Calories</label>
                         <div style="display: flex; gap: 10px;">
                             <select id="calories_op" name="calories_op" style="width: 80px;">
@@ -79,7 +79,7 @@
                         </div>
                     </div>
                     
-                    <div class="filter-group-editorial">
+                    <div class="filter-group">
                         <label for="prep_time_op">Prep Time</label>
                         <div style="display: flex; gap: 10px; align-items: center;">
                             <select id="prep_time_op" name="prep_time_op" style="width: 80px;">
@@ -95,7 +95,7 @@
                         </div>
                     </div>
                     
-                    <div class="filter-group-editorial">
+                    <div class="filter-group">
                         <label for="cook_time_op">Cook Time</label>
                         <div style="display: flex; gap: 10px; align-items: center;">
                             <select id="cook_time_op" name="cook_time_op" style="width: 80px;">
@@ -116,9 +116,9 @@
 
         <div id="recipe-results">
             {{if .Recipes}}
-            <div class="recipe-grid-editorial">
+            <div class="recipe-grid">
                 {{range .Recipes}}
-                <div class="recipe-card-editorial">
+                <div class="recipe-card" onclick="navigateToRecipe(event, {{.ID}})" style="cursor: pointer;">
                     {{if .ImageBase64}}
                     <img src="data:image/jpeg;base64,{{.ImageBase64}}" alt="{{.Title}}" class="recipe-image">
                     {{else}}
@@ -135,23 +135,30 @@
                             {{if .Calories}}<span>{{.Calories}} cal</span>{{end}}
                         </div>
                         <div class="recipe-actions">
-                            <a href="/recipes/{{.ID}}" class="btn-editorial">Read More</a>
+                            <a href="/recipes/{{.ID}}" class="btn">Read More</a>
                         </div>
                     </div>
                 </div>
                 {{end}}
             </div>
             {{else}}
-            <div class="no-results-editorial">
+            <div class="no-results">
                 <h2>No Recipes Found</h2>
                 <p>Be the first to contribute to our collection.</p>
-                <a href="/recipes/create" class="btn-editorial primary">Submit a Recipe</a>
+                <a href="/recipes/create" class="btn primary">Submit a Recipe</a>
             </div>
             {{end}}
         </div>
     </main>
 
     <script>
+        function navigateToRecipe(event, recipeId) {
+            if (event.target.closest('a, button')) {
+                return;
+            }
+            window.location.href = `/recipes/${recipeId}`;
+        }
+
         function clearFilters() {
             document.getElementById('search').value = '';
             document.getElementById('tags').value = '';
@@ -165,7 +172,7 @@
         }
     </script>
 
-    {{template "footer-editorial" .UserInfo}}
+    {{template "footer" .UserInfo}}
 </body>
 </html>
 {{end}}

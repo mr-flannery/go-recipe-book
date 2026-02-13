@@ -55,8 +55,8 @@ func ApproveRegistration(authStore store.AuthStore, requestID int, adminID int) 
 	return authStore.ApproveRegistration(requestID, adminID)
 }
 
-func RejectRegistration(authStore store.AuthStore, requestID int, adminID int, reason string) error {
-	return authStore.RejectRegistration(requestID, adminID, reason)
+func RejectRegistration(authStore store.AuthStore, requestID int, adminID int) error {
+	return authStore.RejectRegistration(requestID, adminID)
 }
 
 func GetRegistrationRequestByID(authStore store.AuthStore, requestID int) (*RegistrationRequest, error) {

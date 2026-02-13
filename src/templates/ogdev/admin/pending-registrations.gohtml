@@ -48,12 +48,12 @@
                     
                     <div class="action-buttons">
                         <form method="POST" action="/admin/registrations/{{.ID}}/approve" class="inline-form">
-                            <button type="submit" class="btn btn-approve" onclick="return confirm('Are you sure you want to approve this registration?')">
+                            <button type="submit" class="btn btn-approve">
                                 Approve
                             </button>
                         </form>
                         <form method="POST" action="/admin/registrations/{{.ID}}/deny" class="inline-form">
-                            <button type="submit" class="btn btn-deny" onclick="return confirm('Are you sure you want to deny this registration?')">
+                            <button type="submit" class="btn btn-deny">
                                 Deny
                             </button>
                         </form>
