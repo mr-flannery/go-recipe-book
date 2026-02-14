@@ -76,7 +76,18 @@ func main() {
 	mux := http.NewServeMux()
 
 	staticPath := filepath.Join(utils.GetCallerDir(0), "static")
-	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir(staticPath))))
+	staticHandler := http.StripPrefix("/static/", http.FileServer(http.Dir(staticPath)))
+	if config.Environment.Mode == "development" {
+		mux.Handle("/static/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+			staticHandler.ServeHTTP(w, r)
+		}))
+	} else {
+		mux.Handle("/static/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Cache-Control", "public, max-age=86400")
+			staticHandler.ServeHTTP(w, r)
+		}))
+	}
 
 	mux.HandleFunc("GET /robots.txt", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, filepath.Join(staticPath, "robots.txt"))

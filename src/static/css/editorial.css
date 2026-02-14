@@ -354,10 +354,12 @@ a:hover { color: var(--ink); }
 
 /* Tags */
 .tag {
-    display: inline-block;
-    padding: 3px 10px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
     font-family: 'Montserrat', sans-serif;
-    font-size: 9px;
+    font-size: 13px;
     letter-spacing: 2px;
     text-transform: uppercase;
     border: 1px solid var(--rule);
@@ -374,21 +376,23 @@ a:hover { color: var(--ink); }
     background: #f5f5f5;
 }
 
-.tag-remove {
+.tag > button.tag-remove {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     background: none;
     border: none;
     cursor: pointer;
-    font-size: 14px;
+    font-size: 16px;
     line-height: 1;
     padding: 0;
-    margin-left: 6px;
+    margin: 0;
     color: inherit;
-    opacity: 0.7;
-    vertical-align: middle;
+    opacity: 0.6;
     transition: opacity 0.2s;
 }
 
-.tag-remove:hover {
+.tag > button.tag-remove:hover {
     opacity: 1;
 }
 
@@ -831,7 +835,7 @@ a:hover { color: var(--ink); }
 
 .tag-suggestion:hover,
 .tag-suggestion.selected {
-    background: #f5f5f5;
+    background: #d9d9d9;
 }
 
 /* No results message */
