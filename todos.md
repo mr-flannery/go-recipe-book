@@ -11,14 +11,12 @@ What Wasn't Tested (and Why)
 - src/db/: Database connection/migration code - better suited for integration tests
 ```
 
+- browser tests for tagging and commenting are missing
+
 - UX improvements!!
-  - polish tagging
-    - the ux is still shit, and the visuals as well
-    - also the suggestions should not show anything by default, and when searching it should not show tags that are already used on the recipe, only tags that are new
   - add pagination/dynamic fetching on scroll for the recipes page
   - the admin registration UX could be improved, by listing denied and approved registrations, and also by make the experience more dynamic, showing success messages or something like this.
-
-- make browser tests parallel again
+  - filtering by authored by me should be possible
 
 - error pages suck/are non existent
   - e.g. if a user tries to manually navigate to the edit page for a different user's recipe, the resulting page is not a properly rendered page, and it doesn't redirect anywhere

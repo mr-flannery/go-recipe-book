@@ -230,6 +230,13 @@ a:hover { color: var(--ink); }
     gap: 20px;
 }
 
+.form-row .form-group input {
+    height: 35px;
+    padding: 0 12px;
+    font-size: 15px;
+    box-sizing: border-box;
+}
+
 .help-text {
     font-size: 13px;
     color: var(--muted);
@@ -357,7 +364,8 @@ a:hover { color: var(--ink); }
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    padding: 6px 12px;
+    height: 35px;
+    padding: 0 12px;
     font-family: 'Montserrat', sans-serif;
     font-size: 13px;
     letter-spacing: 2px;
@@ -365,6 +373,7 @@ a:hover { color: var(--ink); }
     border: 1px solid var(--rule);
     color: var(--muted);
     margin: 2px;
+    box-sizing: border-box;
 }
 
 .tag.tag-author {
@@ -803,10 +812,19 @@ a:hover { color: var(--ink); }
 }
 
 .tag-input {
-    border: 1px solid var(--rule);
-    padding: 8px 12px;
+    height: 35px;
+    padding: 0 12px;
     font-family: 'Cormorant Garamond', serif;
     font-size: 15px;
+    border: 1px solid var(--rule);
+    box-sizing: border-box;
+}
+
+.form-group input.tag-input {
+    height: 35px;
+    padding: 0 12px;
+    font-size: 15px;
+    box-sizing: border-box;
 }
 
 .tag-suggestions {
