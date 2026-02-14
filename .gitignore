@@ -52,10 +52,10 @@ coverage/
 go-test-cache/
 
 # Playwright
-/test-results/
-/playwright-report/
-/blob-report/
-/playwright/.cache/
+browser-tests/test-results/
+browser-tests/playwright-report/
+browser-tests/blob-report/
+browser-tests/playwright/.cache/
 
 **/__debug_bin*
 

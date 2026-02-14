@@ -12,6 +12,7 @@ import { defineConfig, devices } from '@playwright/test';
  * See https://playwright.dev/docs/test-configuration.
  */
 export default defineConfig({
+  globalSetup: require.resolve('./global-setup'),
   testDir: '.',
   testMatch: '**/[0-9][0-9]-*.spec.ts',
   /* Run tests in files in parallel */

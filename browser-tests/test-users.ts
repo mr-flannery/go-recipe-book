@@ -25,22 +25,15 @@ export const ADMIN_USER = {
   password: config.db.admin.password,
 };
 
-const testRunId = Date.now();
-
 export const TEST_USERS = {
   approved1: {
-    username: `testuser1_${testRunId}`,
-    email: `testuser1_${testRunId}@example.com`,
+    username: 'testuser1',
+    email: 'testuser1@example.com',
     password: 'TestPassword123!',
   },
   approved2: {
-    username: `testuser2_${testRunId}`,
-    email: `testuser2_${testRunId}@example.com`,
+    username: 'testuser2',
+    email: 'testuser2@example.com',
     password: 'TestPassword456!',
-  },
-  rejected: {
-    username: `rejecteduser_${testRunId}`,
-    email: `rejected_${testRunId}@example.com`,
-    password: 'RejectedPass789!',
   },
 };
