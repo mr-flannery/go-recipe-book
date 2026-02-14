@@ -374,6 +374,24 @@ a:hover { color: var(--ink); }
     background: #f5f5f5;
 }
 
+.tag-remove {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1;
+    padding: 0;
+    margin-left: 6px;
+    color: inherit;
+    opacity: 0.7;
+    vertical-align: middle;
+    transition: opacity 0.2s;
+}
+
+.tag-remove:hover {
+    opacity: 1;
+}
+
 .tags-container {
     display: flex;
     flex-wrap: wrap;
@@ -775,6 +793,11 @@ a:hover { color: var(--ink); }
 }
 
 /* Tag input widget styling for editorial theme */
+.tag-input-container {
+    position: relative;
+    display: inline-block;
+}
+
 .tag-input {
     border: 1px solid var(--rule);
     padding: 8px 12px;
@@ -783,10 +806,21 @@ a:hover { color: var(--ink); }
 }
 
 .tag-suggestions {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    min-width: 200px;
     background: var(--paper);
     border: 1px solid var(--rule);
     max-height: 200px;
     overflow-y: auto;
+    z-index: 100;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.tag-suggestions.show {
+    display: block;
 }
 
 .tag-suggestion {
@@ -795,7 +829,8 @@ a:hover { color: var(--ink); }
     transition: background 0.2s;
 }
 
-.tag-suggestion:hover {
+.tag-suggestion:hover,
+.tag-suggestion.selected {
     background: #f5f5f5;
 }
 

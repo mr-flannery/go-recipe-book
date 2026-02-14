@@ -113,13 +113,16 @@
             }
 
             function renderSuggestions(tags, query) {
-                currentSuggestions = tags.filter(t => !selectedTags.includes(t));
-                selectedIndex = -1;
-                
-                if (currentSuggestions.length === 0 && query.trim() === '') {
+                if (query.trim() === '') {
                     suggestions.classList.remove('show');
+                    suggestions.innerHTML = '';
+                    currentSuggestions = [];
+                    selectedIndex = -1;
                     return;
                 }
+
+                currentSuggestions = tags.filter(t => !selectedTags.includes(t));
+                selectedIndex = -1;
 
                 let html = '';
                 currentSuggestions.forEach((tag, i) => {
@@ -144,6 +147,7 @@
             input.addEventListener('input', async function() {
                 const query = this.value;
                 const tags = await searchTags(query);
+                if (input.value !== query) return;
                 renderSuggestions(tags, query);
             });
 
@@ -166,6 +170,7 @@
                         addTag(this.value.trim());
                     }
                 } else if (e.key === 'Escape') {
+                    input.value = '';
                     suggestions.classList.remove('show');
                 }
             });
@@ -180,13 +185,6 @@
             document.addEventListener('click', function(e) {
                 if (!input.contains(e.target) && !suggestions.contains(e.target)) {
                     suggestions.classList.remove('show');
-                }
-            });
-
-            input.addEventListener('focus', async function() {
-                if (this.value.trim() === '') {
-                    const tags = await searchTags('');
-                    renderSuggestions(tags, '');
                 }
             });
 
