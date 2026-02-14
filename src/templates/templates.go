@@ -54,7 +54,7 @@ func loadTemplatesForTheme(root string, theme string) (*template.Template, error
 	}
 
 	// Also load shared fragments (not theme-specific)
-	fragmentsDir := filepath.Join(root, "recipes", "fragments")
+	fragmentsDir := filepath.Join(root, "shared")
 	err = filepath.WalkDir(fragmentsDir, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
