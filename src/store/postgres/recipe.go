@@ -186,6 +186,18 @@ func (s *RecipeStore) GetFiltered(params models.FilterParams) ([]models.Recipe, 
 
 	query += " ORDER BY r.created_at DESC"
 
+	if params.Limit > 0 {
+		query += fmt.Sprintf(" LIMIT $%d", argIndex)
+		args = append(args, params.Limit)
+		argIndex++
+	}
+
+	if params.Offset > 0 {
+		query += fmt.Sprintf(" OFFSET $%d", argIndex)
+		args = append(args, params.Offset)
+		argIndex++
+	}
+
 	rows, err := s.db.Query(query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch filtered recipes: %v", err)

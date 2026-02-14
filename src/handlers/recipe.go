@@ -131,8 +131,14 @@ func (h *Handler) PostCreateRecipeHandler(w http.ResponseWriter, r *http.Request
 	http.Redirect(w, r, fmt.Sprintf("/recipes/%d", recipeID), http.StatusSeeOther)
 }
 
+// might want to make this configurable at some point
+const RecipesPerPage = 20
+
 func (h *Handler) ListRecipesHandler(w http.ResponseWriter, r *http.Request) {
-	recipes, err := h.RecipeStore.GetAll()
+	filterParams := models.FilterParams{
+		Limit: RecipesPerPage,
+	}
+	recipes, err := h.RecipeStore.GetFiltered(filterParams)
 	if err != nil {
 		http.Error(w, "Failed to fetch recipes", http.StatusInternalServerError)
 		return
@@ -152,18 +158,29 @@ func (h *Handler) ListRecipesHandler(w http.ResponseWriter, r *http.Request) {
 	var currentUser *auth.User
 	if userInfo.IsLoggedIn {
 		currentUser, _ = auth.GetUserBySession(h.AuthStore, r)
+		// this is slightly suboptimal for performance. we might want to write a dedicate query at some point that grabs everything at once. but let's do some performance testing first.
+		userTagsMap, _ := h.UserTagStore.GetForRecipes(currentUser.ID, recipeIDs)
+		for i := range recipes {
+			recipes[i].UserTags = userTagsMap[recipes[i].ID]
+		}
 	}
+
+	hasMore := len(recipes) == RecipesPerPage
 
 	data := struct {
 		Recipes     []models.Recipe
 		UserInfo    *auth.UserInfo
 		IsLoggedIn  bool
 		CurrentUser *auth.User
+		NextOffset  int
+		HasMore     bool
 	}{
 		Recipes:     recipes,
 		UserInfo:    userInfo,
 		IsLoggedIn:  userInfo.IsLoggedIn,
 		CurrentUser: currentUser,
+		NextOffset:  RecipesPerPage,
+		HasMore:     hasMore,
 	}
 
 	h.Renderer.RenderPage(w, "list.gohtml", data)
@@ -546,4 +563,61 @@ func (h *Handler) FilterRecipesHTMXHandler(w http.ResponseWriter, r *http.Reques
 	}
 
 	h.Renderer.RenderFragment(w, "recipe-cards", data)
+}
+
+func (h *Handler) LoadMoreRecipesHTMXHandler(w http.ResponseWriter, r *http.Request) {
+	offset, _ := strconv.Atoi(r.URL.Query().Get("offset"))
+	if offset < 0 {
+		offset = 0
+	}
+
+	filterParams := models.FilterParams{
+		Limit:  RecipesPerPage,
+		Offset: offset,
+	}
+	recipes, err := h.RecipeStore.GetFiltered(filterParams)
+	if err != nil {
+		slog.Error("Failed to fetch recipes", "error", err)
+		http.Error(w, "Failed to fetch recipes", http.StatusInternalServerError)
+		return
+	}
+
+	recipeIDs := make([]int, len(recipes))
+	for i, r := range recipes {
+		recipeIDs[i] = r.ID
+	}
+	tagsMap, _ := h.TagStore.GetForRecipes(recipeIDs)
+
+	for i := range recipes {
+		recipes[i].Tags = tagsMap[recipes[i].ID]
+	}
+
+	currentUser, err := auth.GetUserBySession(h.AuthStore, r)
+	isLoggedIn := err == nil
+
+	if isLoggedIn {
+		userTagsMap, _ := h.UserTagStore.GetForRecipes(currentUser.ID, recipeIDs)
+		for i := range recipes {
+			recipes[i].UserTags = userTagsMap[recipes[i].ID]
+		}
+	}
+
+	hasMore := len(recipes) == RecipesPerPage
+	nextOffset := offset + RecipesPerPage
+
+	data := struct {
+		Recipes     []models.Recipe
+		IsLoggedIn  bool
+		CurrentUser *auth.User
+		NextOffset  int
+		HasMore     bool
+	}{
+		Recipes:     recipes,
+		IsLoggedIn:  isLoggedIn,
+		CurrentUser: currentUser,
+		NextOffset:  nextOffset,
+		HasMore:     hasMore,
+	}
+
+	h.Renderer.RenderFragment(w, "recipe-cards-more", data)
 }

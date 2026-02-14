@@ -36,7 +36,6 @@
     <main class="main-content">
         <div class="page-header">
             <h1>Recipe Collection</h1>
-            <p>Discover culinary inspiration for every occasion</p>
             <div style="margin-top: 20px;">
                 <a href="/recipes/create" class="btn primary">Submit a Recipe</a>
             </div>
@@ -116,7 +115,7 @@
 
         <div id="recipe-results">
             {{if .Recipes}}
-            <div class="recipe-grid">
+            <div class="recipe-grid" id="recipe-grid">
                 {{range .Recipes}}
                 <div class="recipe-card" onclick="navigateToRecipe(event, {{.ID}})" style="cursor: pointer;">
                     {{if .ImageBase64}}
@@ -125,22 +124,40 @@
                     <div class="no-image">No Image Available</div>
                     {{end}}
                     <div class="recipe-content">
-                        {{if .Tags}}
-                        <span class="category-tag">{{(index .Tags 0).Name}}</span>
-                        {{end}}
                         <h3 class="recipe-title">{{.Title}}</h3>
                         <div class="recipe-meta">
                             {{if .PrepTime}}<span>Prep: {{.PrepTime}} min</span>{{end}}
                             {{if .CookTime}}<span>Cook: {{.CookTime}} min</span>{{end}}
                             {{if .Calories}}<span>{{.Calories}} cal</span>{{end}}
                         </div>
-                        <div class="recipe-actions">
-                            <a href="/recipes/{{.ID}}" class="btn">Read More</a>
+                        {{if or .Tags .UserTags}}
+                        <div class="recipe-tags-inline">
+                            {{range .Tags}}<span class="tag tag-author">{{.Name}}</span>{{end}}
+                            {{range .UserTags}}<span class="tag tag-user">{{.Name}}</span>{{end}}
                         </div>
+                        {{end}}
+                        {{if and $.IsLoggedIn (eq $.CurrentUser.ID .AuthorID)}}
+                        <div class="recipe-actions">
+                            <a href="/recipes/update?id={{.ID}}" class="btn">Edit</a>
+                            <button onclick="deleteRecipe({{.ID}})" class="btn danger">Delete</button>
+                        </div>
+                        {{end}}
                     </div>
                 </div>
                 {{end}}
             </div>
+            {{if .HasMore}}
+            <div id="load-more-container" style="text-align: center; margin-top: 40px;">
+                <button class="btn"
+                    hx-get="/recipes/load-more?offset={{.NextOffset}}"
+                    hx-target="#recipe-grid"
+                    hx-swap="beforeend"
+                    hx-indicator="#load-more-spinner">
+                    Load More
+                </button>
+                <span id="load-more-spinner" class="htmx-indicator" style="margin-left: 10px;">Loading...</span>
+            </div>
+            {{end}}
             {{else}}
             <div class="no-results">
                 <h2>No Recipes Found</h2>

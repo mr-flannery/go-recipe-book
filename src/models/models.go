@@ -30,6 +30,7 @@ type Recipe struct {
 	CreatedAt      time.Time
 	UpdatedAt      time.Time
 	Tags           []Tag
+	UserTags       []UserTag
 }
 
 func (r Recipe) ImageBase64() string {
@@ -86,4 +87,6 @@ type FilterParams struct {
 	Tags          []string
 	UserID        int
 	UserTags      []string
+	Limit         int
+	Offset        int
 }

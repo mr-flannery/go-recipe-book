@@ -124,6 +124,7 @@ type MockUserTagStore struct {
 	GetOrCreateFunc   func(userID, recipeID int, name string) (models.UserTag, error)
 	SearchFunc        func(userID int, query string) ([]string, error)
 	GetByRecipeIDFunc func(userID, recipeID int) ([]models.UserTag, error)
+	GetForRecipesFunc func(userID int, recipeIDs []int) (map[int][]models.UserTag, error)
 	RemoveFunc        func(userID, tagID int) error
 }
 
@@ -144,6 +145,13 @@ func (m *MockUserTagStore) Search(userID int, query string) ([]string, error) {
 func (m *MockUserTagStore) GetByRecipeID(userID, recipeID int) ([]models.UserTag, error) {
 	if m.GetByRecipeIDFunc != nil {
 		return m.GetByRecipeIDFunc(userID, recipeID)
+	}
+	return nil, nil
+}
+
+func (m *MockUserTagStore) GetForRecipes(userID int, recipeIDs []int) (map[int][]models.UserTag, error) {
+	if m.GetForRecipesFunc != nil {
+		return m.GetForRecipesFunc(userID, recipeIDs)
 	}
 	return nil, nil
 }

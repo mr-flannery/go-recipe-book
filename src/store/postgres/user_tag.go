@@ -87,6 +87,43 @@ func (s *UserTagStore) GetByRecipeID(userID int, recipeID int) ([]models.UserTag
 	return tags, nil
 }
 
+func (s *UserTagStore) GetForRecipes(userID int, recipeIDs []int) (map[int][]models.UserTag, error) {
+	result := make(map[int][]models.UserTag)
+	if len(recipeIDs) == 0 {
+		return result, nil
+	}
+
+	placeholders := make([]string, len(recipeIDs))
+	args := make([]interface{}, len(recipeIDs)+1)
+	args[0] = userID
+	for i, id := range recipeIDs {
+		placeholders[i] = fmt.Sprintf("$%d", i+2)
+		args[i+1] = id
+	}
+
+	query := fmt.Sprintf(`
+		SELECT id, user_id, recipe_id, name 
+		FROM user_tags 
+		WHERE user_id = $1 AND recipe_id IN (%s) 
+		ORDER BY recipe_id, name`, strings.Join(placeholders, ","))
+
+	rows, err := s.db.Query(query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get user tags: %v", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var tag models.UserTag
+		if err := rows.Scan(&tag.ID, &tag.UserID, &tag.RecipeID, &tag.Name); err != nil {
+			return nil, fmt.Errorf("failed to scan user tag: %v", err)
+		}
+		result[tag.RecipeID] = append(result[tag.RecipeID], tag)
+	}
+
+	return result, nil
+}
+
 func (s *UserTagStore) Remove(userID int, tagID int) error {
 	_, err := s.db.Exec("DELETE FROM user_tags WHERE id = $1 AND user_id = $2", tagID, userID)
 	if err != nil {

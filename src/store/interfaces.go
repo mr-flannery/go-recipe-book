@@ -26,6 +26,7 @@ type UserTagStore interface {
 	GetOrCreate(userID, recipeID int, name string) (models.UserTag, error)
 	Search(userID int, query string) ([]string, error)
 	GetByRecipeID(userID, recipeID int) ([]models.UserTag, error)
+	GetForRecipes(userID int, recipeIDs []int) (map[int][]models.UserTag, error)
 	Remove(userID, tagID int) error
 }
 

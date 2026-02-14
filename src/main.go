@@ -169,6 +169,9 @@ func main() {
 	mux.Handle("POST /recipes/filter",
 		userContext(
 			http.HandlerFunc(h.FilterRecipesHTMXHandler)))
+	mux.Handle("GET /recipes/load-more",
+		userContext(
+			http.HandlerFunc(h.LoadMoreRecipesHTMXHandler)))
 
 	mux.Handle("GET /recipes/{id}",
 		userContext(
