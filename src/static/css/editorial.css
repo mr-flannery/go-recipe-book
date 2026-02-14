@@ -138,6 +138,7 @@ a:hover { color: var(--ink); }
     text-transform: uppercase;
     text-decoration: none;
     border: 1px solid var(--ink);
+    border-radius: 3px;
     color: var(--ink);
     background: transparent;
     cursor: pointer;
@@ -378,23 +379,35 @@ a:hover { color: var(--ink); }
 }
 
 .recipe-card .recipe-actions .btn {
+    background: transparent;
+    color: var(--ink);
+}
+
+.recipe-card .recipe-actions .btn:hover {
     background: var(--ink);
     color: var(--paper);
 }
 
-.recipe-card .recipe-actions .btn:hover {
-    background: var(--muted);
-}
-
 .recipe-card .recipe-actions .btn.danger {
-    background: var(--error);
+    background: transparent;
     border-color: var(--error);
-    color: white;
+    color: var(--error);
 }
 
 .recipe-card .recipe-actions .btn.danger:hover {
-    background: #6b0000;
-    border-color: #6b0000;
+    background: var(--error);
+    color: white;
+}
+
+/* Buttons with Icons */
+.recipe-card .recipe-actions .btn.btn-icon {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.recipe-card .recipe-actions .btn.btn-icon svg {
+    flex-shrink: 0;
 }
 
 /* Tags */
