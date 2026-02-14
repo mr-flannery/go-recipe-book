@@ -17,8 +17,6 @@
 *.code-workspace
 
 # IDE/editor files
-.vscode/
-!.vscode/launch.json
 .idea/
 *.swp
 *.swo
@@ -52,8 +50,8 @@ coverage/
 go-test-cache/
 
 # Playwright
-browser-tests/test-results/
-browser-tests/playwright-report/
+browser-tests/test-results
+browser-tests/playwright-report
 browser-tests/blob-report/
 browser-tests/playwright/.cache/
 

@@ -1,0 +1,31 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "air-debug",
+      "type": "shell",
+      "command": "air",
+      "args": [
+        "-c",
+        ".air.debug.toml"
+      ],
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "go",
+        "fileLocation": ["relative", "${workspaceFolder}"],
+        "pattern": {
+          "regexp": "^(.*):(\\d+):(\\d+):\\s+(.*)$",
+          "file": 1,
+          "line": 2,
+          "column": 3,
+          "message": 4
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "^building\\.\\.\\.$",
+          "endsPattern": "^API server listening at:"
+        }
+      }
+    }
+  ]
+}

@@ -11,6 +11,20 @@ What Wasn't Tested (and Why)
 - src/db/: Database connection/migration code - better suited for integration tests
 ```
 
+- UX improvements!!
+  - polish tagging
+    - the ux is still shit, and the visuals as well
+    - also the suggestions should not show anything by default, and when searching it should not show tags that are already used on the recipe, only tags that are new
+  - add pagination/dynamic fetching on scroll for the recipes page
+  - the admin registration UX could be improved, by listing denied and approved registrations, and also by make the experience more dynamic, showing success messages or something like this.
+
+- make browser tests parallel again
+
+- error pages suck/are non existent
+  - e.g. if a user tries to manually navigate to the edit page for a different user's recipe, the resulting page is not a properly rendered page, and it doesn't redirect anywhere
+  - 
+  
+
 - refactor
   - split models into different files, recipe, tags, comment, etc.
   - openAPI spec + syncing
@@ -22,10 +36,6 @@ What Wasn't Tested (and Why)
   - nginx https stuff
   - buy domain
   - register domain with Maileroo
-- polish tagging
-  - the ux is still shit, and the visuals as well
-  - also the suggestions should not show anything by default, and when searching it should not show tags that are already used on the recipe, only tags that are new
-- the admin registration UX could be improved, by listing denied and approved registrations, and also by make the experience more dynamic, showing success messages or something like this.
 - thhink about transaction handling for various operations, e.g. recipes and tags are separate tables
 - SQL prepared statements? is this code vulnerable to SQL injection right now?
 - there are a lot of inline structs, also a lot of duplicated ones

@@ -38,7 +38,7 @@ test.describe('Recipe Creation', () => {
     await expect(page.getByRole('heading', { name: testRecipe.title, level: 1 })).toBeVisible();
     await expect(page.locator('.recipe-meta').getByText(`${testRecipe.prepTime} min`)).toBeVisible();
     await expect(page.locator('.recipe-meta').getByText(`${testRecipe.cookTime} min`)).toBeVisible();
-    await expect(page.getByText(testRecipe.calories)).toBeVisible();
+    await expect(page.locator('.recipe-meta .meta-item .meta-value').getByText(testRecipe.calories)).toBeVisible();
     await expect(page.getByText('2 cups flour')).toBeVisible();
     await expect(page.getByText('Mix dry ingredients')).toBeVisible();
 
