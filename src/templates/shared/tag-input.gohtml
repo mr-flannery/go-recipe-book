@@ -172,6 +172,9 @@
                 } else if (e.key === 'Escape') {
                     input.value = '';
                     suggestions.classList.remove('show');
+                    suggestions.innerHTML = '';
+                    currentSuggestions = [];
+                    selectedIndex = -1;
                 }
             });
 
