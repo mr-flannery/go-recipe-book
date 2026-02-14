@@ -41,32 +41,30 @@
             </div>
         </div>
 
-        <div class="filters">
-            <h3>Filter Recipes</h3>
+        <div class="filters filters-inline">
             <form hx-post="/recipes/filter" hx-target="#recipe-results" hx-trigger="input delay:300ms, change">
-                <div class="filter-row">
-                    <div class="filter-group" style="flex: 2;">
+                <div class="filter-row-inline">
+                    <div class="filter-group filter-search">
                         <label for="search">Search</label>
-                        <input type="text" id="search" name="search" placeholder="Search title, ingredients, instructions...">
+                        <input type="text" id="search" name="search" placeholder="Search...">
                     </div>
-                    <div class="filter-group" style="flex: 0; min-width: auto;">
-                        <label>&nbsp;</label>
-                        <button type="button" class="btn" onclick="clearFilters()">Clear All</button>
+                    
+                    <div class="filter-group filter-tags">
+                        <label>Tags</label>
+                        {{template "tag-input-filter" dict "ID" "filter-tags" "Name" "tags" "Placeholder" "Add tag..." "SearchURL" "/api/tags/search" "TagClass" "tag-author"}}
                     </div>
-                </div>
-                
-                <div class="filter-row">
-                    <div class="filter-group" style="flex: 2;">
-                        <label for="tags">Tags</label>
-                        <input type="text" id="tags" name="tags" placeholder="e.g., vegetarian, quick (comma-separated)">
+                    
+                    {{if .IsLoggedIn}}
+                    <div class="filter-group filter-tags">
+                        <label>My Tags</label>
+                        {{template "tag-input-filter" dict "ID" "filter-user-tags" "Name" "user_tags" "Placeholder" "Add tag..." "SearchURL" "/api/tags/user/search" "TagClass" "tag-user"}}
                     </div>
-                </div>
-                
-                <div class="filter-row">
-                    <div class="filter-group">
+                    {{end}}
+                    
+                    <div class="filter-group filter-metric">
                         <label for="calories_op">Calories</label>
-                        <div style="display: flex; gap: 10px;">
-                            <select id="calories_op" name="calories_op" style="width: 80px;">
+                        <div class="filter-metric-inputs">
+                            <select id="calories_op" name="calories_op">
                                 <option value="">Any</option>
                                 <option value="eq">=</option>
                                 <option value="lt">&lt;</option>
@@ -78,10 +76,10 @@
                         </div>
                     </div>
                     
-                    <div class="filter-group">
-                        <label for="prep_time_op">Prep Time</label>
-                        <div style="display: flex; gap: 10px; align-items: center;">
-                            <select id="prep_time_op" name="prep_time_op" style="width: 80px;">
+                    <div class="filter-group filter-metric">
+                        <label for="prep_time_op">Prep</label>
+                        <div class="filter-metric-inputs">
+                            <select id="prep_time_op" name="prep_time_op">
                                 <option value="">Any</option>
                                 <option value="eq">=</option>
                                 <option value="lt">&lt;</option>
@@ -90,14 +88,14 @@
                                 <option value="gte">&ge;</option>
                             </select>
                             <input type="number" id="prep_time_value" name="prep_time_value" placeholder="0" min="0">
-                            <span style="color: var(--muted);">min</span>
+                            <span class="unit-label">min</span>
                         </div>
                     </div>
                     
-                    <div class="filter-group">
-                        <label for="cook_time_op">Cook Time</label>
-                        <div style="display: flex; gap: 10px; align-items: center;">
-                            <select id="cook_time_op" name="cook_time_op" style="width: 80px;">
+                    <div class="filter-group filter-metric">
+                        <label for="cook_time_op">Cook</label>
+                        <div class="filter-metric-inputs">
+                            <select id="cook_time_op" name="cook_time_op">
                                 <option value="">Any</option>
                                 <option value="eq">=</option>
                                 <option value="lt">&lt;</option>
@@ -106,8 +104,13 @@
                                 <option value="gte">&ge;</option>
                             </select>
                             <input type="number" id="cook_time_value" name="cook_time_value" placeholder="0" min="0">
-                            <span style="color: var(--muted);">min</span>
+                            <span class="unit-label">min</span>
                         </div>
+                    </div>
+                    
+                    <div class="filter-group filter-clear">
+                        <label>&nbsp;</label>
+                        <button type="button" class="btn btn-clear" onclick="clearFilters()">Clear</button>
                     </div>
                 </div>
             </form>
@@ -179,7 +182,12 @@
 
         function clearFilters() {
             document.getElementById('search').value = '';
-            document.getElementById('tags').value = '';
+            if (window['clearTagFilter_filter-tags']) {
+                window['clearTagFilter_filter-tags']();
+            }
+            if (window['clearTagFilter_filter-user-tags']) {
+                window['clearTagFilter_filter-user-tags']();
+            }
             document.getElementById('calories_op').value = '';
             document.getElementById('calories_value').value = '';
             document.getElementById('prep_time_op').value = '';

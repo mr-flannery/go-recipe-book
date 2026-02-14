@@ -1,52 +1,41 @@
 {{define "recipe-cards"}}
 <div id="recipe-results">
     {{if .Recipes}}
-    <div class="recipe-grid">
+    <div class="recipe-grid" id="recipe-grid">
         {{range .Recipes}}
-        <div class="recipe-card">
-            <div class="recipe-image-container">
-                {{if .ImageBase64}}
-                    <img src="data:image/jpeg;base64,{{.ImageBase64}}" alt="{{.Title}}" class="recipe-image">
-                {{else}}
-                    <div class="no-image">No image</div>
-                {{end}}
-            </div>
-            
+        <div class="recipe-card" onclick="navigateToRecipe(event, {{.ID}})" style="cursor: pointer;">
+            {{if .ImageBase64}}
+            <img src="data:image/jpeg;base64,{{.ImageBase64}}" alt="{{.Title}}" class="recipe-image">
+            {{else}}
+            <div class="no-image">No Image Available</div>
+            {{end}}
             <div class="recipe-content">
-                <div class="recipe-title">{{.Title}}</div>
-                
-                {{if .Tags}}
-                <div class="recipe-tags">
-                    {{range .Tags}}
-                    <span class="tag tag-author tag-small">{{.Name}}</span>
-                    {{end}}
+                <h3 class="recipe-title">{{.Title}}</h3>
+                <div class="recipe-meta">
+                    {{if .PrepTime}}<span>Prep: {{.PrepTime}} min</span>{{end}}
+                    {{if .CookTime}}<span>Cook: {{.CookTime}} min</span>{{end}}
+                    {{if .Calories}}<span>{{.Calories}} cal</span>{{end}}
+                </div>
+                {{if or .Tags .UserTags}}
+                <div class="recipe-tags-inline">
+                    {{range .Tags}}<span class="tag tag-author">{{.Name}}</span>{{end}}
+                    {{range .UserTags}}<span class="tag tag-user">{{.Name}}</span>{{end}}
                 </div>
                 {{end}}
-                
-                <div class="recipe-ingredients">{{.IngredientsMD}}</div>
-                
-                <div class="recipe-meta">
-                    {{if .PrepTime}}<span>⏱️ {{.PrepTime}}min prep</span>{{end}}
-                    {{if .CookTime}}<span>🔥 {{.CookTime}}min cook</span>{{end}}
-                    {{if .Calories}}<span>📊 {{.Calories}} cal</span>{{end}}
-                </div>
-                
+                {{if and $.IsLoggedIn (eq $.CurrentUser.ID .AuthorID)}}
                 <div class="recipe-actions">
-                    <a href="/recipes/{{.ID}}" class="btn btn-primary">View Recipe</a>
-                    {{if and $.IsLoggedIn (eq $.CurrentUser.ID .AuthorID)}}
-                        <a href="/recipes/update?id={{.ID}}" class="btn btn-secondary">Edit</a>
-                        <button onclick="deleteRecipe({{.ID}})" class="btn btn-danger">Delete</button>
-                    {{end}}
+                    <a href="/recipes/update?id={{.ID}}" class="btn btn-icon"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg> Edit</a>
+                    <button onclick="deleteRecipe({{.ID}})" class="btn btn-icon btn-rounded danger"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg> Delete</button>
                 </div>
+                {{end}}
             </div>
         </div>
         {{end}}
     </div>
     {{else}}
-    <div class="text-center margin-top-20">
-        <h2>No recipes found</h2>
-        <p>Either no recipes match your filter, or there are no recipes available.</p>
-        <a href="/recipes/create" class="btn btn-primary">Create a recipe!</a>
+    <div class="no-results">
+        <h2>No Recipes Found</h2>
+        <p>No recipes match your filter criteria.</p>
     </div>
     {{end}}
 </div>

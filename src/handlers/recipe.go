@@ -530,6 +530,20 @@ func (h *Handler) FilterRecipesHTMXHandler(w http.ResponseWriter, r *http.Reques
 		}
 	}
 
+	currentUser, err := auth.GetUserBySession(h.AuthStore, r)
+	isLoggedIn := err == nil
+
+	if userTagsStr := r.FormValue("user_tags"); userTagsStr != "" && isLoggedIn {
+		filterParams.UserID = currentUser.ID
+		tags := strings.Split(userTagsStr, ",")
+		for _, tag := range tags {
+			tag = strings.TrimSpace(tag)
+			if tag != "" {
+				filterParams.UserTags = append(filterParams.UserTags, tag)
+			}
+		}
+	}
+
 	slog.Info("Filtering recipes", "params", filterParams)
 
 	recipes, err := h.RecipeStore.GetFiltered(filterParams)
@@ -549,8 +563,12 @@ func (h *Handler) FilterRecipesHTMXHandler(w http.ResponseWriter, r *http.Reques
 		recipes[i].Tags = tagsMap[recipes[i].ID]
 	}
 
-	currentUser, err := auth.GetUserBySession(h.AuthStore, r)
-	isLoggedIn := err == nil
+	if isLoggedIn {
+		userTagsMap, _ := h.UserTagStore.GetForRecipes(currentUser.ID, recipeIDs)
+		for i := range recipes {
+			recipes[i].UserTags = userTagsMap[recipes[i].ID]
+		}
+	}
 
 	data := struct {
 		Recipes     []models.Recipe

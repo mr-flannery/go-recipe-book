@@ -1,0 +1,52 @@
+{{define "tag-input-filter"}}
+{{template "tag-input-script"}}
+<div id="{{.ID}}-container" class="tags-container tag-input-filter-widget">
+    <div class="tag-input-container">
+        <input type="text" id="{{.ID}}-input" class="tag-input" placeholder="{{.Placeholder}}">
+        <div id="{{.ID}}-suggestions" class="tag-suggestions"></div>
+    </div>
+</div>
+<input type="hidden" id="{{.ID}}-hidden" name="{{.Name}}" value="" class="tag-input-filter-hidden">
+<script>
+(function() {
+    var containers = document.querySelectorAll('.tag-input-filter-widget');
+    var container = containers[containers.length - 1];
+    var containerId = container.id;
+    var widgetId = containerId.replace('-container', '');
+    var hiddenField = document.getElementById(widgetId + '-hidden');
+    var widget;
+
+    function triggerFilter() {
+        var form = hiddenField.closest('form');
+        if (form) {
+            htmx.trigger(form, 'change');
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        widget = TagInputWidget.init({
+            inputId: widgetId + '-input',
+            suggestionsId: widgetId + '-suggestions',
+            containerId: containerId,
+            hiddenFieldId: widgetId + '-hidden',
+            searchUrl: '{{.SearchURL}}',
+            initialTags: [],
+            tagClass: '{{.TagClass}}',
+            mode: 'local',
+            onTagAdded: triggerFilter,
+            onTagRemoved: triggerFilter
+        });
+    });
+
+    window['clearTagFilter_' + widgetId] = function() {
+        if (widget) {
+            var tags = widget.getTags();
+            tags.forEach(function(tag) {
+                widget.removeTag(tag);
+            });
+        }
+        hiddenField.value = '';
+    };
+})();
+</script>
+{{end}}
