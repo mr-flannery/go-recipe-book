@@ -158,10 +158,16 @@
                     e.preventDefault();
                     selectedIndex = Math.min(selectedIndex + 1, items.length - 1);
                     items.forEach((item, i) => item.classList.toggle('selected', i === selectedIndex));
+                    if (items[selectedIndex]) {
+                        items[selectedIndex].scrollIntoView({ block: 'nearest' });
+                    }
                 } else if (e.key === 'ArrowUp') {
                     e.preventDefault();
                     selectedIndex = Math.max(selectedIndex - 1, 0);
                     items.forEach((item, i) => item.classList.toggle('selected', i === selectedIndex));
+                    if (items[selectedIndex]) {
+                        items[selectedIndex].scrollIntoView({ block: 'nearest' });
+                    }
                 } else if (e.key === 'Enter') {
                     e.preventDefault();
                     if (selectedIndex >= 0 && currentSuggestions[selectedIndex]) {
