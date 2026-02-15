@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/mr-flannery/go-recipe-book/src/auth"
+	mailmocks "github.com/mr-flannery/go-recipe-book/src/mail/mocks"
 	"github.com/mr-flannery/go-recipe-book/src/store"
 	"github.com/mr-flannery/go-recipe-book/src/store/mocks"
 	tmocks "github.com/mr-flannery/go-recipe-book/src/templates/mocks"
@@ -718,5 +719,223 @@ func TestDeleteUserHandler_DeletesUserSuccessfully(t *testing.T) {
 
 	if !deleteCalled {
 		t.Error("expected delete to be called")
+	}
+}
+
+func TestPostRegisterHandler_SendsNotificationEmailOnSuccess(t *testing.T) {
+	emailSent := false
+	var capturedRecipient string
+	mockMailClient := &mailmocks.MockMailClient{
+		SendEmailFunc: func(recipientEmail, recipientName, subject, plainContent string) error {
+			emailSent = true
+			capturedRecipient = recipientEmail
+			return nil
+		},
+	}
+
+	mockAuthStore := &mocks.MockAuthStore{
+		CreateRegistrationRequestFunc: func(username, email, passwordHash string) error {
+			return nil
+		},
+	}
+
+	var capturedData any
+	mockRenderer := &tmocks.MockRenderer{
+		RenderPageFunc: func(w http.ResponseWriter, name string, data any) {
+			capturedData = data
+			w.WriteHeader(http.StatusOK)
+		},
+	}
+
+	h := &Handler{
+		AuthStore:  mockAuthStore,
+		Renderer:   mockRenderer,
+		MailClient: mockMailClient,
+	}
+
+	form := url.Values{}
+	form.Set("username", "newuser")
+	form.Set("email", "new@example.com")
+	form.Set("password", "StrongPass123!")
+	form.Set("confirm_password", "StrongPass123!")
+
+	req := httptest.NewRequest(http.MethodPost, "/register", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	userInfo := &auth.UserInfo{IsLoggedIn: false}
+	req = req.WithContext(auth.ContextWithUserInfo(req.Context(), userInfo))
+	rec := httptest.NewRecorder()
+
+	h.PostRegisterHandler(rec, req)
+
+	if !emailSent {
+		t.Error("expected notification email to be sent")
+	}
+
+	if capturedRecipient == "" {
+		t.Error("expected recipient to be captured")
+	}
+
+	registerData, ok := capturedData.(RegisterData)
+	if !ok {
+		t.Fatal("expected capturedData to be RegisterData")
+	}
+
+	if registerData.Success == "" {
+		t.Error("expected success message to be set")
+	}
+}
+
+func TestPostRegisterHandler_SucceedsEvenWhenEmailFails(t *testing.T) {
+	mockMailClient := &mailmocks.MockMailClient{
+		SendEmailFunc: func(recipientEmail, recipientName, subject, plainContent string) error {
+			return errors.New("email service unavailable")
+		},
+	}
+
+	mockAuthStore := &mocks.MockAuthStore{
+		CreateRegistrationRequestFunc: func(username, email, passwordHash string) error {
+			return nil
+		},
+	}
+
+	var capturedData any
+	mockRenderer := &tmocks.MockRenderer{
+		RenderPageFunc: func(w http.ResponseWriter, name string, data any) {
+			capturedData = data
+			w.WriteHeader(http.StatusOK)
+		},
+	}
+
+	h := &Handler{
+		AuthStore:  mockAuthStore,
+		Renderer:   mockRenderer,
+		MailClient: mockMailClient,
+	}
+
+	form := url.Values{}
+	form.Set("username", "newuser")
+	form.Set("email", "new@example.com")
+	form.Set("password", "StrongPass123!")
+	form.Set("confirm_password", "StrongPass123!")
+
+	req := httptest.NewRequest(http.MethodPost, "/register", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	userInfo := &auth.UserInfo{IsLoggedIn: false}
+	req = req.WithContext(auth.ContextWithUserInfo(req.Context(), userInfo))
+	rec := httptest.NewRecorder()
+
+	h.PostRegisterHandler(rec, req)
+
+	registerData, ok := capturedData.(RegisterData)
+	if !ok {
+		t.Fatal("expected capturedData to be RegisterData")
+	}
+
+	if registerData.Success == "" {
+		t.Error("expected success message to be set even when email fails")
+	}
+}
+
+func TestApproveRegistrationHandler_SendsApprovalEmailOnSuccess(t *testing.T) {
+	emailSent := false
+	var capturedRecipient string
+	mockMailClient := &mailmocks.MockMailClient{
+		SendEmailFunc: func(recipientEmail, recipientName, subject, plainContent string) error {
+			emailSent = true
+			capturedRecipient = recipientEmail
+			return nil
+		},
+	}
+
+	mockAuthStore := &mocks.MockAuthStore{
+		GetSessionFunc: func(sessionID string) (*store.Session, error) {
+			return &store.Session{ID: sessionID, UserID: 1}, nil
+		},
+		GetUserByIDFunc: func(userID int) (*store.AuthUser, error) {
+			return &store.AuthUser{ID: 1, Username: "admin", IsAdmin: true}, nil
+		},
+		GetPendingRegistrationsFunc: func() ([]store.RegistrationRequest, error) {
+			return []store.RegistrationRequest{
+				{ID: 1, Username: "newuser", Email: "new@example.com", Status: "pending"},
+			}, nil
+		},
+		ApproveRegistrationFunc: func(requestID, adminID int) error {
+			return nil
+		},
+	}
+
+	mockRenderer := &tmocks.MockRenderer{}
+
+	h := &Handler{
+		AuthStore:  mockAuthStore,
+		Renderer:   mockRenderer,
+		MailClient: mockMailClient,
+	}
+
+	req := httptest.NewRequest(http.MethodPost, "/admin/registrations/1/approve", nil)
+	req.SetPathValue("id", "1")
+	req.AddCookie(&http.Cookie{Name: "session", Value: "test-session"})
+	userInfo := &auth.UserInfo{IsLoggedIn: true, IsAdmin: true, UserID: 1, Username: "admin"}
+	req = req.WithContext(auth.ContextWithUserInfo(req.Context(), userInfo))
+	rec := httptest.NewRecorder()
+
+	h.ApproveRegistrationHandler(rec, req)
+
+	if rec.Code != http.StatusSeeOther {
+		t.Errorf("expected status %d, got %d", http.StatusSeeOther, rec.Code)
+	}
+
+	if !emailSent {
+		t.Error("expected approval email to be sent")
+	}
+
+	if capturedRecipient != "new@example.com" {
+		t.Errorf("expected recipient 'new@example.com', got '%s'", capturedRecipient)
+	}
+}
+
+func TestApproveRegistrationHandler_SucceedsEvenWhenEmailFails(t *testing.T) {
+	mockMailClient := &mailmocks.MockMailClient{
+		SendEmailFunc: func(recipientEmail, recipientName, subject, plainContent string) error {
+			return errors.New("email service unavailable")
+		},
+	}
+
+	mockAuthStore := &mocks.MockAuthStore{
+		GetSessionFunc: func(sessionID string) (*store.Session, error) {
+			return &store.Session{ID: sessionID, UserID: 1}, nil
+		},
+		GetUserByIDFunc: func(userID int) (*store.AuthUser, error) {
+			return &store.AuthUser{ID: 1, Username: "admin", IsAdmin: true}, nil
+		},
+		GetPendingRegistrationsFunc: func() ([]store.RegistrationRequest, error) {
+			return []store.RegistrationRequest{
+				{ID: 1, Username: "newuser", Email: "new@example.com", Status: "pending"},
+			}, nil
+		},
+		ApproveRegistrationFunc: func(requestID, adminID int) error {
+			return nil
+		},
+	}
+
+	mockRenderer := &tmocks.MockRenderer{}
+
+	h := &Handler{
+		AuthStore:  mockAuthStore,
+		Renderer:   mockRenderer,
+		MailClient: mockMailClient,
+	}
+
+	req := httptest.NewRequest(http.MethodPost, "/admin/registrations/1/approve", nil)
+	req.SetPathValue("id", "1")
+	req.AddCookie(&http.Cookie{Name: "session", Value: "test-session"})
+	userInfo := &auth.UserInfo{IsLoggedIn: true, IsAdmin: true, UserID: 1, Username: "admin"}
+	req = req.WithContext(auth.ContextWithUserInfo(req.Context(), userInfo))
+	rec := httptest.NewRecorder()
+
+	h.ApproveRegistrationHandler(rec, req)
+
+	if rec.Code != http.StatusSeeOther {
+		t.Errorf("expected status %d, got %d - registration should succeed even if email fails", http.StatusSeeOther, rec.Code)
 	}
 }

@@ -3,6 +3,7 @@ package handlers
 import (
 	"database/sql"
 
+	"github.com/mr-flannery/go-recipe-book/src/mail"
 	"github.com/mr-flannery/go-recipe-book/src/store"
 	"github.com/mr-flannery/go-recipe-book/src/templates"
 )
@@ -16,9 +17,10 @@ type Handler struct {
 	UserStore    store.UserStore
 	AuthStore    store.AuthStore
 	Renderer     templates.Renderer
+	MailClient   mail.MailClient
 }
 
-func NewHandler(db *sql.DB, recipeStore store.RecipeStore, tagStore store.TagStore, userTagStore store.UserTagStore, commentStore store.CommentStore, userStore store.UserStore, authStore store.AuthStore, renderer templates.Renderer) *Handler {
+func NewHandler(db *sql.DB, recipeStore store.RecipeStore, tagStore store.TagStore, userTagStore store.UserTagStore, commentStore store.CommentStore, userStore store.UserStore, authStore store.AuthStore, renderer templates.Renderer, mailClient mail.MailClient) *Handler {
 	return &Handler{
 		DB:           db,
 		RecipeStore:  recipeStore,
@@ -28,5 +30,6 @@ func NewHandler(db *sql.DB, recipeStore store.RecipeStore, tagStore store.TagSto
 		UserStore:    userStore,
 		AuthStore:    authStore,
 		Renderer:     renderer,
+		MailClient:   mailClient,
 	}
 }

@@ -5,37 +5,30 @@ import (
 	"fmt"
 
 	"github.com/maileroo/maileroo-go-sdk/maileroo"
-	"github.com/mr-flannery/go-recipe-book/src/config"
 )
 
-var (
-	client *maileroo.Client
-)
-
-func getClient() *maileroo.Client {
-	if client == nil {
-		var err error
-
-		conf := config.GetConfig()
-
-		client, err = maileroo.NewClient(conf.Mail.ApiKey, 30)
-		if err != nil {
-			panic("Failed to create Maileroo client: " + err.Error())
-		}
-	}
-	return client
+type MailClient interface {
+	SendEmail(recipientEmail, recipientName, subject, plainContent string) error
 }
 
-func sendEmail(recipientEmailAddress string, recipientName string, subject string, plainContent string) error {
-	client := getClient()
+type mailerooClient struct {
+	client *maileroo.Client
+	domain string
+}
 
-	config := config.GetConfig()
+func NewMailClient(apiKey, domain string) (MailClient, error) {
+	client, err := maileroo.NewClient(apiKey, 30)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create mail client: %w", err)
+	}
+	return &mailerooClient{client: client, domain: domain}, nil
+}
 
-	// TODO: learn what exactly a context is in Go
-	_, err := client.SendBasicEmail(context.Background(), maileroo.BasicEmailData{
-		From: maileroo.NewEmail("recipe-book@"+config.Mail.Domain, "Recipe Book"),
+func (m *mailerooClient) SendEmail(recipientEmail, recipientName, subject, plainContent string) error {
+	_, err := m.client.SendBasicEmail(context.Background(), maileroo.BasicEmailData{
+		From: maileroo.NewEmail("recipe-book@"+m.domain, "Recipe Book"),
 		To: []maileroo.EmailAddress{
-			maileroo.NewEmail(recipientEmailAddress, recipientName),
+			maileroo.NewEmail(recipientEmail, recipientName),
 		},
 		Subject: subject,
 		Plain:   &plainContent,
@@ -47,8 +40,7 @@ func sendEmail(recipientEmailAddress string, recipientName string, subject strin
 	return nil
 }
 
-// SendNewRegistrationNotification sends an email to admin when a new registration is pending
-func SendNewRegistrationNotification(adminEmail, adminName, username, userEmail, approvalURL string) error {
+func SendNewRegistrationNotification(mc MailClient, adminEmail, adminName, username, userEmail, approvalURL string) error {
 	subject := "New Registration Request - Recipe Book"
 	content := fmt.Sprintf(`Hello %s,
 
@@ -64,11 +56,10 @@ Please review and approve or deny this registration request by visiting:
 Best regards,
 Recipe Book System`, adminName, username, userEmail, approvalURL)
 
-	return sendEmail(adminEmail, adminName, subject, content)
+	return mc.SendEmail(adminEmail, adminName, subject, content)
 }
 
-// SendRegistrationApprovedNotification sends an email to user when their registration is approved
-func SendRegistrationApprovedNotification(userEmail, username string) error {
+func SendRegistrationApprovedNotification(mc MailClient, userEmail, username string) error {
 	subject := "Registration Approved - Recipe Book"
 	content := fmt.Sprintf(`Hello %s,
 
@@ -79,5 +70,5 @@ You can now log in to your account and start using the application.
 Best regards,
 Recipe Book Team`, username)
 
-	return sendEmail(userEmail, username, subject, content)
+	return mc.SendEmail(userEmail, username, subject, content)
 }

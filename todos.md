@@ -1,16 +1,11 @@
-- write tests
-  - primarily integration tests for the handler functions
-  - which means I gotta figure out how to mock the DB/do DI or something similar
+- SORT TODOs
+  - what do I really need to do before deploying
+  - what is nice to have but can be done after going live with the intial version
 
-```
-What Wasn't Tested (and Why)
-- src/handlers/home.go, src/handlers/recipe.go: These handlers render HTML templates, making them harder to unit test without a full template mocking strategy. They would be better suited for integration tests.
-- src/store/postgres/: Database stores require go-sqlmock or a real database for proper testing. This would be integration testing rather than unit testing.
-- src/config/: Depends on file system and global state (singleton pattern)
-- src/mail/: Requires mocking external Maileroo client
-- src/db/: Database connection/migration code - better suited for integration tests
-```
+
 - UX improvements!!
+  - the layout of the create/edit page still sucks
+  - also I need to test the mobile layout!
   - the admin registration UX could be improved, by listing denied and approved registrations, and also by make the experience more dynamic, showing success messages or something like this.
   - when adding a tag, the focus isn't on the input component any more, but it should
   - also when in the tag filter component, when pressing backspace, it should remove the latest tag
@@ -18,7 +13,7 @@ What Wasn't Tested (and Why)
 - cmd-enter should trigger certain actions on certain pages
 
 - the vscode launch/debug setting is kinda annoying right now
-- mail tests?
+
 - cookie banner
 
 - performance testing

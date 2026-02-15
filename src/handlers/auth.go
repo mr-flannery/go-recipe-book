@@ -115,7 +115,7 @@ func (h *Handler) PostRegisterHandler(w http.ResponseWriter, r *http.Request) {
 
 	conf := config.GetConfig()
 	approvalURL := "http://localhost:8080/admin/registrations"
-	err = mail.SendNewRegistrationNotification(conf.DB.Admin.Email, conf.DB.Admin.Username, username, email, approvalURL)
+	err = mail.SendNewRegistrationNotification(h.MailClient, conf.DB.Admin.Email, conf.DB.Admin.Username, username, email, approvalURL)
 	if err != nil {
 		slog.Error("Failed to send admin notification email", "error", err)
 	}
@@ -179,7 +179,7 @@ func (h *Handler) ApproveRegistrationHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	err = mail.SendRegistrationApprovedNotification(regRequest.Email, regRequest.Username)
+	err = mail.SendRegistrationApprovedNotification(h.MailClient, regRequest.Email, regRequest.Username)
 	if err != nil {
 		slog.Error("Failed to send approval email", "error", err)
 	}
