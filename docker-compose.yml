@@ -1,4 +1,3 @@
-version: '3.8'
 services:
   db:
     image: postgres:15
@@ -10,18 +9,30 @@ services:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
-  # app:
-  #   build: .
-  #   environment:
-  #     - DB_HOST=db
-  #     - DB_PORT=5432
-  #     - DB_USER=recipeuser
-  #     - DB_PASSWORD=recipepass
-  #     - DB_NAME=recipebook
-  #     - PORT=8080
-  #   ports:
-  #     - "8080:8080"
-  #   depends_on:
-  #     - db
+    profiles: ["dev", "ci"]
+
+  app:
+    build: .
+    environment:
+      APP_BASE_PATH: /app
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USER: recipeuser
+      DB_PASSWORD: recipepass
+      DB_NAME: recipebook
+      DB_SSLMODE: disable
+      DB_ADMIN_USERNAME: TestAdmin
+      DB_ADMIN_EMAIL: testadmin@example.com
+      DB_ADMIN_PASSWORD: TestAdminP@ssw0rd!
+      ENVIRONMENT_MODE: development
+      API_KEYS: test-api-key-32-characters-here
+      MAIL_DOMAIN: ${MAIL_DOMAIN:-test.example.com}
+      MAIL_API_KEY: ${MAIL_API_KEY:-testkey}
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+    profiles: ["ci"]
+
 volumes:
   pgdata:

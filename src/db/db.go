@@ -87,7 +87,7 @@ func RunMigrations() error {
 		slog.Error("Failed to create migration driver", "error", err)
 	}
 
-	migrationsPath := filepath.Join(utils.GetCallerDir(0), "migrations")
+	migrationsPath := filepath.Join(utils.GetBasePath(), "src", "db", "migrations")
 	m, err := migrate.NewWithDatabaseInstance(
 		"file://"+migrationsPath,
 		"postgres",

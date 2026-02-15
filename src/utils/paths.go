@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"os"
 	"path/filepath"
 	"runtime"
 )
@@ -16,4 +17,19 @@ func GetCallerDir(skip int) string {
 		panic("failed to get caller file path")
 	}
 	return filepath.Dir(filename)
+}
+
+// GetBasePath returns the application base path.
+// In Docker/production, this is set via APP_BASE_PATH environment variable.
+// In local development, it falls back to deriving the path from runtime.Caller.
+func GetBasePath() string {
+	if basePath := os.Getenv("APP_BASE_PATH"); basePath != "" {
+		return basePath
+	}
+	_, filename, _, ok := runtime.Caller(0)
+	if !ok {
+		panic("failed to get caller file path")
+	}
+	// This file is at src/utils/paths.go, so go up two levels to get project root
+	return filepath.Dir(filepath.Dir(filepath.Dir(filename)))
 }

@@ -1,4 +1,4 @@
-.PHONY: dev run build test test-unit test-integration test-coverage clean migrate help
+.PHONY: dev run build test test-unit test-integration test-coverage clean db-start migrate help
 
 help:
 	@echo "Available commands:"
@@ -35,6 +35,9 @@ test-coverage:
 	go test -coverprofile=coverage.out -covermode=atomic ./...
 	go tool cover -html=coverage.out -o coverage.html
 	@echo "Coverage report generated: coverage.html"
+
+db-start:
+	docker compose --profile dev up
 
 clean:
 	rm -rf bin/ src/tmp/

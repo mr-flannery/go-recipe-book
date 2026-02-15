@@ -2,9 +2,9 @@ name: Tests
 
 on:
   push:
-    branches: [main, master]
+    branches: [main]
   pull_request:
-    branches: [main, master]
+    branches: [main]
 
 jobs:
   unit-and-integration-tests:
@@ -57,7 +57,10 @@ jobs:
           npx playwright install --with-deps chromium
 
       - name: Start services with Docker Compose
-        run: docker compose up -d
+        env:
+          MAIL_DOMAIN: ${{ secrets.MAIL_DOMAIN }}
+          MAIL_API_KEY: ${{ secrets.MAIL_API_KEY }}
+        run: docker compose --profile ci up -d --build
 
       - name: Wait for services to be ready
         run: |
@@ -71,4 +74,4 @@ jobs:
 
       - name: Stop services
         if: always()
-        run: docker compose down
+        run: docker compose --profile ci down
