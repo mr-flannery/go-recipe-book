@@ -323,6 +323,167 @@ test.describe('Recipe Filtering', () => {
     });
   });
 
+  test.describe('Recipe Count Indicator', () => {
+    test('shows recipe range on initial page load', async ({ user1Page: page }) => {
+      await page.goto('/recipes');
+
+      const countElement = page.locator('#recipe-count');
+      await expect(countElement).toBeVisible();
+      await expect(countElement).toContainText('of');
+
+      const countText = await countElement.textContent() || '';
+      const match = countText.match(/(\d+)-(\d+) of (\d+)/);
+      expect(match).not.toBeNull();
+      
+      const rangeStart = parseInt(match![1]);
+      const rangeEnd = parseInt(match![2]);
+      const totalCount = parseInt(match![3]);
+      
+      expect(rangeStart).toBe(1);
+      expect(rangeEnd).toBeGreaterThan(0);
+      expect(rangeEnd).toBeLessThanOrEqual(20);
+      expect(totalCount).toBeGreaterThanOrEqual(rangeEnd);
+    });
+
+    test('count updates when filtering narrows results', async ({ user1Page: page }) => {
+      await page.goto('/recipes');
+
+      const initialTotal = parseInt(await page.locator('#total-count').textContent() || '0');
+
+      await page.locator('#filter-tags-input').fill('vegetarian');
+      await page.locator('#filter-tags-input').press('Enter');
+      await waitForFilterResults(page);
+
+      const countText = await page.locator('#recipe-count').textContent() || '';
+      const match = countText.match(/(\d+)-(\d+) of (\d+)/);
+      expect(match).not.toBeNull();
+      
+      const filteredRangeEnd = parseInt(match![2]);
+      const filteredTotal = parseInt(match![3]);
+
+      expect(filteredTotal).toBeLessThan(initialTotal);
+      expect(filteredRangeEnd).toBeLessThanOrEqual(filteredTotal);
+    });
+
+    test('count shows 0-0 when no recipes match filter', async ({ user1Page: page }) => {
+      await page.goto('/recipes');
+
+      await page.locator('#search').fill('xyznonexistent12345');
+      await waitForFilterResults(page);
+
+      const countElement = page.locator('#recipe-count');
+      await expect(countElement).toContainText('0-0 of 0');
+    });
+
+    test('count updates when clearing filters', async ({ user1Page: page }) => {
+      await page.goto('/recipes');
+
+      // Apply a filter to narrow results
+      await page.locator('#search').fill(uniqueId.toString());
+      await waitForFilterResults(page);
+
+      const filteredTotal = parseInt(await page.locator('#total-count').textContent() || '0');
+      // Test recipes contain uniqueId, so we should have a small number
+      expect(filteredTotal).toBeGreaterThan(0);
+      expect(filteredTotal).toBeLessThanOrEqual(20);
+
+      // Clear filters
+      await page.getByRole('button', { name: 'Clear' }).click();
+      await waitForFilterResults(page);
+
+      // After clearing, total should be higher than filtered (all recipes)
+      const clearedTotal = parseInt(await page.locator('#total-count').textContent() || '0');
+      expect(clearedTotal).toBeGreaterThan(filteredTotal);
+    });
+  });
+
+  test.describe('Pagination and Page Markers', () => {
+    test('page marker appears when loading more recipes', async ({ user1Page: page }) => {
+      await page.goto('/recipes');
+
+      const totalCount = parseInt(await page.locator('#total-count').textContent() || '0');
+      
+      // Skip test if there aren't enough recipes for pagination
+      if (totalCount <= 20) {
+        test.skip();
+        return;
+      }
+
+      // Initially there should be no page markers
+      await expect(page.locator('.page-marker')).toHaveCount(0);
+
+      // Click Load More
+      await page.getByRole('button', { name: 'Load More' }).click();
+      await page.waitForResponse(response => 
+        response.url().includes('/recipes/filter') && response.status() === 200
+      );
+      await page.waitForTimeout(100);
+
+      // Page marker should appear with range format (e.g., "21-40 of 1214")
+      const pageMarker = page.locator('.page-marker').first();
+      await expect(pageMarker).toBeVisible();
+      const markerText = await pageMarker.textContent() || '';
+      expect(markerText).toMatch(/\d+-\d+ of \d+/);
+    });
+
+    test('top count stays static after loading more', async ({ user1Page: page }) => {
+      await page.goto('/recipes');
+
+      const totalCount = parseInt(await page.locator('#total-count').textContent() || '0');
+      
+      // Skip test if there aren't enough recipes for pagination
+      if (totalCount <= 20) {
+        test.skip();
+        return;
+      }
+
+      const initialCountText = await page.locator('#recipe-count').textContent() || '';
+      const initialMatch = initialCountText.match(/(\d+)-(\d+) of (\d+)/);
+      expect(initialMatch).not.toBeNull();
+      const initialRangeEnd = parseInt(initialMatch![2]);
+      expect(initialRangeEnd).toBeLessThanOrEqual(20);
+
+      // Click Load More
+      await page.getByRole('button', { name: 'Load More' }).click();
+      await page.waitForResponse(response => 
+        response.url().includes('/recipes/filter') && response.status() === 200
+      );
+      await page.waitForTimeout(100);
+
+      // Top count indicator should remain unchanged (static 1-20)
+      const afterCountText = await page.locator('#recipe-count').textContent() || '';
+      expect(afterCountText).toBe(initialCountText);
+    });
+
+    test('load more button disappears when all recipes are loaded', async ({ user1Page: page }) => {
+      await page.goto('/recipes');
+
+      const totalCount = parseInt(await page.locator('#total-count').textContent() || '0');
+      
+      // Skip test if we need many pages (would take too long)
+      if (totalCount > 60 || totalCount <= 20) {
+        test.skip();
+        return;
+      }
+
+      // Keep clicking Load More until it disappears
+      while (await page.getByRole('button', { name: 'Load More' }).isVisible()) {
+        await page.getByRole('button', { name: 'Load More' }).click();
+        await page.waitForResponse(response => 
+          response.url().includes('/recipes/filter') && response.status() === 200
+        );
+        await page.waitForTimeout(100);
+      }
+
+      // Count total recipe cards to verify all loaded
+      const recipeCards = await page.locator('.recipe-card').count();
+      expect(recipeCards).toBe(totalCount);
+
+      // Load more button should be gone
+      await expect(page.getByRole('button', { name: 'Load More' })).not.toBeVisible();
+    });
+  });
+
   test.describe('Clear Filter', () => {
     test('clear button resets all filters', async ({ user1Page: page }) => {
       await page.goto('/recipes');

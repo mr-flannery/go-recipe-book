@@ -220,6 +220,118 @@ func (s *RecipeStore) GetFiltered(params models.FilterParams) ([]models.Recipe, 
 	return recipes, nil
 }
 
+func (s *RecipeStore) CountFiltered(params models.FilterParams) (int, error) {
+	query := "SELECT COUNT(DISTINCT r.id) FROM recipes r"
+	args := []interface{}{}
+	argIndex := 1
+
+	if len(params.Tags) > 0 || params.Search != "" {
+		query += " LEFT JOIN recipe_tags rt ON r.id = rt.recipe_id LEFT JOIN tags t ON rt.tag_id = t.id"
+	}
+
+	if len(params.UserTags) > 0 || (params.Search != "" && params.UserID > 0) {
+		query += " LEFT JOIN user_tags ut ON r.id = ut.recipe_id"
+		if params.UserID > 0 {
+			query += fmt.Sprintf(" AND ut.user_id = $%d", argIndex)
+			args = append(args, params.UserID)
+			argIndex++
+		}
+	}
+
+	query += " WHERE 1=1"
+
+	if params.Search != "" {
+		searchPattern := "%" + strings.ToLower(params.Search) + "%"
+		if params.UserID > 0 {
+			query += fmt.Sprintf(" AND (LOWER(r.title) LIKE $%d OR LOWER(r.ingredients_md) LIKE $%d OR LOWER(r.instructions_md) LIKE $%d OR LOWER(t.name) LIKE $%d OR LOWER(ut.name) LIKE $%d)", argIndex, argIndex, argIndex, argIndex, argIndex)
+		} else {
+			query += fmt.Sprintf(" AND (LOWER(r.title) LIKE $%d OR LOWER(r.ingredients_md) LIKE $%d OR LOWER(r.instructions_md) LIKE $%d OR LOWER(t.name) LIKE $%d)", argIndex, argIndex, argIndex, argIndex)
+		}
+		args = append(args, searchPattern)
+		argIndex++
+	}
+
+	for _, tagName := range params.Tags {
+		normalizedTag := strings.ToLower(strings.TrimSpace(tagName))
+		if normalizedTag == "" {
+			continue
+		}
+		query += fmt.Sprintf(" AND r.id IN (SELECT rt2.recipe_id FROM recipe_tags rt2 INNER JOIN tags t2 ON rt2.tag_id = t2.id WHERE t2.name = $%d)", argIndex)
+		args = append(args, normalizedTag)
+		argIndex++
+	}
+
+	if params.UserID > 0 && len(params.UserTags) > 0 {
+		for _, tagName := range params.UserTags {
+			normalizedTag := strings.ToLower(strings.TrimSpace(tagName))
+			if normalizedTag == "" {
+				continue
+			}
+			query += fmt.Sprintf(" AND r.id IN (SELECT ut2.recipe_id FROM user_tags ut2 WHERE ut2.user_id = $%d AND ut2.name = $%d)", argIndex, argIndex+1)
+			args = append(args, params.UserID, normalizedTag)
+			argIndex += 2
+		}
+	}
+
+	if params.CaloriesValue > 0 && params.CaloriesOp != "" {
+		switch params.CaloriesOp {
+		case "eq":
+			query += fmt.Sprintf(" AND r.calories = $%d", argIndex)
+		case "gt":
+			query += fmt.Sprintf(" AND r.calories > $%d", argIndex)
+		case "gte":
+			query += fmt.Sprintf(" AND r.calories >= $%d", argIndex)
+		case "lt":
+			query += fmt.Sprintf(" AND r.calories < $%d", argIndex)
+		case "lte":
+			query += fmt.Sprintf(" AND r.calories <= $%d", argIndex)
+		}
+		args = append(args, params.CaloriesValue)
+		argIndex++
+	}
+
+	if params.PrepTimeValue > 0 && params.PrepTimeOp != "" {
+		switch params.PrepTimeOp {
+		case "eq":
+			query += fmt.Sprintf(" AND r.prep_time = $%d", argIndex)
+		case "gt":
+			query += fmt.Sprintf(" AND r.prep_time > $%d", argIndex)
+		case "gte":
+			query += fmt.Sprintf(" AND r.prep_time >= $%d", argIndex)
+		case "lt":
+			query += fmt.Sprintf(" AND r.prep_time < $%d", argIndex)
+		case "lte":
+			query += fmt.Sprintf(" AND r.prep_time <= $%d", argIndex)
+		}
+		args = append(args, params.PrepTimeValue)
+		argIndex++
+	}
+
+	if params.CookTimeValue > 0 && params.CookTimeOp != "" {
+		switch params.CookTimeOp {
+		case "eq":
+			query += fmt.Sprintf(" AND r.cook_time = $%d", argIndex)
+		case "gt":
+			query += fmt.Sprintf(" AND r.cook_time > $%d", argIndex)
+		case "gte":
+			query += fmt.Sprintf(" AND r.cook_time >= $%d", argIndex)
+		case "lt":
+			query += fmt.Sprintf(" AND r.cook_time < $%d", argIndex)
+		case "lte":
+			query += fmt.Sprintf(" AND r.cook_time <= $%d", argIndex)
+		}
+		args = append(args, params.CookTimeValue)
+	}
+
+	var count int
+	err := s.db.QueryRow(query, args...).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("failed to count filtered recipes: %v", err)
+	}
+
+	return count, nil
+}
+
 func (s *RecipeStore) GetRandomID() (int, error) {
 	var id int
 

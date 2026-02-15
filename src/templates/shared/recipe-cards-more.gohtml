@@ -1,4 +1,5 @@
 {{define "recipe-cards-more"}}
+<div class="page-marker" id="page-marker-{{.PageNumber}}">{{.RangeStart}}-{{.RangeEnd}} of {{.TotalCount}}</div>
 {{$currentUserID := 0}}
 {{if .CurrentUser}}{{$currentUserID = .CurrentUser.ID}}{{end}}
 {{range .Recipes}}

@@ -3,13 +3,14 @@ package mocks
 import "github.com/mr-flannery/go-recipe-book/src/models"
 
 type MockRecipeStore struct {
-	SaveFunc        func(recipe models.Recipe) (int, error)
-	GetByIDFunc     func(id string) (models.Recipe, error)
-	UpdateFunc      func(recipe models.Recipe) error
-	DeleteFunc      func(id string) error
-	GetAllFunc      func() ([]models.Recipe, error)
-	GetFilteredFunc func(params models.FilterParams) ([]models.Recipe, error)
-	GetRandomIDFunc func() (int, error)
+	SaveFunc          func(recipe models.Recipe) (int, error)
+	GetByIDFunc       func(id string) (models.Recipe, error)
+	UpdateFunc        func(recipe models.Recipe) error
+	DeleteFunc        func(id string) error
+	GetAllFunc        func() ([]models.Recipe, error)
+	GetFilteredFunc   func(params models.FilterParams) ([]models.Recipe, error)
+	CountFilteredFunc func(params models.FilterParams) (int, error)
+	GetRandomIDFunc   func() (int, error)
 }
 
 func (m *MockRecipeStore) Save(recipe models.Recipe) (int, error) {
@@ -52,6 +53,13 @@ func (m *MockRecipeStore) GetFiltered(params models.FilterParams) ([]models.Reci
 		return m.GetFilteredFunc(params)
 	}
 	return nil, nil
+}
+
+func (m *MockRecipeStore) CountFiltered(params models.FilterParams) (int, error) {
+	if m.CountFilteredFunc != nil {
+		return m.CountFilteredFunc(params)
+	}
+	return 0, nil
 }
 
 func (m *MockRecipeStore) GetRandomID() (int, error) {

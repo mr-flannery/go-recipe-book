@@ -116,6 +116,10 @@
             </form>
         </div>
 
+        <div id="recipe-count" class="recipe-count">
+            {{.RangeStart}}-{{.RangeEnd}} of <span id="total-count">{{.TotalCount}}</span>
+        </div>
+
         <div id="recipe-results">
             {{if .Recipes}}
             <div class="recipe-grid" id="recipe-grid">

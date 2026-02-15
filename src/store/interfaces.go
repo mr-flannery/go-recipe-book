@@ -9,6 +9,7 @@ type RecipeStore interface {
 	Delete(id string) error
 	GetAll() ([]models.Recipe, error)
 	GetFiltered(params models.FilterParams) ([]models.Recipe, error)
+	CountFiltered(params models.FilterParams) (int, error)
 	GetRandomID() (int, error)
 }
 

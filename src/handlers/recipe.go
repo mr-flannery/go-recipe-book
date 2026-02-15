@@ -144,6 +144,8 @@ func (h *Handler) ListRecipesHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	totalCount, _ := h.RecipeStore.CountFiltered(models.FilterParams{})
+
 	recipeIDs := make([]int, len(recipes))
 	for i, r := range recipes {
 		recipeIDs[i] = r.ID
@@ -158,7 +160,6 @@ func (h *Handler) ListRecipesHandler(w http.ResponseWriter, r *http.Request) {
 	var currentUser *auth.User
 	if userInfo.IsLoggedIn {
 		currentUser, _ = auth.GetUserBySession(h.AuthStore, r)
-		// this is slightly suboptimal for performance. we might want to write a dedicate query at some point that grabs everything at once. but let's do some performance testing first.
 		userTagsMap, _ := h.UserTagStore.GetForRecipes(currentUser.ID, recipeIDs)
 		for i := range recipes {
 			recipes[i].UserTags = userTagsMap[recipes[i].ID]
@@ -167,6 +168,12 @@ func (h *Handler) ListRecipesHandler(w http.ResponseWriter, r *http.Request) {
 
 	hasMore := len(recipes) == RecipesPerPage
 
+	rangeStart := 1
+	rangeEnd := len(recipes)
+	if rangeEnd == 0 {
+		rangeStart = 0
+	}
+
 	data := struct {
 		Recipes     []models.Recipe
 		UserInfo    *auth.UserInfo
@@ -174,6 +181,9 @@ func (h *Handler) ListRecipesHandler(w http.ResponseWriter, r *http.Request) {
 		CurrentUser *auth.User
 		NextOffset  int
 		HasMore     bool
+		TotalCount  int
+		RangeStart  int
+		RangeEnd    int
 	}{
 		Recipes:     recipes,
 		UserInfo:    userInfo,
@@ -181,6 +191,9 @@ func (h *Handler) ListRecipesHandler(w http.ResponseWriter, r *http.Request) {
 		CurrentUser: currentUser,
 		NextOffset:  RecipesPerPage,
 		HasMore:     hasMore,
+		TotalCount:  totalCount,
+		RangeStart:  rangeStart,
+		RangeEnd:    rangeEnd,
 	}
 
 	h.Renderer.RenderPage(w, "list.gohtml", data)
@@ -560,6 +573,11 @@ func (h *Handler) FilterRecipesHTMXHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	countParams := filterParams
+	countParams.Limit = 0
+	countParams.Offset = 0
+	totalCount, _ := h.RecipeStore.CountFiltered(countParams)
+
 	recipeIDs := make([]int, len(recipes))
 	for i, r := range recipes {
 		recipeIDs[i] = r.ID
@@ -580,6 +598,13 @@ func (h *Handler) FilterRecipesHTMXHandler(w http.ResponseWriter, r *http.Reques
 	hasMore := len(recipes) == RecipesPerPage
 	nextOffset := offset + RecipesPerPage
 
+	// Range shows current page's recipes (1-20, then 21-40, etc.)
+	rangeStart := offset + 1
+	rangeEnd := offset + len(recipes)
+	if len(recipes) == 0 {
+		rangeStart = 0
+	}
+
 	// Use recipe-cards for initial filter (offset=0), recipe-cards-more for pagination
 	templateName := "recipe-cards"
 	if offset > 0 {
@@ -592,12 +617,20 @@ func (h *Handler) FilterRecipesHTMXHandler(w http.ResponseWriter, r *http.Reques
 		CurrentUser *auth.User
 		HasMore     bool
 		NextOffset  int
+		TotalCount  int
+		RangeStart  int
+		RangeEnd    int
+		PageNumber  int
 	}{
 		Recipes:     recipes,
 		IsLoggedIn:  isLoggedIn,
 		CurrentUser: currentUser,
 		HasMore:     hasMore,
 		NextOffset:  nextOffset,
+		TotalCount:  totalCount,
+		RangeStart:  rangeStart,
+		RangeEnd:    rangeEnd,
+		PageNumber:  (offset / RecipesPerPage) + 1,
 	}
 
 	h.Renderer.RenderFragment(w, templateName, data)
