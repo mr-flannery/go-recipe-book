@@ -23,6 +23,20 @@ What Wasn't Tested (and Why)
 
 - performance testing
 
+- localization
+
+- automated depenendcy updates
+
+- observability
+  - logging
+  - metrics
+  - alerts
+  - traces?
+
+- integration tests with test container are currently serial
+  - should I need more speed, I can investigate concurrency
+  - this probabaly requires a pool of databases, or even separate containers
+
 - refactor
   - split models into different files, recipe, tags, comment, etc.
   - openAPI spec + syncing

@@ -87,3 +87,7 @@ func GetUserIDFromContext(ctx context.Context) int {
 	userInfo := GetUserInfoFromContext(ctx)
 	return userInfo.UserID
 }
+
+func ContextWithUserInfo(ctx context.Context, userInfo *UserInfo) context.Context {
+	return context.WithValue(ctx, userInfoKey, userInfo)
+}
