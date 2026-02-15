@@ -2,36 +2,28 @@
 <div id="recipe-results">
     {{if .Recipes}}
     <div class="recipe-grid" id="recipe-grid">
+        {{$currentUserID := 0}}
+        {{if .CurrentUser}}{{$currentUserID = .CurrentUser.ID}}{{end}}
         {{range .Recipes}}
-        <div class="recipe-card" onclick="navigateToRecipe(event, {{.ID}})" style="cursor: pointer;">
-            {{if .ImageBase64}}
-            <img src="data:image/jpeg;base64,{{.ImageBase64}}" alt="{{.Title}}" class="recipe-image">
-            {{else}}
-            <div class="no-image">No Image Available</div>
-            {{end}}
-            <div class="recipe-content">
-                <h3 class="recipe-title">{{.Title}}</h3>
-                <div class="recipe-meta">
-                    {{if .PrepTime}}<span>Prep: {{.PrepTime}} min</span>{{end}}
-                    {{if .CookTime}}<span>Cook: {{.CookTime}} min</span>{{end}}
-                    {{if .Calories}}<span>{{.Calories}} cal</span>{{end}}
-                </div>
-                {{if or .Tags .UserTags}}
-                <div class="recipe-tags-inline">
-                    {{range .Tags}}<span class="tag tag-author">{{.Name}}</span>{{end}}
-                    {{range .UserTags}}<span class="tag tag-user">{{.Name}}</span>{{end}}
-                </div>
-                {{end}}
-                {{if and $.IsLoggedIn (eq $.CurrentUser.ID .AuthorID)}}
-                <div class="recipe-actions">
-                    <a href="/recipes/update?id={{.ID}}" class="btn btn-icon"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg> Edit</a>
-                    <button onclick="deleteRecipe({{.ID}})" class="btn btn-icon btn-rounded danger"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg> Delete</button>
-                </div>
-                {{end}}
-            </div>
-        </div>
+        {{template "recipe-card" dict "Recipe" . "IsLoggedIn" $.IsLoggedIn "CurrentUserID" $currentUserID}}
         {{end}}
     </div>
+    {{if .HasMore}}
+    <div id="load-more-container" style="text-align: center; margin-top: 40px;">
+        <button class="btn"
+            hx-post="/recipes/filter"
+            hx-target="#recipe-grid"
+            hx-swap="beforeend"
+            hx-include="#filter-form"
+            hx-vals='{"offset": "{{.NextOffset}}"}'
+            hx-indicator="#load-more-spinner">
+            Load More
+        </button>
+        <span id="load-more-spinner" class="htmx-indicator" style="margin-left: 10px;">Loading...</span>
+    </div>
+    {{else}}
+    <div id="load-more-container"></div>
+    {{end}}
     {{else}}
     <div class="no-results">
         <h2>No Recipes Found</h2>

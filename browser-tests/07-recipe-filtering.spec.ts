@@ -342,5 +342,23 @@ test.describe('Recipe Filtering', () => {
       await expect(page.locator('#calories_value')).toHaveValue('');
       await expect(page.locator('#filter-tags-container .tag')).toHaveCount(0);
     });
+
+    test('clearing filter resets to paginated results (max 20 recipes)', async ({ user1Page: page }) => {
+      await page.goto('/recipes');
+
+      const initialCount = await page.locator('.recipe-card').count();
+
+      await page.locator('#search').fill(uniqueId.toString());
+      await waitForFilterResults(page);
+
+      const filteredCount = await page.locator('.recipe-card').count();
+      expect(filteredCount).toBeLessThan(initialCount);
+
+      await page.getByRole('button', { name: 'Clear' }).click();
+      await waitForFilterResults(page);
+
+      const clearedCount = await page.locator('.recipe-card').count();
+      expect(clearedCount).toBeLessThanOrEqual(20);
+    });
   });
 });

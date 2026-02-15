@@ -495,8 +495,15 @@ func (h *Handler) RandomRecipeHandler(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) FilterRecipesHTMXHandler(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 
+	offset, _ := strconv.Atoi(r.FormValue("offset"))
+	if offset < 0 {
+		offset = 0
+	}
+
 	filterParams := models.FilterParams{
 		Search: strings.TrimSpace(r.FormValue("search")),
+		Limit:  RecipesPerPage,
+		Offset: offset,
 	}
 
 	if caloriesStr := r.FormValue("calories_value"); caloriesStr != "" {
@@ -570,72 +577,28 @@ func (h *Handler) FilterRecipesHTMXHandler(w http.ResponseWriter, r *http.Reques
 		}
 	}
 
-	data := struct {
-		Recipes     []models.Recipe
-		IsLoggedIn  bool
-		CurrentUser *auth.User
-	}{
-		Recipes:     recipes,
-		IsLoggedIn:  isLoggedIn,
-		CurrentUser: currentUser,
-	}
-
-	h.Renderer.RenderFragment(w, "recipe-cards", data)
-}
-
-func (h *Handler) LoadMoreRecipesHTMXHandler(w http.ResponseWriter, r *http.Request) {
-	offset, _ := strconv.Atoi(r.URL.Query().Get("offset"))
-	if offset < 0 {
-		offset = 0
-	}
-
-	filterParams := models.FilterParams{
-		Limit:  RecipesPerPage,
-		Offset: offset,
-	}
-	recipes, err := h.RecipeStore.GetFiltered(filterParams)
-	if err != nil {
-		slog.Error("Failed to fetch recipes", "error", err)
-		http.Error(w, "Failed to fetch recipes", http.StatusInternalServerError)
-		return
-	}
-
-	recipeIDs := make([]int, len(recipes))
-	for i, r := range recipes {
-		recipeIDs[i] = r.ID
-	}
-	tagsMap, _ := h.TagStore.GetForRecipes(recipeIDs)
-
-	for i := range recipes {
-		recipes[i].Tags = tagsMap[recipes[i].ID]
-	}
-
-	currentUser, err := auth.GetUserBySession(h.AuthStore, r)
-	isLoggedIn := err == nil
-
-	if isLoggedIn {
-		userTagsMap, _ := h.UserTagStore.GetForRecipes(currentUser.ID, recipeIDs)
-		for i := range recipes {
-			recipes[i].UserTags = userTagsMap[recipes[i].ID]
-		}
-	}
-
 	hasMore := len(recipes) == RecipesPerPage
 	nextOffset := offset + RecipesPerPage
 
+	// Use recipe-cards for initial filter (offset=0), recipe-cards-more for pagination
+	templateName := "recipe-cards"
+	if offset > 0 {
+		templateName = "recipe-cards-more"
+	}
+
 	data := struct {
 		Recipes     []models.Recipe
 		IsLoggedIn  bool
 		CurrentUser *auth.User
-		NextOffset  int
 		HasMore     bool
+		NextOffset  int
 	}{
 		Recipes:     recipes,
 		IsLoggedIn:  isLoggedIn,
 		CurrentUser: currentUser,
-		NextOffset:  nextOffset,
 		HasMore:     hasMore,
+		NextOffset:  nextOffset,
 	}
 
-	h.Renderer.RenderFragment(w, "recipe-cards-more", data)
+	h.Renderer.RenderFragment(w, templateName, data)
 }
