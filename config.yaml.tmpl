@@ -5,5 +5,17 @@ db:
   password: local-recipe-password
   name: recipe-book
   sslmode: disable
+  admin:
+    username: TestAdmin
+    email: testadmin@example.com
+    password: TestAdminP@ssw0rd!
 server:
   port: 8080
+environment:
+  mode: development
+api:
+  keys:
+    - test-api-key-32-characters-here
+mail:
+  domain: ${MAIL_DOMAIN}
+  api_key: ${MAIL_API_KEY}
