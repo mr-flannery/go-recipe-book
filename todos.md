@@ -14,9 +14,7 @@ What Wasn't Tested (and Why)
 - browser tests for tagging and commenting are missing
 
 - UX improvements!!
-  - add pagination/dynamic fetching on scroll for the recipes page
   - the admin registration UX could be improved, by listing denied and approved registrations, and also by make the experience more dynamic, showing success messages or something like this.
-  - filtering by authored by me should be possible
   - when adding a tag, the focus isn't on the input component any more, but it should
   - also when in the tag filter component, when pressing backspace, it should remove the latest tag
 

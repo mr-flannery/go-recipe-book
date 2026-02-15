@@ -728,6 +728,31 @@ a:hover { color: var(--ink); }
     white-space: nowrap;
 }
 
+.filter-row-inline .filter-checkbox {
+    flex: 0 0 auto;
+}
+
+.filter-row-inline .filter-checkbox .checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    height: 35px;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 15px;
+    text-transform: none;
+    letter-spacing: normal;
+    color: var(--text);
+    cursor: pointer;
+    white-space: nowrap;
+    margin-bottom: 0;
+}
+
+.filter-row-inline .filter-checkbox input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+}
+
 /* Tag filter widget styling */
 .tag-input-filter-widget {
     display: flex;

@@ -484,6 +484,131 @@ test.describe('Recipe Filtering', () => {
     });
   });
 
+  test.describe('Authored By Me Filter', () => {
+    const authorFilterId = Date.now();
+
+    test.beforeAll(async ({ browser }) => {
+      // User1 creates a recipe
+      const context1 = await browser.newContext();
+      const page1 = await context1.newPage();
+      await page1.goto('/login');
+      await page1.locator('input[name="email"]').fill(TEST_USERS.approved1.email);
+      await page1.locator('input[name="password"]').fill(TEST_USERS.approved1.password);
+      await page1.getByRole('button', { name: 'Sign In' }).click();
+      await page1.waitForURL('/');
+
+      await page1.goto('/recipes/create');
+      await page1.getByRole('textbox', { name: 'Title' }).fill(`User1 Recipe ${authorFilterId}`);
+      await page1.locator('#preptime').fill('10');
+      await page1.locator('#cooktime').fill('20');
+      await page1.locator('#calories').fill('300');
+      await page1.locator('#ingredients').fill('- test ingredient');
+      await page1.locator('#instructions').fill('1. test instruction');
+      await page1.getByRole('button', { name: /Create Recipe|Submit/i }).click();
+      await page1.waitForURL(/\/recipes\/\d+/);
+      await context1.close();
+
+      // User2 creates a recipe
+      const context2 = await browser.newContext();
+      const page2 = await context2.newPage();
+      await page2.goto('/login');
+      await page2.locator('input[name="email"]').fill(TEST_USERS.approved2.email);
+      await page2.locator('input[name="password"]').fill(TEST_USERS.approved2.password);
+      await page2.getByRole('button', { name: 'Sign In' }).click();
+      await page2.waitForURL('/');
+
+      await page2.goto('/recipes/create');
+      await page2.getByRole('textbox', { name: 'Title' }).fill(`User2 Recipe ${authorFilterId}`);
+      await page2.locator('#preptime').fill('15');
+      await page2.locator('#cooktime').fill('25');
+      await page2.locator('#calories').fill('400');
+      await page2.locator('#ingredients').fill('- another ingredient');
+      await page2.locator('#instructions').fill('1. another instruction');
+      await page2.getByRole('button', { name: /Create Recipe|Submit/i }).click();
+      await page2.waitForURL(/\/recipes\/\d+/);
+      await context2.close();
+    });
+
+    test('filters to show only recipes authored by current user', async ({ user1Page: page }) => {
+      await page.goto('/recipes');
+
+      // Both recipes should be visible initially when searching by the unique ID
+      await page.locator('#search').fill(authorFilterId.toString());
+      await waitForFilterResults(page);
+
+      let titles = await getVisibleRecipeTitles(page);
+      expect(titles.some(t => t.includes(`User1 Recipe ${authorFilterId}`))).toBe(true);
+      expect(titles.some(t => t.includes(`User2 Recipe ${authorFilterId}`))).toBe(true);
+
+      // Check "My recipes" filter
+      await page.locator('#authored_by_me').check();
+      await waitForFilterResults(page);
+
+      titles = await getVisibleRecipeTitles(page);
+      expect(titles.some(t => t.includes(`User1 Recipe ${authorFilterId}`))).toBe(true);
+      expect(titles.some(t => t.includes(`User2 Recipe ${authorFilterId}`))).toBe(false);
+    });
+
+    test('unchecking filter shows all recipes again', async ({ user1Page: page }) => {
+      await page.goto('/recipes');
+
+      await page.locator('#search').fill(authorFilterId.toString());
+      await waitForFilterResults(page);
+
+      await page.locator('#authored_by_me').check();
+      await waitForFilterResults(page);
+
+      let titles = await getVisibleRecipeTitles(page);
+      expect(titles.some(t => t.includes(`User2 Recipe ${authorFilterId}`))).toBe(false);
+
+      await page.locator('#authored_by_me').uncheck();
+      await waitForFilterResults(page);
+
+      titles = await getVisibleRecipeTitles(page);
+      expect(titles.some(t => t.includes(`User1 Recipe ${authorFilterId}`))).toBe(true);
+      expect(titles.some(t => t.includes(`User2 Recipe ${authorFilterId}`))).toBe(true);
+    });
+
+    test('clear button resets authored by me checkbox', async ({ user1Page: page }) => {
+      await page.goto('/recipes');
+
+      await page.locator('#authored_by_me').check();
+      await waitForFilterResults(page);
+
+      await expect(page.locator('#authored_by_me')).toBeChecked();
+
+      await page.getByRole('button', { name: 'Clear' }).click();
+      await waitForFilterResults(page);
+
+      await expect(page.locator('#authored_by_me')).not.toBeChecked();
+    });
+
+    test('authored by me filter only shows for logged-in users', async ({ browser }) => {
+      const context = await browser.newContext();
+      const page = await context.newPage();
+
+      await page.goto('/recipes');
+
+      await expect(page.locator('#authored_by_me')).not.toBeVisible();
+
+      await context.close();
+    });
+
+    test('user2 sees only their recipes when filtering', async ({ user2Page: page }) => {
+      await page.goto('/recipes');
+
+      await page.locator('#search').fill(authorFilterId.toString());
+      await waitForFilterResults(page);
+
+      await page.locator('#authored_by_me').check();
+      await waitForFilterResults(page);
+
+      const titles = await getVisibleRecipeTitles(page);
+      expect(titles.some(t => t.includes(`User2 Recipe ${authorFilterId}`))).toBe(true);
+      expect(titles.some(t => t.includes(`User1 Recipe ${authorFilterId}`))).toBe(false);
+    });
+  });
+
   test.describe('Clear Filter', () => {
     test('clear button resets all filters', async ({ user1Page: page }) => {
       await page.goto('/recipes');

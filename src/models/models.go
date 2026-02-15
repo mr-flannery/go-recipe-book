@@ -87,6 +87,7 @@ type FilterParams struct {
 	Tags          []string
 	UserID        int
 	UserTags      []string
+	AuthorID      int
 	Limit         int
 	Offset        int
 }

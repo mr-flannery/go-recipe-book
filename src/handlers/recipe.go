@@ -553,6 +553,10 @@ func (h *Handler) FilterRecipesHTMXHandler(w http.ResponseWriter, r *http.Reques
 	currentUser, err := auth.GetUserBySession(h.AuthStore, r)
 	isLoggedIn := err == nil
 
+	if r.FormValue("authored_by_me") == "1" && isLoggedIn {
+		filterParams.AuthorID = currentUser.ID
+	}
+
 	if userTagsStr := r.FormValue("user_tags"); userTagsStr != "" && isLoggedIn {
 		filterParams.UserID = currentUser.ID
 		tags := strings.Split(userTagsStr, ",")

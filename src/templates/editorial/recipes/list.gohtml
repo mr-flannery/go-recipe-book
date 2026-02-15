@@ -59,6 +59,13 @@
                         <label>My Tags</label>
                         {{template "tag-input-filter" dict "ID" "filter-user-tags" "Name" "user_tags" "Placeholder" "Add tag..." "SearchURL" "/api/tags/user/search" "TagClass" "tag-user"}}
                     </div>
+                    <div class="filter-group filter-checkbox">
+                        <label>&nbsp;</label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="authored_by_me" name="authored_by_me" value="1">
+                            My recipes
+                        </label>
+                    </div>
                     {{end}}
                     
                     <div class="filter-group filter-metric">
@@ -175,6 +182,10 @@
             document.getElementById('prep_time_value').value = '';
             document.getElementById('cook_time_op').value = '';
             document.getElementById('cook_time_value').value = '';
+            var authoredByMe = document.getElementById('authored_by_me');
+            if (authoredByMe) {
+                authoredByMe.checked = false;
+            }
             htmx.trigger(document.querySelector('form'), 'change');
         }
     </script>

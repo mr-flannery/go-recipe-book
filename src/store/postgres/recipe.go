@@ -184,6 +184,12 @@ func (s *RecipeStore) GetFiltered(params models.FilterParams) ([]models.Recipe, 
 		argIndex++
 	}
 
+	if params.AuthorID > 0 {
+		query += fmt.Sprintf(" AND r.author_id = $%d", argIndex)
+		args = append(args, params.AuthorID)
+		argIndex++
+	}
+
 	query += " ORDER BY r.created_at DESC"
 
 	if params.Limit > 0 {
@@ -321,6 +327,12 @@ func (s *RecipeStore) CountFiltered(params models.FilterParams) (int, error) {
 			query += fmt.Sprintf(" AND r.cook_time <= $%d", argIndex)
 		}
 		args = append(args, params.CookTimeValue)
+		argIndex++
+	}
+
+	if params.AuthorID > 0 {
+		query += fmt.Sprintf(" AND r.author_id = $%d", argIndex)
+		args = append(args, params.AuthorID)
 	}
 
 	var count int
