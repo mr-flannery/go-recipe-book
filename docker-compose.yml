@@ -10,6 +10,11 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
     profiles: ["dev", "ci"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U recipeuser -d recipebook"]
+      interval: 2s
+      timeout: 5s
+      retries: 10
 
   app:
     build: .
@@ -31,7 +36,8 @@ services:
     ports:
       - "8080:8080"
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     profiles: ["ci"]
 
 volumes:
