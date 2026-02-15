@@ -379,8 +379,15 @@ func TestGetPendingRegistrationsHandler_ReturnsErrorWhenStoreFails(t *testing.T)
 		},
 	}
 
+	mockRenderer := &tmocks.MockRenderer{
+		RenderErrorFunc: func(w http.ResponseWriter, r *http.Request, statusCode int, message string) {
+			w.WriteHeader(statusCode)
+		},
+	}
+
 	h := &Handler{
 		AuthStore: mockAuthStore,
+		Renderer:  mockRenderer,
 	}
 
 	req := httptest.NewRequest(http.MethodGet, "/admin/registrations", nil)
@@ -394,7 +401,15 @@ func TestGetPendingRegistrationsHandler_ReturnsErrorWhenStoreFails(t *testing.T)
 }
 
 func TestApproveRegistrationHandler_ReturnsBadRequestWhenIDMissing(t *testing.T) {
-	h := &Handler{}
+	mockRenderer := &tmocks.MockRenderer{
+		RenderErrorFunc: func(w http.ResponseWriter, r *http.Request, statusCode int, message string) {
+			w.WriteHeader(statusCode)
+		},
+	}
+
+	h := &Handler{
+		Renderer: mockRenderer,
+	}
 
 	req := httptest.NewRequest(http.MethodPost, "/admin/registrations//approve", nil)
 	req.SetPathValue("id", "")
@@ -408,7 +423,15 @@ func TestApproveRegistrationHandler_ReturnsBadRequestWhenIDMissing(t *testing.T)
 }
 
 func TestApproveRegistrationHandler_ReturnsBadRequestWhenIDInvalid(t *testing.T) {
-	h := &Handler{}
+	mockRenderer := &tmocks.MockRenderer{
+		RenderErrorFunc: func(w http.ResponseWriter, r *http.Request, statusCode int, message string) {
+			w.WriteHeader(statusCode)
+		},
+	}
+
+	h := &Handler{
+		Renderer: mockRenderer,
+	}
 
 	req := httptest.NewRequest(http.MethodPost, "/admin/registrations/abc/approve", nil)
 	req.SetPathValue("id", "abc")
@@ -428,8 +451,15 @@ func TestApproveRegistrationHandler_ReturnsUnauthorizedWhenNotLoggedIn(t *testin
 		},
 	}
 
+	mockRenderer := &tmocks.MockRenderer{
+		RenderErrorFunc: func(w http.ResponseWriter, r *http.Request, statusCode int, message string) {
+			w.WriteHeader(statusCode)
+		},
+	}
+
 	h := &Handler{
 		AuthStore: mockAuthStore,
+		Renderer:  mockRenderer,
 	}
 
 	req := httptest.NewRequest(http.MethodPost, "/admin/registrations/1/approve", nil)
@@ -444,7 +474,15 @@ func TestApproveRegistrationHandler_ReturnsUnauthorizedWhenNotLoggedIn(t *testin
 }
 
 func TestDenyRegistrationHandler_ReturnsBadRequestWhenIDMissing(t *testing.T) {
-	h := &Handler{}
+	mockRenderer := &tmocks.MockRenderer{
+		RenderErrorFunc: func(w http.ResponseWriter, r *http.Request, statusCode int, message string) {
+			w.WriteHeader(statusCode)
+		},
+	}
+
+	h := &Handler{
+		Renderer: mockRenderer,
+	}
 
 	req := httptest.NewRequest(http.MethodPost, "/admin/registrations//deny", nil)
 	req.SetPathValue("id", "")
@@ -464,8 +502,15 @@ func TestDenyRegistrationHandler_ReturnsUnauthorizedWhenNotLoggedIn(t *testing.T
 		},
 	}
 
+	mockRenderer := &tmocks.MockRenderer{
+		RenderErrorFunc: func(w http.ResponseWriter, r *http.Request, statusCode int, message string) {
+			w.WriteHeader(statusCode)
+		},
+	}
+
 	h := &Handler{
 		AuthStore: mockAuthStore,
+		Renderer:  mockRenderer,
 	}
 
 	req := httptest.NewRequest(http.MethodPost, "/admin/registrations/1/deny", nil)
@@ -530,8 +575,15 @@ func TestGetUsersHandler_ReturnsErrorWhenStoreFails(t *testing.T) {
 		},
 	}
 
+	mockRenderer := &tmocks.MockRenderer{
+		RenderErrorFunc: func(w http.ResponseWriter, r *http.Request, statusCode int, message string) {
+			w.WriteHeader(statusCode)
+		},
+	}
+
 	h := &Handler{
 		AuthStore: mockAuthStore,
+		Renderer:  mockRenderer,
 	}
 
 	req := httptest.NewRequest(http.MethodGet, "/admin/users", nil)

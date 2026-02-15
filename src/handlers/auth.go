@@ -47,7 +47,7 @@ func (h *Handler) PostLoginHandler(w http.ResponseWriter, r *http.Request) {
 
 	session, err := auth.CreateSession(h.AuthStore, user.ID, clientIP, userAgent)
 	if err != nil {
-		http.Error(w, "Failed to create session", http.StatusInternalServerError)
+		h.Renderer.RenderError(w, r, http.StatusInternalServerError, "Failed to create session. Please try again.")
 		return
 	}
 
@@ -135,7 +135,7 @@ func (h *Handler) GetPendingRegistrationsHandler(w http.ResponseWriter, r *http.
 	registrations, err := auth.GetPendingRegistrations(h.AuthStore)
 	if err != nil {
 		slog.Error("Failed to get pending registrations", "error", err)
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		h.Renderer.RenderError(w, r, http.StatusInternalServerError, "Failed to load pending registrations. Please try again later.")
 		return
 	}
 
@@ -149,33 +149,33 @@ func (h *Handler) GetPendingRegistrationsHandler(w http.ResponseWriter, r *http.
 func (h *Handler) ApproveRegistrationHandler(w http.ResponseWriter, r *http.Request) {
 	idStr := r.PathValue("id")
 	if idStr == "" {
-		http.Error(w, "Missing registration ID", http.StatusBadRequest)
+		h.Renderer.RenderError(w, r, http.StatusBadRequest, "Missing registration ID.")
 		return
 	}
 
 	registrationID, err := strconv.Atoi(idStr)
 	if err != nil {
-		http.Error(w, "Invalid registration ID", http.StatusBadRequest)
+		h.Renderer.RenderError(w, r, http.StatusBadRequest, "Invalid registration ID.")
 		return
 	}
 
 	user, err := auth.GetUserBySession(h.AuthStore, r)
 	if err != nil {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		h.Renderer.RenderError(w, r, http.StatusUnauthorized, "You must be logged in to perform this action.")
 		return
 	}
 
 	regRequest, err := auth.GetRegistrationRequestByID(h.AuthStore, registrationID)
 	if err != nil {
 		slog.Error("Failed to get registration request", "error", err)
-		http.Error(w, "Registration request not found", http.StatusNotFound)
+		h.Renderer.RenderError(w, r, http.StatusNotFound, "Registration request not found.")
 		return
 	}
 
 	err = auth.ApproveRegistration(h.AuthStore, registrationID, user.ID)
 	if err != nil {
 		slog.Error("Failed to approve registration", "error", err)
-		http.Error(w, "Failed to approve registration", http.StatusInternalServerError)
+		h.Renderer.RenderError(w, r, http.StatusInternalServerError, "Failed to approve registration. Please try again.")
 		return
 	}
 
@@ -192,33 +192,33 @@ func (h *Handler) ApproveRegistrationHandler(w http.ResponseWriter, r *http.Requ
 func (h *Handler) DenyRegistrationHandler(w http.ResponseWriter, r *http.Request) {
 	idStr := r.PathValue("id")
 	if idStr == "" {
-		http.Error(w, "Missing registration ID", http.StatusBadRequest)
+		h.Renderer.RenderError(w, r, http.StatusBadRequest, "Missing registration ID.")
 		return
 	}
 
 	registrationID, err := strconv.Atoi(idStr)
 	if err != nil {
-		http.Error(w, "Invalid registration ID", http.StatusBadRequest)
+		h.Renderer.RenderError(w, r, http.StatusBadRequest, "Invalid registration ID.")
 		return
 	}
 
 	user, err := auth.GetUserBySession(h.AuthStore, r)
 	if err != nil {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		h.Renderer.RenderError(w, r, http.StatusUnauthorized, "You must be logged in to perform this action.")
 		return
 	}
 
 	regRequest, err := auth.GetRegistrationRequestByID(h.AuthStore, registrationID)
 	if err != nil {
 		slog.Error("Failed to get registration request", "error", err)
-		http.Error(w, "Registration request not found", http.StatusNotFound)
+		h.Renderer.RenderError(w, r, http.StatusNotFound, "Registration request not found.")
 		return
 	}
 
 	err = auth.RejectRegistration(h.AuthStore, registrationID, user.ID)
 	if err != nil {
 		slog.Error("Failed to deny registration", "error", err)
-		http.Error(w, "Failed to deny registration", http.StatusInternalServerError)
+		h.Renderer.RenderError(w, r, http.StatusInternalServerError, "Failed to deny registration. Please try again.")
 		return
 	}
 
@@ -238,7 +238,7 @@ func (h *Handler) GetUsersHandler(w http.ResponseWriter, r *http.Request) {
 	users, err := auth.GetAllUsers(h.AuthStore)
 	if err != nil {
 		slog.Error("Failed to get users", "error", err)
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		h.Renderer.RenderError(w, r, http.StatusInternalServerError, "Failed to load users. Please try again later.")
 		return
 	}
 

@@ -1,0 +1,28 @@
+{{define "error.gohtml"}}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{.StatusCode}} - Taste</title>
+    <link rel="stylesheet" href="/static/css/editorial.css">
+</head>
+<body>
+    {{template "navbar" .UserInfo}}
+
+    <main class="main-content">
+        <div class="error-page">
+            <span class="error-code">{{.StatusCode}}</span>
+            <h1>{{.Title}}</h1>
+            <p class="error-message">{{.Message}}</p>
+            <div class="error-actions">
+                <a href="/" class="btn">Back to Home</a>
+                <a href="/recipes" class="btn primary">Browse Recipes</a>
+            </div>
+        </div>
+    </main>
+
+    {{template "footer" .UserInfo}}
+</body>
+</html>
+{{end}}

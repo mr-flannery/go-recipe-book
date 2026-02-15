@@ -76,8 +76,15 @@ func TestListRecipesHandler_ReturnsErrorWhenStoreFails(t *testing.T) {
 		},
 	}
 
+	mockRenderer := &tmocks.MockRenderer{
+		RenderErrorFunc: func(w http.ResponseWriter, r *http.Request, statusCode int, message string) {
+			w.WriteHeader(statusCode)
+		},
+	}
+
 	h := &Handler{
 		RecipeStore: mockRecipeStore,
+		Renderer:    mockRenderer,
 	}
 
 	req := httptest.NewRequest(http.MethodGet, "/recipes", nil)
@@ -161,8 +168,15 @@ func TestViewRecipeHandler_ReturnsNotFoundWhenRecipeDoesNotExist(t *testing.T) {
 		},
 	}
 
+	mockRenderer := &tmocks.MockRenderer{
+		RenderErrorFunc: func(w http.ResponseWriter, r *http.Request, statusCode int, message string) {
+			w.WriteHeader(statusCode)
+		},
+	}
+
 	h := &Handler{
 		RecipeStore: mockRecipeStore,
+		Renderer:    mockRenderer,
 	}
 
 	req := httptest.NewRequest(http.MethodGet, "/recipes/999", nil)
@@ -177,7 +191,15 @@ func TestViewRecipeHandler_ReturnsNotFoundWhenRecipeDoesNotExist(t *testing.T) {
 }
 
 func TestViewRecipeHandler_ReturnsBadRequestWhenIDMissing(t *testing.T) {
-	h := &Handler{}
+	mockRenderer := &tmocks.MockRenderer{
+		RenderErrorFunc: func(w http.ResponseWriter, r *http.Request, statusCode int, message string) {
+			w.WriteHeader(statusCode)
+		},
+	}
+
+	h := &Handler{
+		Renderer: mockRenderer,
+	}
 
 	req := httptest.NewRequest(http.MethodGet, "/recipes/", nil)
 	rec := httptest.NewRecorder()
@@ -374,7 +396,6 @@ func TestPostUpdateRecipeHandler_UpdatesRecipeWhenUserIsAuthor(t *testing.T) {
 
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
-	writer.WriteField("id", "1")
 	writer.WriteField("title", "Updated Recipe")
 	writer.WriteField("ingredients", "- updated flour")
 	writer.WriteField("instructions", "Updated instructions")
@@ -383,7 +404,8 @@ func TestPostUpdateRecipeHandler_UpdatesRecipeWhenUserIsAuthor(t *testing.T) {
 	writer.WriteField("calories", "350")
 	writer.Close()
 
-	req := httptest.NewRequest(http.MethodPost, "/recipes/update", body)
+	req := httptest.NewRequest(http.MethodPost, "/recipes/1/update", body)
+	req.SetPathValue("id", "1")
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 	req.AddCookie(&http.Cookie{Name: "session", Value: "test-session"})
 	rec := httptest.NewRecorder()
@@ -423,11 +445,11 @@ func TestPostUpdateRecipeHandler_ReturnsForbiddenWhenUserIsNotAuthor(t *testing.
 
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
-	writer.WriteField("id", "1")
 	writer.WriteField("title", "Hacked Recipe")
 	writer.Close()
 
-	req := httptest.NewRequest(http.MethodPost, "/recipes/update", body)
+	req := httptest.NewRequest(http.MethodPost, "/recipes/1/update", body)
+	req.SetPathValue("id", "1")
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 	req.AddCookie(&http.Cookie{Name: "session", Value: "test-session"})
 	rec := httptest.NewRecorder()
@@ -831,6 +853,103 @@ func TestRandomRecipeHandler_RedirectsToRandomRecipe(t *testing.T) {
 	location := rec.Header().Get("Location")
 	if location != "/recipes/42" {
 		t.Errorf("expected redirect to /recipes/42, got %s", location)
+	}
+}
+
+func TestGetUpdateRecipeHandler_RendersPageWhenUserIsAuthor(t *testing.T) {
+	mockAuthStore := &mocks.MockAuthStore{
+		GetSessionFunc: func(sessionID string) (*store.Session, error) {
+			return &store.Session{ID: sessionID, UserID: 1}, nil
+		},
+		GetUserByIDFunc: func(userID int) (*store.AuthUser, error) {
+			return &store.AuthUser{ID: 1, Username: "testuser"}, nil
+		},
+	}
+
+	mockRecipeStore := &mocks.MockRecipeStore{
+		GetByIDFunc: func(id string) (models.Recipe, error) {
+			return models.Recipe{ID: 1, AuthorID: 1, Title: "My Recipe"}, nil
+		},
+	}
+
+	mockTagStore := &mocks.MockTagStore{
+		GetByRecipeIDFunc: func(recipeID int) ([]models.Tag, error) {
+			return []models.Tag{}, nil
+		},
+	}
+
+	var capturedData any
+	mockRenderer := &tmocks.MockRenderer{
+		RenderPageFunc: func(w http.ResponseWriter, name string, data any) {
+			capturedData = data
+			w.WriteHeader(http.StatusOK)
+		},
+	}
+
+	h := &Handler{
+		AuthStore:   mockAuthStore,
+		RecipeStore: mockRecipeStore,
+		TagStore:    mockTagStore,
+		Renderer:    mockRenderer,
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/recipes/1/update", nil)
+	req.SetPathValue("id", "1")
+	req.AddCookie(&http.Cookie{Name: "session", Value: "test-session"})
+	userInfo := &auth.UserInfo{IsLoggedIn: true, Username: "testuser"}
+	req = req.WithContext(auth.ContextWithUserInfo(req.Context(), userInfo))
+	rec := httptest.NewRecorder()
+
+	h.GetUpdateRecipeHandler(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Errorf("expected status %d, got %d", http.StatusOK, rec.Code)
+	}
+
+	if capturedData == nil {
+		t.Fatal("expected data to be captured by renderer")
+	}
+}
+
+func TestGetUpdateRecipeHandler_ReturnsForbiddenWhenUserIsNotAuthor(t *testing.T) {
+	mockAuthStore := &mocks.MockAuthStore{
+		GetSessionFunc: func(sessionID string) (*store.Session, error) {
+			return &store.Session{ID: sessionID, UserID: 2}, nil
+		},
+		GetUserByIDFunc: func(userID int) (*store.AuthUser, error) {
+			return &store.AuthUser{ID: 2, Username: "otheruser"}, nil
+		},
+	}
+
+	mockRecipeStore := &mocks.MockRecipeStore{
+		GetByIDFunc: func(id string) (models.Recipe, error) {
+			return models.Recipe{ID: 1, AuthorID: 1, Title: "Someone Else's Recipe"}, nil
+		},
+	}
+
+	mockRenderer := &tmocks.MockRenderer{
+		RenderErrorFunc: func(w http.ResponseWriter, r *http.Request, statusCode int, message string) {
+			w.WriteHeader(statusCode)
+		},
+	}
+
+	h := &Handler{
+		AuthStore:   mockAuthStore,
+		RecipeStore: mockRecipeStore,
+		Renderer:    mockRenderer,
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/recipes/1/update", nil)
+	req.SetPathValue("id", "1")
+	req.AddCookie(&http.Cookie{Name: "session", Value: "test-session"})
+	userInfo := &auth.UserInfo{IsLoggedIn: true, Username: "otheruser"}
+	req = req.WithContext(auth.ContextWithUserInfo(req.Context(), userInfo))
+	rec := httptest.NewRecorder()
+
+	h.GetUpdateRecipeHandler(rec, req)
+
+	if rec.Code != http.StatusForbidden {
+		t.Errorf("expected status %d, got %d", http.StatusForbidden, rec.Code)
 	}
 }
 

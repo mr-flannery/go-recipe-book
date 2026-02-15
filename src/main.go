@@ -106,7 +106,7 @@ func main() {
 	requireAdminAuth := func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if !auth.IsUserAdmin(r.Context()) {
-				http.Error(w, "Access denied - admin privileges required", http.StatusForbidden)
+				renderer.RenderError(w, r, http.StatusForbidden, "You need admin privileges to access this page.")
 				return
 			}
 
@@ -148,11 +148,11 @@ func main() {
 		userContext(
 			requireAuth(
 				http.HandlerFunc(h.PostCreateRecipeHandler))))
-	mux.Handle("GET /recipes/update",
+	mux.Handle("GET /recipes/{id}/update",
 		userContext(
 			requireAuth(
 				http.HandlerFunc(h.GetUpdateRecipeHandler))))
-	mux.Handle("POST /recipes/update",
+	mux.Handle("POST /recipes/{id}/update",
 		userContext(
 			requireAuth(
 				http.HandlerFunc(h.PostUpdateRecipeHandler))))

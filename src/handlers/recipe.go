@@ -140,7 +140,7 @@ func (h *Handler) ListRecipesHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	recipes, err := h.RecipeStore.GetFiltered(filterParams)
 	if err != nil {
-		http.Error(w, "Failed to fetch recipes", http.StatusInternalServerError)
+		h.Renderer.RenderError(w, r, http.StatusInternalServerError, "Failed to fetch recipes. Please try again later.")
 		return
 	}
 
@@ -200,10 +200,21 @@ func (h *Handler) ListRecipesHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) GetUpdateRecipeHandler(w http.ResponseWriter, r *http.Request) {
-	recipeID := r.URL.Query().Get("id")
+	recipeID := r.PathValue("id")
 	recipe, err := h.RecipeStore.GetByID(recipeID)
 	if err != nil {
-		http.Error(w, "Recipe not found", http.StatusNotFound)
+		h.Renderer.RenderError(w, r, http.StatusNotFound, "The recipe you're looking for doesn't exist or has been removed.")
+		return
+	}
+
+	currentUser, err := auth.GetUserBySession(h.AuthStore, r)
+	if err != nil {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+
+	if currentUser.ID != recipe.AuthorID {
+		h.Renderer.RenderError(w, r, http.StatusForbidden, "You can only edit your own recipes.")
 		return
 	}
 
@@ -222,17 +233,17 @@ func (h *Handler) GetUpdateRecipeHandler(w http.ResponseWriter, r *http.Request)
 }
 
 func (h *Handler) PostUpdateRecipeHandler(w http.ResponseWriter, r *http.Request) {
-	err := r.ParseMultipartForm(10 << 20)
+	recipeID, err := strconv.Atoi(r.PathValue("id"))
 	if err != nil {
-		slog.Error("Failed to parse multipart form", "error", err)
-		http.Error(w, "Failed to parse form data", http.StatusBadRequest)
+		slog.Error("Invalid recipe ID", "id", r.PathValue("id"), "error", err)
+		http.Error(w, "Invalid recipe ID", http.StatusBadRequest)
 		return
 	}
 
-	recipeID, err := strconv.Atoi(r.FormValue("id"))
+	err = r.ParseMultipartForm(10 << 20)
 	if err != nil {
-		slog.Error("Failed to convert ID to int", "id", r.FormValue("id"), "error", err)
-		http.Error(w, fmt.Sprintf("Failed to update recipe: failed to convert ID to int. %s", err.Error()), http.StatusInternalServerError)
+		slog.Error("Failed to parse multipart form", "error", err)
+		http.Error(w, "Failed to parse form data", http.StatusBadRequest)
 		return
 	}
 
@@ -336,13 +347,13 @@ func (h *Handler) PostUpdateRecipeHandler(w http.ResponseWriter, r *http.Request
 func (h *Handler) ViewRecipeHandler(w http.ResponseWriter, r *http.Request) {
 	recipeID := r.PathValue("id")
 	if recipeID == "" {
-		http.Error(w, "Recipe ID is required", http.StatusBadRequest)
+		h.Renderer.RenderError(w, r, http.StatusBadRequest, "No recipe specified.")
 		return
 	}
 
 	recipe, err := h.RecipeStore.GetByID(recipeID)
 	if err != nil {
-		http.Error(w, "Recipe not found", http.StatusNotFound)
+		h.Renderer.RenderError(w, r, http.StatusNotFound, "The recipe you're looking for doesn't exist or has been removed.")
 		return
 	}
 
@@ -350,7 +361,7 @@ func (h *Handler) ViewRecipeHandler(w http.ResponseWriter, r *http.Request) {
 
 	comments, err := h.CommentStore.GetByRecipeID(recipeID)
 	if err != nil {
-		http.Error(w, "Failed to fetch comments", http.StatusInternalServerError)
+		h.Renderer.RenderError(w, r, http.StatusInternalServerError, "Failed to load comments. Please try again later.")
 		return
 	}
 

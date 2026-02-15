@@ -73,7 +73,7 @@
         <div class="navigation">
             <a href="/recipes" class="btn">Back to Recipes</a>
             {{if .IsAuthor}}
-            <a href="/recipes/update?id={{.Recipe.ID}}" class="btn">Edit Recipe</a>
+            <a href="/recipes/{{.Recipe.ID}}/update" class="btn">Edit Recipe</a>
             <button onclick="deleteRecipe({{.Recipe.ID}})" class="btn danger">Delete Recipe</button>
             {{end}}
         </div>

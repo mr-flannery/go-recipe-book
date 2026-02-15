@@ -15,10 +15,10 @@ What Wasn't Tested (and Why)
   - when adding a tag, the focus isn't on the input component any more, but it should
   - also when in the tag filter component, when pressing backspace, it should remove the latest tag
 
-- error pages suck/are non existent
-  - e.g. if a user tries to manually navigate to the edit page for a different user's recipe, the resulting page is not a properly rendered page, and it doesn't redirect anywhere
-  - 
+- cmd-enter should trigger certain actions on certain pages
 
+- the vscode launch/debug setting is kinda annoying right now
+- mail tests?
 - cookie banner
 
 - performance testing
