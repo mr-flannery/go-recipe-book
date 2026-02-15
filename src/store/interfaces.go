@@ -33,7 +33,10 @@ type UserTagStore interface {
 
 type CommentStore interface {
 	GetByRecipeID(recipeID string) ([]models.Comment, error)
+	GetByID(commentID int) (models.Comment, error)
 	Save(comment models.Comment) error
+	Update(commentID int, content string) error
+	Delete(commentID int) error
 	GetLatestByUserAndRecipe(userID, recipeID int) (models.Comment, error)
 }
 

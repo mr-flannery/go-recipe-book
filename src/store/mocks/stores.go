@@ -173,7 +173,10 @@ func (m *MockUserTagStore) Remove(userID, tagID int) error {
 
 type MockCommentStore struct {
 	GetByRecipeIDFunc            func(recipeID string) ([]models.Comment, error)
+	GetByIDFunc                  func(commentID int) (models.Comment, error)
 	SaveFunc                     func(comment models.Comment) error
+	UpdateFunc                   func(commentID int, content string) error
+	DeleteFunc                   func(commentID int) error
 	GetLatestByUserAndRecipeFunc func(userID, recipeID int) (models.Comment, error)
 }
 
@@ -184,9 +187,30 @@ func (m *MockCommentStore) GetByRecipeID(recipeID string) ([]models.Comment, err
 	return nil, nil
 }
 
+func (m *MockCommentStore) GetByID(commentID int) (models.Comment, error) {
+	if m.GetByIDFunc != nil {
+		return m.GetByIDFunc(commentID)
+	}
+	return models.Comment{}, nil
+}
+
 func (m *MockCommentStore) Save(comment models.Comment) error {
 	if m.SaveFunc != nil {
 		return m.SaveFunc(comment)
+	}
+	return nil
+}
+
+func (m *MockCommentStore) Update(commentID int, content string) error {
+	if m.UpdateFunc != nil {
+		return m.UpdateFunc(commentID, content)
+	}
+	return nil
+}
+
+func (m *MockCommentStore) Delete(commentID int) error {
+	if m.DeleteFunc != nil {
+		return m.DeleteFunc(commentID)
 	}
 	return nil
 }

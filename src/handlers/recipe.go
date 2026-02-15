@@ -356,28 +356,25 @@ func (h *Handler) ViewRecipeHandler(w http.ResponseWriter, r *http.Request) {
 
 	recipe.Tags, _ = h.TagStore.GetByRecipeID(recipeIDInt)
 
-	type CommentWithUsername struct {
-		models.Comment
-		Username string
-	}
+	userInfo := auth.GetUserInfoFromContext(r.Context())
 
-	var commentsWithUsernames []CommentWithUsername
+	currentUser, err := auth.GetUserBySession(h.AuthStore, r)
+	isLoggedIn := err == nil
+	isRecipeAuthor := isLoggedIn && currentUser.ID == recipe.AuthorID
+
+	var commentsWithUsernames []CommentTemplateData
 	for _, comment := range comments {
 		username, err := h.UserStore.GetUsernameByID(comment.AuthorID)
 		if err != nil {
 			username = "Unknown User"
 		}
-		commentsWithUsernames = append(commentsWithUsernames, CommentWithUsername{
+		isCommentAuthor := isLoggedIn && currentUser.ID == comment.AuthorID
+		commentsWithUsernames = append(commentsWithUsernames, CommentTemplateData{
 			Comment:  comment,
 			Username: username,
+			IsAuthor: isCommentAuthor,
 		})
 	}
-
-	userInfo := auth.GetUserInfoFromContext(r.Context())
-
-	currentUser, err := auth.GetUserBySession(h.AuthStore, r)
-	isLoggedIn := err == nil
-	isAuthor := isLoggedIn && currentUser.ID == recipe.AuthorID
 
 	var userTags []models.UserTag
 	if isLoggedIn {
@@ -387,7 +384,7 @@ func (h *Handler) ViewRecipeHandler(w http.ResponseWriter, r *http.Request) {
 	data := struct {
 		Recipe      models.Recipe
 		UserTags    []models.UserTag
-		Comments    []CommentWithUsername
+		Comments    []CommentTemplateData
 		IsLoggedIn  bool
 		CurrentUser *auth.User
 		IsAuthor    bool
@@ -398,7 +395,7 @@ func (h *Handler) ViewRecipeHandler(w http.ResponseWriter, r *http.Request) {
 		Comments:    commentsWithUsernames,
 		IsLoggedIn:  isLoggedIn,
 		CurrentUser: currentUser,
-		IsAuthor:    isAuthor,
+		IsAuthor:    isRecipeAuthor,
 		UserInfo:    userInfo,
 	}
 
@@ -448,17 +445,114 @@ func (h *Handler) CommentHTMXHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	type CommentWithUsername struct {
-		models.Comment
-		Username string
-	}
-
-	commentData := CommentWithUsername{
+	commentData := CommentTemplateData{
 		Comment:  savedComment,
 		Username: user.Username,
+		IsAuthor: true,
 	}
 
 	h.Renderer.RenderFragment(w, "comment.gohtml", commentData)
+}
+
+type CommentTemplateData struct {
+	models.Comment
+	Username string
+	IsAuthor bool
+}
+
+func (h *Handler) UpdateCommentHandler(w http.ResponseWriter, r *http.Request) {
+	commentIDStr := r.PathValue("id")
+	if commentIDStr == "" {
+		http.Error(w, "Comment ID is required", http.StatusBadRequest)
+		return
+	}
+
+	commentID, err := strconv.Atoi(commentIDStr)
+	if err != nil {
+		http.Error(w, "Invalid comment ID", http.StatusBadRequest)
+		return
+	}
+
+	user, err := auth.GetUserBySession(h.AuthStore, r)
+	if err != nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	comment, err := h.CommentStore.GetByID(commentID)
+	if err != nil {
+		http.Error(w, "Comment not found", http.StatusNotFound)
+		return
+	}
+
+	if comment.AuthorID != user.ID {
+		http.Error(w, "Forbidden: You can only edit your own comments", http.StatusForbidden)
+		return
+	}
+
+	r.ParseForm()
+	newContent := r.FormValue("comment")
+	if newContent == "" {
+		http.Error(w, "Comment content is required", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.CommentStore.Update(commentID, newContent); err != nil {
+		http.Error(w, "Failed to update comment", http.StatusInternalServerError)
+		return
+	}
+
+	updatedComment, err := h.CommentStore.GetByID(commentID)
+	if err != nil {
+		http.Error(w, "Failed to retrieve updated comment", http.StatusInternalServerError)
+		return
+	}
+
+	commentData := CommentTemplateData{
+		Comment:  updatedComment,
+		Username: user.Username,
+		IsAuthor: true,
+	}
+
+	h.Renderer.RenderFragment(w, "comment.gohtml", commentData)
+}
+
+func (h *Handler) DeleteCommentHandler(w http.ResponseWriter, r *http.Request) {
+	commentIDStr := r.PathValue("id")
+	if commentIDStr == "" {
+		http.Error(w, "Comment ID is required", http.StatusBadRequest)
+		return
+	}
+
+	commentID, err := strconv.Atoi(commentIDStr)
+	if err != nil {
+		http.Error(w, "Invalid comment ID", http.StatusBadRequest)
+		return
+	}
+
+	user, err := auth.GetUserBySession(h.AuthStore, r)
+	if err != nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	comment, err := h.CommentStore.GetByID(commentID)
+	if err != nil {
+		http.Error(w, "Comment not found", http.StatusNotFound)
+		return
+	}
+
+	if comment.AuthorID != user.ID {
+		http.Error(w, "Forbidden: You can only delete your own comments", http.StatusForbidden)
+		return
+	}
+
+	if err := h.CommentStore.Delete(commentID); err != nil {
+		http.Error(w, "Failed to delete comment", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
 }
 
 func (h *Handler) DeleteRecipeHandler(w http.ResponseWriter, r *http.Request) {

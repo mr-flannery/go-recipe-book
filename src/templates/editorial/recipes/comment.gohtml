@@ -1,0 +1,23 @@
+<div class="comment" data-comment-id="{{.ID}}">
+    <div class="comment-header">
+        <strong>{{.Username}}</strong> &mdash; {{.CreatedAt.Format "Jan 2, 2006 at 3:04 PM"}}
+        {{if .IsAuthor}}
+        <span class="comment-actions">
+            <button class="btn-link" onclick="editComment({{.ID}})">Edit</button>
+            <button class="btn-link danger" onclick="deleteComment({{.ID}}, {{.RecipeID}})">Delete</button>
+        </span>
+        {{end}}
+    </div>
+    <div class="comment-content" id="comment-content-{{.ID}}">{{.ContentMD}}</div>
+    <form class="comment-edit-form" id="comment-edit-form-{{.ID}}" style="display: none;"
+          hx-put="/comments/{{.ID}}"
+          hx-target="[data-comment-id='{{.ID}}']"
+          hx-swap="outerHTML">
+        <input type="hidden" name="recipe_id" value="{{.RecipeID}}">
+        <textarea name="comment" required>{{.ContentMD}}</textarea>
+        <div class="comment-edit-actions">
+            <button type="submit" class="btn primary">Save</button>
+            <button type="button" class="btn" onclick="cancelEdit({{.ID}})">Cancel</button>
+        </div>
+    </form>
+</div>

@@ -61,3 +61,31 @@ func (s *CommentStore) GetLatestByUserAndRecipe(userID int, recipeID int) (model
 
 	return comment, nil
 }
+
+func (s *CommentStore) GetByID(commentID int) (models.Comment, error) {
+	var comment models.Comment
+
+	err := s.db.QueryRow(
+		"SELECT id, recipe_id, author_id, content_md, created_at, updated_at FROM comments WHERE id = $1",
+		commentID,
+	).Scan(&comment.ID, &comment.RecipeID, &comment.AuthorID, &comment.ContentMD, &comment.CreatedAt, &comment.UpdatedAt)
+
+	if err != nil {
+		return models.Comment{}, err
+	}
+
+	return comment, nil
+}
+
+func (s *CommentStore) Update(commentID int, content string) error {
+	_, err := s.db.Exec(
+		"UPDATE comments SET content_md = $1, updated_at = $2 WHERE id = $3",
+		content, time.Now(), commentID,
+	)
+	return err
+}
+
+func (s *CommentStore) Delete(commentID int) error {
+	_, err := s.db.Exec("DELETE FROM comments WHERE id = $1", commentID)
+	return err
+}

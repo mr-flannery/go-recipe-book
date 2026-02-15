@@ -28,6 +28,42 @@
                 });
             }
         }
+
+        function editComment(commentId) {
+            document.getElementById('comment-content-' + commentId).style.display = 'none';
+            document.getElementById('comment-edit-form-' + commentId).style.display = 'block';
+        }
+
+        function cancelEdit(commentId) {
+            document.getElementById('comment-content-' + commentId).style.display = 'block';
+            document.getElementById('comment-edit-form-' + commentId).style.display = 'none';
+        }
+
+        function deleteComment(commentId, recipeId) {
+            if (confirm('Are you sure you want to delete this comment?')) {
+                fetch(`/comments/${commentId}`, {
+                    method: 'DELETE',
+                    credentials: 'same-origin'
+                })
+                .then(response => {
+                    if (response.ok) {
+                        const commentEl = document.querySelector(`[data-comment-id="${commentId}"]`);
+                        if (commentEl) {
+                            commentEl.remove();
+                            const countEl = document.getElementById('comment-count');
+                            countEl.textContent = parseInt(countEl.textContent) - 1;
+                        }
+                    } else {
+                        response.text().then(text => {
+                            alert('Failed to delete comment: ' + text);
+                        });
+                    }
+                })
+                .catch(error => {
+                    alert('Error deleting comment: ' + error.message);
+                });
+            }
+        }
     </script>
 </head>
 <body>
@@ -102,11 +138,28 @@
 
             <div id="comments-list">
                 {{range .Comments}}
-                <div class="comment">
+                <div class="comment" data-comment-id="{{.ID}}">
                     <div class="comment-header">
                         <strong>{{.Username}}</strong> &mdash; {{.CreatedAt.Format "Jan 2, 2006 at 3:04 PM"}}
+                        {{if .IsAuthor}}
+                        <span class="comment-actions">
+                            <button class="btn-link" onclick="editComment({{.ID}})">Edit</button>
+                            <button class="btn-link danger" onclick="deleteComment({{.ID}}, {{.RecipeID}})">Delete</button>
+                        </span>
+                        {{end}}
                     </div>
-                    <div class="comment-content">{{.ContentMD}}</div>
+                    <div class="comment-content" id="comment-content-{{.ID}}">{{.ContentMD}}</div>
+                    <form class="comment-edit-form" id="comment-edit-form-{{.ID}}" style="display: none;"
+                          hx-put="/comments/{{.ID}}"
+                          hx-target="[data-comment-id='{{.ID}}']"
+                          hx-swap="outerHTML">
+                        <input type="hidden" name="recipe_id" value="{{.RecipeID}}">
+                        <textarea name="comment" required>{{.ContentMD}}</textarea>
+                        <div class="comment-edit-actions">
+                            <button type="submit" class="btn primary">Save</button>
+                            <button type="button" class="btn" onclick="cancelEdit({{.ID}})">Cancel</button>
+                        </div>
+                    </form>
                 </div>
                 {{else}}
                 <p id="no-comments" style="color: var(--muted); font-style: italic;">
@@ -123,7 +176,7 @@
                       hx-swap="afterbegin"
                       hx-on::after-request="this.reset(); document.getElementById('comment-count').textContent = parseInt(document.getElementById('comment-count').textContent) + 1; const noComments = document.getElementById('no-comments'); if (noComments) noComments.style.display = 'none';">
                     <div class="form-group">
-                        <textarea name="comment" placeholder="Share your thoughts about this recipe..." required style="min-height: 100px;"></textarea>
+                        <textarea id="new-comment" name="comment" placeholder="Share your thoughts about this recipe..." required style="min-height: 100px;"></textarea>
                     </div>
                     <button type="submit" class="btn primary">Post Comment</button>
                 </form>

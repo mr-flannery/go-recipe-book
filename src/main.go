@@ -179,6 +179,16 @@ func main() {
 			requireAuth(
 				http.HandlerFunc(h.CommentHTMXHandler))))
 
+	mux.Handle("PUT /comments/{id}",
+		userContext(
+			requireAuth(
+				http.HandlerFunc(h.UpdateCommentHandler))))
+
+	mux.Handle("DELETE /comments/{id}",
+		userContext(
+			requireAuth(
+				http.HandlerFunc(h.DeleteCommentHandler))))
+
 	mux.HandleFunc("GET /api/tags/search", h.SearchTagsHandler)
 	mux.Handle("GET /api/tags/user/search",
 		userContext(

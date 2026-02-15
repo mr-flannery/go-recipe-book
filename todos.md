@@ -10,9 +10,6 @@ What Wasn't Tested (and Why)
 - src/mail/: Requires mocking external Maileroo client
 - src/db/: Database connection/migration code - better suited for integration tests
 ```
-
-- browser tests for tagging and commenting are missing
-
 - UX improvements!!
   - the admin registration UX could be improved, by listing denied and approved registrations, and also by make the experience more dynamic, showing success messages or something like this.
   - when adding a tag, the focus isn't on the input component any more, but it should
@@ -21,7 +18,9 @@ What Wasn't Tested (and Why)
 - error pages suck/are non existent
   - e.g. if a user tries to manually navigate to the edit page for a different user's recipe, the resulting page is not a properly rendered page, and it doesn't redirect anywhere
   - 
-  
+
+- cookie banner
+
 - performance testing
 
 - refactor

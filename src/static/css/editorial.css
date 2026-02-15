@@ -584,6 +584,53 @@ a:hover { color: var(--ink); }
     line-height: 1.8;
 }
 
+.comment-actions {
+    display: inline-block;
+    margin-left: 15px;
+}
+
+.comment-actions .btn-link {
+    background: none;
+    border: none;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 10px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--muted);
+    cursor: pointer;
+    padding: 0;
+    margin-left: 10px;
+}
+
+.comment-actions .btn-link:hover {
+    color: var(--accent);
+}
+
+.comment-actions .btn-link.danger:hover {
+    color: #c0392b;
+}
+
+.comment-edit-form {
+    margin-top: 15px;
+}
+
+.comment-edit-form textarea {
+    width: 100%;
+    min-height: 80px;
+    padding: 15px;
+    border: 1px solid var(--rule);
+    font-family: inherit;
+    font-size: 16px;
+    line-height: 1.8;
+    resize: vertical;
+}
+
+.comment-edit-actions {
+    margin-top: 10px;
+    display: flex;
+    gap: 10px;
+}
+
 /* Filters */
 .filters {
     border: 1px solid var(--rule);
