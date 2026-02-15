@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"path/filepath"
+	"time"
 
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
@@ -75,9 +76,30 @@ func GetConnection() (*sql.DB, error) {
 }
 
 func RunMigrations() error {
-	db, err := GetConnection()
+	var db *sql.DB
+	var err error
+
+	maxRetries := 30
+	for i := 0; i < maxRetries; i++ {
+		db, err = GetConnection()
+		if err != nil {
+			slog.Warn("Failed to connect to database, retrying...", "attempt", i+1, "error", err)
+			time.Sleep(time.Second)
+			continue
+		}
+
+		if err = db.Ping(); err != nil {
+			slog.Warn("Database not ready, retrying...", "attempt", i+1, "error", err)
+			db.Close()
+			time.Sleep(time.Second)
+			continue
+		}
+
+		break
+	}
+
 	if err != nil {
-		slog.Error("Failed to connect to database", "error", err)
+		slog.Error("Failed to connect to database after retries", "error", err)
 		return err
 	}
 	defer db.Close()
@@ -85,9 +107,10 @@ func RunMigrations() error {
 	driver, err := postgres.WithInstance(db, &postgres.Config{})
 	if err != nil {
 		slog.Error("Failed to create migration driver", "error", err)
+		return err
 	}
 
-	migrationsPath := filepath.Join(utils.GetCallerDir(0), "migrations")
+	migrationsPath := filepath.Join(utils.GetBasePath(), "src", "db", "migrations")
 	m, err := migrate.NewWithDatabaseInstance(
 		"file://"+migrationsPath,
 		"postgres",
@@ -95,10 +118,12 @@ func RunMigrations() error {
 	)
 	if err != nil {
 		slog.Error("Failed to initialize migrations", "error", err)
+		return err
 	}
 
 	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
 		slog.Error("Failed to apply migrations", "error", err)
+		return err
 	}
 
 	slog.Info("Migrations applied successfully")

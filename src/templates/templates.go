@@ -73,4 +73,4 @@ func loadTemplatesForTheme(root string, theme string) (*template.Template, error
 	return template.New("").Funcs(funcMap).ParseFiles(files...)
 }
 
-var Templates = template.Must(loadTemplatesForTheme(utils.GetCallerDir(0), "editorial"))
+var Templates = template.Must(loadTemplatesForTheme(filepath.Join(utils.GetBasePath(), "src", "templates"), "editorial"))

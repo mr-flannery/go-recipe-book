@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"strings"
 
 	"github.com/mr-flannery/go-recipe-book/src/utils"
 	"gopkg.in/yaml.v3"
@@ -50,26 +51,65 @@ func GetConfig() Config {
 		return config
 	}
 
-	// config.yaml is located at the project root (parent of src/)
-	configPath := filepath.Join(utils.GetCallerDir(0), "..", "..", "config.yaml")
+	cfg := Config{}
+
+	configPath := filepath.Join(utils.GetBasePath(), "config.yaml")
 	file, err := os.Open(configPath)
 	if err != nil {
-		panic("Failed to open config file: " + err.Error())
+		slog.Warn("Could not open config file, using environment variables only", "path", configPath, "error", err)
+	} else {
+		decoder := yaml.NewDecoder(file)
+		err = decoder.Decode(&cfg)
+		if err != nil {
+			slog.Warn("Failed to decode config file, using environment variables only", "error", err)
+		}
+		file.Close()
 	}
 
-	decoder := yaml.NewDecoder(file)
-	cfg := Config{}
-	err = decoder.Decode(&cfg)
-	if err != nil {
-		panic("Failed to decode config file: " + err.Error())
-	}
+	applyEnvOverrides(&cfg)
 
 	config = cfg
-
-	err = file.Close()
-	if err != nil {
-		slog.Warn("Failed to close config file", "error", err)
-	}
-
 	return config
+}
+
+func applyEnvOverrides(cfg *Config) {
+	if v := os.Getenv("DB_HOST"); v != "" {
+		cfg.DB.Host = v
+	}
+	if v := os.Getenv("DB_PORT"); v != "" {
+		cfg.DB.Port = v
+	}
+	if v := os.Getenv("DB_USER"); v != "" {
+		cfg.DB.User = v
+	}
+	if v := os.Getenv("DB_PASSWORD"); v != "" {
+		cfg.DB.Password = v
+	}
+	if v := os.Getenv("DB_NAME"); v != "" {
+		cfg.DB.Name = v
+	}
+	if v := os.Getenv("DB_SSLMODE"); v != "" {
+		cfg.DB.SSLMode = v
+	}
+	if v := os.Getenv("DB_ADMIN_USERNAME"); v != "" {
+		cfg.DB.Admin.Username = v
+	}
+	if v := os.Getenv("DB_ADMIN_EMAIL"); v != "" {
+		cfg.DB.Admin.Email = v
+	}
+	if v := os.Getenv("DB_ADMIN_PASSWORD"); v != "" {
+		cfg.DB.Admin.Password = v
+	}
+	if v := os.Getenv("ENVIRONMENT_MODE"); v != "" {
+		cfg.Environment.Mode = v
+	}
+	if v := os.Getenv("API_KEYS"); v != "" {
+		cfg.Api.Keys = strings.Split(v, ",")
+	}
+	if v := os.Getenv("MAIL_DOMAIN"); v != "" {
+		cfg.Mail.Domain = v
+	}
+	if v := os.Getenv("MAIL_API_KEY"); v != "" {
+		cfg.Mail.ApiKey = v
+	}
 }

@@ -2,44 +2,41 @@ name: Tests
 
 on:
   push:
-    branches: [main, master]
+    branches: [main]
   pull_request:
-    branches: [main, master]
+    branches: [main]
 
 jobs:
-  unit-tests:
-    name: Unit Tests
+  prepare:
+    name: Prepare Config
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Go
-        uses: actions/setup-go@v5
+      - name: Create config.yaml from template
+        env:
+          MAIL_DOMAIN: ${{ secrets.MAIL_DOMAIN }}
+          MAIL_API_KEY: ${{ secrets.MAIL_API_KEY }}
+        run: envsubst < config.yaml.tmpl > config.yaml
+
+      - name: Upload config.yaml
+        uses: actions/upload-artifact@v4
         with:
-          go-version: "1.24"
+          name: config
+          path: config.yaml
+          retention-days: 1
 
-      - name: Run unit tests
-        run: go test -v -race -short ./...
-
-  integration-tests:
-    name: Integration Tests
+  unit-and-integration-tests:
+    name: All Tests (unit and integration) with Coverage
     runs-on: ubuntu-latest
+    needs: [prepare]
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Go
-        uses: actions/setup-go@v5
+      - name: Download config.yaml
+        uses: actions/download-artifact@v4
         with:
-          go-version: "1.24"
-
-      - name: Run integration tests
-        run: go test -v -race -run "Integration" ./...
-
-  all-tests:
-    name: All Tests with Coverage
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
+          name: config
 
       - name: Set up Go
         uses: actions/setup-go@v5
@@ -58,9 +55,14 @@ jobs:
   browser-tests:
     name: Browser E2E Tests
     runs-on: ubuntu-latest
-    needs: [unit-tests]
+    needs: [unit-and-integration-tests]
     steps:
       - uses: actions/checkout@v4
+
+      - name: Download config.yaml
+        uses: actions/download-artifact@v4
+        with:
+          name: config
 
       - name: Set up Go
         uses: actions/setup-go@v5
@@ -79,7 +81,10 @@ jobs:
           npx playwright install --with-deps chromium
 
       - name: Start services with Docker Compose
-        run: docker compose up -d
+        env:
+          MAIL_DOMAIN: ${{ secrets.MAIL_DOMAIN }}
+          MAIL_API_KEY: ${{ secrets.MAIL_API_KEY }}
+        run: docker compose --profile ci up -d --build
 
       - name: Wait for services to be ready
         run: |
@@ -93,4 +98,4 @@ jobs:
 
       - name: Stop services
         if: always()
-        run: docker compose down
+        run: docker compose --profile ci down
