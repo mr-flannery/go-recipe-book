@@ -9,21 +9,16 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.css">
     <link rel="stylesheet" href="/static/css/editorial.css">
 </head>
-<body>
+<body class="has-sticky-actions">
     {{template "navbar" .UserInfo}}
 
     <main class="main-content">
-        <div class="navigation">
-            <a href="/recipes" class="btn">Back to Recipes</a>
-        </div>
-
         <div class="page-header">
             <h1>Submit a Recipe</h1>
-            <p>Share your culinary creation with our community</p>
         </div>
 
         <div class="card" style="max-width: 800px; margin: 0 auto;">
-            <form method="POST" enctype="multipart/form-data">
+            <form id="recipe-form" method="POST" enctype="multipart/form-data">
                 <div class="form-group">
                     <label for="title">Recipe Title *</label>
                     <input type="text" id="title" name="title" required placeholder="Enter a descriptive title for your recipe">
@@ -103,10 +98,6 @@
                     <div class="help-text">Use numbered lists, bold text, and other Markdown formatting to make instructions clear.</div>
                 </div>
 
-                <div class="form-actions">
-                    <button type="submit" class="btn primary">Submit Recipe</button>
-                    <a href="/recipes" class="btn">Cancel</a>
-                </div>
             </form>
         </div>
     </main>
@@ -210,6 +201,13 @@
     </script>
 
     {{template "footer" .UserInfo}}
+
+    <div class="sticky-actions">
+        <div class="sticky-actions-inner">
+            <button type="submit" form="recipe-form" class="btn primary">Submit</button>
+            <a href="/recipes" class="btn">Cancel</a>
+        </div>
+    </div>
 </body>
 </html>
 {{end}}

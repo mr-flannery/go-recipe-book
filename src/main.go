@@ -113,7 +113,7 @@ func main() {
 	requireAdminAuth := func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if !auth.IsUserAdmin(r.Context()) {
-				renderer.RenderError(w, r, http.StatusForbidden, "You need admin privileges to access this page.")
+				renderer.RenderError(w, r, http.StatusNotFound, "Page not found.")
 				return
 			}
 
@@ -121,6 +121,11 @@ func main() {
 		})
 	}
 
+	mux.Handle("GET /admin",
+		userContext(
+			requireAuth(
+				requireAdminAuth(
+					http.HandlerFunc(h.GetAdminIndexHandler)))))
 	mux.Handle("GET /admin/registrations",
 		userContext(
 			requireAuth(

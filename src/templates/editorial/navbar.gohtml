@@ -1,8 +1,4 @@
 {{define "navbar"}}
-<header class="masthead">
-    <p class="date-line">The Culinary Journal of Record</p>
-    <h1 class="publication-title">Taste</h1>
-</header>
 <nav class="navbar">
     <div class="navbar-inner">
         <a href="/" class="navbar-brand">Taste</a>
@@ -10,10 +6,8 @@
             <a href="/recipes" class="nav-link">Recipes</a>
             <a href="/recipes/random" class="nav-link">Random</a>
             {{if .IsLoggedIn}}
-                <span class="user-greeting">Welcome, {{.Username}}</span>
                 {{if .IsAdmin}}
-                    <a href="/admin/registrations" class="nav-link">Registrations</a>
-                    <a href="/admin/users" class="nav-link">Users</a>
+                    <a href="/admin" class="nav-link">Admin</a>
                 {{end}}
                 <a href="/logout" class="nav-link">Logout</a>
             {{else}}

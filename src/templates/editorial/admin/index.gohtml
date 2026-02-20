@@ -1,0 +1,33 @@
+{{define "admin-index.gohtml"}}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Taste</title>
+    <link rel="stylesheet" href="/static/css/editorial.css">
+</head>
+<body>
+    {{template "navbar" .UserInfo}}
+
+    <main class="main-content">
+        <div class="page-header">
+            <h1>Admin</h1>
+        </div>
+
+        <div class="admin-links">
+            <a href="/admin/registrations" class="admin-link-card">
+                <h2>Registrations</h2>
+                <p>Review and approve pending user registrations</p>
+            </a>
+            <a href="/admin/users" class="admin-link-card">
+                <h2>Users</h2>
+                <p>Manage existing users</p>
+            </a>
+        </div>
+    </main>
+
+    {{template "footer" .UserInfo}}
+</body>
+</html>
+{{end}}

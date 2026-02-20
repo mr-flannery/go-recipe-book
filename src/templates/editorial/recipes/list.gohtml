@@ -30,15 +30,12 @@
         }
     </script>
 </head>
-<body>
+<body class="has-sticky-actions">
     {{template "navbar" .UserInfo}}
 
     <main class="main-content">
         <div class="page-header">
             <h1>Recipe Collection</h1>
-            <div style="margin-top: 20px;">
-                <a href="/recipes/create" class="btn primary">Submit a Recipe</a>
-            </div>
         </div>
 
         <div class="filters filters-inline filters-collapsible">
@@ -202,6 +199,12 @@
     </script>
 
     {{template "footer" .UserInfo}}
+
+    <div class="sticky-actions">
+        <div class="sticky-actions-inner">
+            <a href="/recipes/create" class="btn primary">Submit a Recipe</a>
+        </div>
+    </div>
 </body>
 </html>
 {{end}}

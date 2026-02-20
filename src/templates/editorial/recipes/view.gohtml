@@ -66,18 +66,10 @@
         }
     </script>
 </head>
-<body>
+<body{{if .IsAuthor}} class="has-sticky-actions"{{end}}>
     {{template "navbar" .UserInfo}}
 
     <main class="main-content">
-        <div class="navigation">
-            <a href="/recipes" class="btn">Back to Recipes</a>
-            {{if .IsAuthor}}
-            <a href="/recipes/{{.Recipe.ID}}/update" class="btn">Edit Recipe</a>
-            <button onclick="deleteRecipe({{.Recipe.ID}})" class="btn danger">Delete Recipe</button>
-            {{end}}
-        </div>
-
         <article class="recipe-header">
             {{if .Recipe.Tags}}
             <span class="category-tag">{{(index .Recipe.Tags 0).Name}}</span>
@@ -190,6 +182,15 @@
     </main>
 
     {{template "footer" .UserInfo}}
+
+    {{if .IsAuthor}}
+    <div class="sticky-actions">
+        <div class="sticky-actions-inner">
+            <a href="/recipes/{{.Recipe.ID}}/update" class="btn">Edit</a>
+            <button onclick="deleteRecipe({{.Recipe.ID}})" class="btn danger">Delete</button>
+        </div>
+    </div>
+    {{end}}
 </body>
 </html>
 {{end}}

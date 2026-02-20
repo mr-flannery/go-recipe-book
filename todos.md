@@ -11,6 +11,10 @@
   - when adding a tag, the focus isn't on the input component any more, but it should
   - also when in the tag filter component, when pressing backspace, it should remove the latest tag
 
+- mobile UX
+  - navbar and filter menu look like shit
+  
+
 - cmd-enter should trigger certain actions on certain pages
 
 - the vscode launch/debug setting is kinda annoying right now

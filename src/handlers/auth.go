@@ -124,6 +124,17 @@ func (h *Handler) PostRegisterHandler(w http.ResponseWriter, r *http.Request) {
 	h.Renderer.RenderPage(w, "register.gohtml", data)
 }
 
+type AdminIndexData struct {
+	UserInfo *auth.UserInfo
+}
+
+func (h *Handler) GetAdminIndexHandler(w http.ResponseWriter, r *http.Request) {
+	data := AdminIndexData{
+		UserInfo: auth.GetUserInfoFromContext(r.Context()),
+	}
+	h.Renderer.RenderPage(w, "admin-index.gohtml", data)
+}
+
 type PendingRegistrationsData struct {
 	Registrations []auth.RegistrationRequest
 	Success       string
