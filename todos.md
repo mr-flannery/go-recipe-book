@@ -5,6 +5,7 @@
 
 - UX improvements!!
   - the layout of the create/edit page still sucks
+  - get rid of the weird top part of the navbar, and the name. the fuck is taste magazine
   - also I need to test the mobile layout!
   - the admin registration UX could be improved, by listing denied and approved registrations, and also by make the experience more dynamic, showing success messages or something like this.
   - when adding a tag, the focus isn't on the input component any more, but it should
@@ -15,6 +16,16 @@
 - the vscode launch/debug setting is kinda annoying right now
 
 - cookie banner
+- is the imprint up to date?
+  - also how do I handle the imprint containing my address without pushing my address to github?
+  - do it as a github secret?
+
+- SEO/performance testing
+  - can I use gzip and shit like this?
+
+- browser tests in CI
+  - currently only test for chromium?
+  - check if parallelism can be increased
 
 - performance testing
 

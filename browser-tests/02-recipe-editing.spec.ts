@@ -79,17 +79,13 @@ test.describe('Recipe Editing', () => {
     await expect(user2Page.getByRole('heading', { name: testRecipe.title, level: 1 })).toBeVisible();
     await expect(user2Page.getByRole('link', { name: 'Edit Recipe' })).not.toBeVisible();
 
-    // Non-author tries to access edit page directly - should be forbidden or redirected
-    const response = await user2Page.goto(`/recipes/update?id=${recipeId}`);
-    // The page loads but submitting changes should be forbidden
-    // Let's verify non-author cannot submit changes
-    await user2Page.locator('#title').fill('Hacked Title');
-    await user2Page.getByRole('button', { name: 'Update Recipe' }).click();
-    // Should get forbidden response - check we're not redirected to the recipe page with new title
-    await expect(user2Page.getByText('Forbidden')).toBeVisible();
+    // Non-author tries to access edit page directly - should see Access Denied error
+    await user2Page.goto(`/recipes/${recipeId}/update`);
+    await expect(user2Page.getByText('Access Denied')).toBeVisible();
+    await expect(user2Page.getByText('You can only edit your own recipes')).toBeVisible();
 
     // Author edits the recipe - modify all fields
-    await user1Page.goto(`/recipes/update?id=${recipeId}`);
+    await user1Page.goto(`/recipes/${recipeId}/update`);
     await expect(user1Page.getByRole('heading', { name: 'Edit Recipe', level: 1 })).toBeVisible();
 
     const updatedRecipe = {
@@ -175,7 +171,7 @@ test.describe('Recipe Editing', () => {
 
     // Go to edit page
     await user1Page.getByRole('link', { name: 'Edit Recipe' }).click();
-    await user1Page.waitForURL(`/recipes/update?id=${cancelRecipeId}`);
+    await user1Page.waitForURL(`/recipes/${cancelRecipeId}/update`);
 
     // Make changes to all fields
     await user1Page.locator('#title').clear();

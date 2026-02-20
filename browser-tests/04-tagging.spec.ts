@@ -277,7 +277,7 @@ test.describe('Tagging', () => {
       const recipeId = url.match(/\/recipes\/(\d+)/)?.[1] || '';
 
       await user1Page.getByRole('link', { name: 'Edit Recipe' }).click();
-      await user1Page.waitForURL(`/recipes/update?id=${recipeId}`);
+      await user1Page.waitForURL(`/recipes/${recipeId}/update`);
 
       await expect(user1Page.locator('#tags-container .tag').getByText('tropical')).toBeVisible();
       await expect(user1Page.locator('#tags-container .tag').getByText('sweet')).toBeVisible();

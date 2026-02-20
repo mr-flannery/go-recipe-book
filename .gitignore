@@ -50,6 +50,7 @@ coverage/
 go-test-cache/
 
 # Playwright
+test-results/
 browser-tests/test-results/
 browser-tests/playwright-report/
 browser-tests/blob-report/
