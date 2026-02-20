@@ -868,6 +868,49 @@ a:hover { color: var(--ink); }
     }
 }
 
+/* Collapsible filters toggle button - hidden on desktop */
+.filter-toggle {
+    display: none;
+}
+
+@media (max-width: 768px) {
+    .filter-toggle {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        width: 100%;
+        padding: 0;
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-family: 'Montserrat', sans-serif;
+        font-size: 10px;
+        letter-spacing: 3px;
+        text-transform: uppercase;
+        color: var(--ink);
+    }
+
+    .filter-toggle-icon::after {
+        content: '+';
+        font-size: 18px;
+        font-weight: 300;
+        line-height: 1;
+    }
+
+    .filters-collapsible.expanded .filter-toggle-icon::after {
+        content: '-';
+    }
+
+    .filters-collapsible .filter-form-collapsible {
+        display: none;
+        margin-top: 20px;
+    }
+
+    .filters-collapsible.expanded .filter-form-collapsible {
+        display: block;
+    }
+}
+
 /* Footer */
 .footer {
     text-align: center;

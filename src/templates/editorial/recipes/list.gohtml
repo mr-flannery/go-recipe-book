@@ -41,8 +41,12 @@
             </div>
         </div>
 
-        <div class="filters filters-inline">
-            <form id="filter-form" hx-post="/recipes/filter" hx-target="#recipe-results" hx-trigger="input delay:300ms, change">
+        <div class="filters filters-inline filters-collapsible">
+            <button type="button" class="filter-toggle" onclick="toggleFilters()" aria-expanded="false" aria-controls="filter-form">
+                <span class="filter-toggle-text">Filters</span>
+                <span class="filter-toggle-icon"></span>
+            </button>
+            <form id="filter-form" class="filter-form-collapsible" hx-post="/recipes/filter" hx-target="#recipe-results" hx-trigger="input delay:300ms, change">
                 <div class="filter-row-inline">
                     <div class="filter-group filter-search">
                         <label for="search">Search</label>
@@ -165,6 +169,14 @@
                 return;
             }
             window.location.href = `/recipes/${recipeId}`;
+        }
+
+        function toggleFilters() {
+            var filters = document.querySelector('.filters-collapsible');
+            var toggle = document.querySelector('.filter-toggle');
+            var isExpanded = filters.classList.contains('expanded');
+            filters.classList.toggle('expanded');
+            toggle.setAttribute('aria-expanded', !isExpanded);
         }
 
         function clearFilters() {
