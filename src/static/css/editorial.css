@@ -781,6 +781,12 @@ a:hover { color: var(--ink); }
     flex: 0 0 auto;
 }
 
+.filter-metrics-group {
+    display: flex;
+    gap: 15px;
+    flex: 0 0 auto;
+}
+
 .filter-metric-inputs {
     display: flex;
     gap: 6px;
@@ -899,8 +905,13 @@ a:hover { color: var(--ink); }
 }
 
 @media (max-width: 768px) {
-    .filter-row-inline .filter-metric {
-        flex: 1 1 calc(50% - 6px);
+    .filter-metrics-group {
+        flex: 1 1 100%;
+        gap: 12px;
+    }
+    
+    .filter-metrics-group .filter-metric {
+        flex: 1;
     }
     
     .filter-row-inline .filter-clear {
