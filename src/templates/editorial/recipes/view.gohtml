@@ -71,9 +71,6 @@
 
     <main class="main-content">
         <article class="recipe-header">
-            {{if .Recipe.Tags}}
-            <span class="category-tag">{{(index .Recipe.Tags 0).Name}}</span>
-            {{end}}
             <h1>{{.Recipe.Title}}</h1>
             
             {{if .Recipe.ImageBase64}}
@@ -170,7 +167,9 @@
                     <div class="form-group">
                         <textarea id="new-comment" name="comment" placeholder="Share your thoughts about this recipe..." required style="min-height: 100px;"></textarea>
                     </div>
-                    <button type="submit" class="btn primary">Post Comment</button>
+                    <div style="text-align: right;">
+                        <button type="submit" class="btn primary">Post Comment</button>
+                    </div>
                 </form>
             </div>
             {{else}}

@@ -140,17 +140,16 @@
                 {{end}}
             </div>
             {{if .HasMore}}
-            <div id="load-more-container" style="text-align: center; margin-top: 40px;">
-                <button class="btn"
+<div id="load-more-container" class="load-more-container">
+                <button id="load-more-btn" class="btn"
                     hx-post="/recipes/filter"
                     hx-target="#recipe-grid"
                     hx-swap="beforeend"
                     hx-include="#filter-form"
-                    hx-vals='{"offset": "{{.NextOffset}}"}'
-                    hx-indicator="#load-more-spinner">
+                    hx-vals='{"offset": "{​{.NextOffset}}"}'
+                    onclick="this.style.display='none'; document.getElementById('load-more-spinner').style.display='inline';">
                     Load More
-                </button>
-                <span id="load-more-spinner" class="htmx-indicator" style="margin-left: 10px;">Loading...</span>
+                </button><span id="load-more-spinner" style="display: none;">Loading...</span>
             </div>
             {{end}}
             {{else}}
