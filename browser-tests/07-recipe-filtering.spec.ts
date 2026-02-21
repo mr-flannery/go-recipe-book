@@ -1,5 +1,6 @@
 import { test as base, expect, Page } from '@playwright/test';
 import { TEST_USERS } from './test-users';
+import { fillToastEditor } from './editor-helpers';
 
 type AuthFixtures = {
   user1Page: Page;
@@ -72,8 +73,8 @@ test.describe('Recipe Filtering', () => {
     await page.locator('#preptime').fill(recipe.prepTime);
     await page.locator('#cooktime').fill(recipe.cookTime);
     await page.locator('#calories').fill(recipe.calories);
-    await page.locator('#ingredients').fill(recipe.ingredients);
-    await page.locator('#instructions').fill(recipe.instructions);
+    await fillToastEditor(page, 'ingredients-editor', recipe.ingredients);
+    await fillToastEditor(page, 'instructions-editor', recipe.instructions);
 
     for (const tag of recipe.tags) {
       await page.locator('#tags-input').fill(tag);
@@ -94,6 +95,30 @@ test.describe('Recipe Filtering', () => {
       response.url().includes('/recipes/filter') && response.status() === 200
     );
     await page.waitForTimeout(100);
+  }
+
+  async function createSimpleRecipe(page: Page, title: string): Promise<void> {
+    await page.goto('/recipes/create');
+    await page.getByRole('textbox', { name: 'Title' }).fill(title);
+    await page.locator('#preptime').fill('10');
+    await page.locator('#cooktime').fill('20');
+    await page.locator('#calories').fill('300');
+    await fillToastEditor(page, 'ingredients-editor', '- 1 ingredient');
+    await fillToastEditor(page, 'instructions-editor', '1. Do something');
+    await page.getByRole('button', { name: /Create Recipe|Submit/i }).click();
+    await page.waitForURL(/\/recipes\/\d+/);
+  }
+
+  async function ensureMinimumRecipes(page: Page, minCount: number): Promise<void> {
+    await page.goto('/recipes');
+    const totalCount = parseInt(await page.locator('#total-count').textContent() || '0');
+    
+    if (totalCount < minCount) {
+      const recipesToCreate = minCount - totalCount;
+      for (let i = 0; i < recipesToCreate; i++) {
+        await createSimpleRecipe(page, `Pagination Test Recipe ${uniqueId}-${i}`);
+      }
+    }
   }
 
   test.beforeAll(async ({ browser }) => {
@@ -181,6 +206,10 @@ test.describe('Recipe Filtering', () => {
       await dessertTag.locator('.tag-remove').click();
       await waitForFilterResults(page);
 
+      // After removing the filter, search for our specific test recipe to verify it can now be found
+      await page.locator('#search').fill(`Veggie Quick ${uniqueId}`);
+      await waitForFilterResults(page);
+
       titles = await getVisibleRecipeTitles(page);
       expect(titles.some(t => t.includes(`Veggie Quick ${uniqueId}`))).toBe(true);
     });
@@ -232,6 +261,10 @@ test.describe('Recipe Filtering', () => {
     test('user can filter by personal tags', async ({ user1Page: page }) => {
       await page.goto('/recipes');
       
+      // Search for the specific test recipe since it may not be on first page
+      await page.locator('#search').fill(`Veggie Quick ${uniqueId}`);
+      await waitForFilterResults(page);
+      
       const veggieCard = page.locator('.recipe-card').filter({ hasText: `Veggie Quick ${uniqueId}` }).first();
       await veggieCard.click();
       await page.waitForURL(/\/recipes\/\d+/);
@@ -267,6 +300,11 @@ test.describe('Recipe Filtering', () => {
 
     test('user tags are personal and do not affect other users filter', async ({ user1Page, user2Page }) => {
       await user1Page.goto('/recipes');
+      
+      // Search for the specific test recipe since it may not be on first page
+      await user1Page.locator('#search').fill(`Meat Slow ${uniqueId}`);
+      await waitForFilterResults(user1Page);
+      
       const meatCard = user1Page.locator('.recipe-card').filter({ hasText: `Meat Slow ${uniqueId}` }).first();
       await meatCard.click();
       await user1Page.waitForURL(/\/recipes\/\d+/);
@@ -376,6 +414,9 @@ test.describe('Recipe Filtering', () => {
     });
 
     test('count updates when clearing filters', async ({ user1Page: page }) => {
+      // Ensure we have more recipes than just our test recipes so clearing shows more
+      await ensureMinimumRecipes(page, 10);
+      
       await page.goto('/recipes');
 
       // Apply a filter to narrow results
@@ -399,15 +440,10 @@ test.describe('Recipe Filtering', () => {
 
   test.describe('Pagination and Page Markers', () => {
     test('page marker appears when loading more recipes', async ({ user1Page: page }) => {
-      await page.goto('/recipes');
-
-      const totalCount = parseInt(await page.locator('#total-count').textContent() || '0');
+      // Ensure we have enough recipes for pagination (need > 20)
+      await ensureMinimumRecipes(page, 25);
       
-      // Skip test if there aren't enough recipes for pagination
-      if (totalCount <= 20) {
-        test.skip();
-        return;
-      }
+      await page.goto('/recipes');
 
       // Initially there should be no page markers
       await expect(page.locator('.page-marker')).toHaveCount(0);
@@ -417,7 +453,6 @@ test.describe('Recipe Filtering', () => {
       await page.waitForResponse(response => 
         response.url().includes('/recipes/filter') && response.status() === 200
       );
-      await page.waitForTimeout(100);
 
       // Page marker should appear with range format (e.g., "21-40 of 1214")
       const pageMarker = page.locator('.page-marker').first();
@@ -427,20 +462,17 @@ test.describe('Recipe Filtering', () => {
     });
 
     test('top count stays static after loading more', async ({ user1Page: page }) => {
-      await page.goto('/recipes');
-
-      const totalCount = parseInt(await page.locator('#total-count').textContent() || '0');
+      // Ensure we have enough recipes for pagination (need > 20)
+      await ensureMinimumRecipes(page, 25);
       
-      // Skip test if there aren't enough recipes for pagination
-      if (totalCount <= 20) {
-        test.skip();
-        return;
-      }
+      await page.goto('/recipes');
 
       const initialCountText = await page.locator('#recipe-count').textContent() || '';
       const initialMatch = initialCountText.match(/(\d+)-(\d+) of (\d+)/);
       expect(initialMatch).not.toBeNull();
+      const initialRangeStart = parseInt(initialMatch![1]);
       const initialRangeEnd = parseInt(initialMatch![2]);
+      const initialTotal = parseInt(initialMatch![3]);
       expect(initialRangeEnd).toBeLessThanOrEqual(20);
 
       // Click Load More
@@ -450,9 +482,13 @@ test.describe('Recipe Filtering', () => {
       );
       await page.waitForTimeout(100);
 
-      // Top count indicator should remain unchanged (static 1-20)
+      // Top count indicator should remain unchanged (static 1-20 of N)
       const afterCountText = await page.locator('#recipe-count').textContent() || '';
-      expect(afterCountText).toBe(initialCountText);
+      const afterMatch = afterCountText.match(/(\d+)-(\d+) of (\d+)/);
+      expect(afterMatch).not.toBeNull();
+      expect(parseInt(afterMatch![1])).toBe(initialRangeStart);
+      expect(parseInt(afterMatch![2])).toBe(initialRangeEnd);
+      expect(parseInt(afterMatch![3])).toBe(initialTotal);
     });
 
     test('load more button disappears when all recipes are loaded', async ({ user1Page: page }) => {
@@ -502,8 +538,8 @@ test.describe('Recipe Filtering', () => {
       await page1.locator('#preptime').fill('10');
       await page1.locator('#cooktime').fill('20');
       await page1.locator('#calories').fill('300');
-      await page1.locator('#ingredients').fill('- test ingredient');
-      await page1.locator('#instructions').fill('1. test instruction');
+      await fillToastEditor(page1, 'ingredients-editor', '- test ingredient');
+      await fillToastEditor(page1, 'instructions-editor', '1. test instruction');
       await page1.getByRole('button', { name: /Create Recipe|Submit/i }).click();
       await page1.waitForURL(/\/recipes\/\d+/);
       await context1.close();
@@ -522,8 +558,8 @@ test.describe('Recipe Filtering', () => {
       await page2.locator('#preptime').fill('15');
       await page2.locator('#cooktime').fill('25');
       await page2.locator('#calories').fill('400');
-      await page2.locator('#ingredients').fill('- another ingredient');
-      await page2.locator('#instructions').fill('1. another instruction');
+      await fillToastEditor(page2, 'ingredients-editor', '- another ingredient');
+      await fillToastEditor(page2, 'instructions-editor', '1. another instruction');
       await page2.getByRole('button', { name: /Create Recipe|Submit/i }).click();
       await page2.waitForURL(/\/recipes\/\d+/);
       await context2.close();

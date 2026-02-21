@@ -11,6 +11,7 @@ type MockRecipeStore struct {
 	GetFilteredFunc   func(params models.FilterParams) ([]models.Recipe, error)
 	CountFilteredFunc func(params models.FilterParams) (int, error)
 	GetRandomIDFunc   func() (int, error)
+	SearchByTitleFunc func(query string, limit int) ([]models.RecipeSearchResult, error)
 }
 
 func (m *MockRecipeStore) Save(recipe models.Recipe) (int, error) {
@@ -67,6 +68,13 @@ func (m *MockRecipeStore) GetRandomID() (int, error) {
 		return m.GetRandomIDFunc()
 	}
 	return 0, nil
+}
+
+func (m *MockRecipeStore) SearchByTitle(query string, limit int) ([]models.RecipeSearchResult, error) {
+	if m.SearchByTitleFunc != nil {
+		return m.SearchByTitleFunc(query, limit)
+	}
+	return nil, nil
 }
 
 type MockTagStore struct {
@@ -231,4 +239,23 @@ func (m *MockUserStore) GetUsernameByID(userID int) (string, error) {
 		return m.GetUsernameByIDFunc(userID)
 	}
 	return "", nil
+}
+
+type MockIngredientStore struct {
+	SearchFunc      func(query string, limit int) ([]string, error)
+	GetOrCreateFunc func(name string) (int, error)
+}
+
+func (m *MockIngredientStore) Search(query string, limit int) ([]string, error) {
+	if m.SearchFunc != nil {
+		return m.SearchFunc(query, limit)
+	}
+	return nil, nil
+}
+
+func (m *MockIngredientStore) GetOrCreate(name string) (int, error) {
+	if m.GetOrCreateFunc != nil {
+		return m.GetOrCreateFunc(name)
+	}
+	return 0, nil
 }

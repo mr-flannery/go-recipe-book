@@ -293,6 +293,64 @@ func TestRecipeStore_GetRandomID_ReturnsErrorWhenNoRecipes(t *testing.T) {
 	}
 }
 
+func TestRecipeStore_SearchByTitle_ReturnsMatchingRecipes(t *testing.T) {
+
+	testDB := testutil.GetTestDatabase(t)
+
+	userID := testDB.SeedUser(t, "testuser", "test@example.com", "hashedpass", false)
+	testDB.SeedRecipe(t, "Chocolate Cake", "- cocoa", "Bake it", userID)
+	testDB.SeedRecipe(t, "Carrot Cake", "- carrots", "Bake it too", userID)
+	testDB.SeedRecipe(t, "Vanilla Ice Cream", "- vanilla", "Freeze it", userID)
+	store := NewRecipeStore(testDB.DB)
+
+	t.Run("finds recipes matching query", func(t *testing.T) {
+		results, err := store.SearchByTitle("cake", 10)
+		if err != nil {
+			t.Fatalf("failed to search recipes: %v", err)
+		}
+
+		if len(results) != 2 {
+			t.Errorf("expected 2 recipes matching 'cake', got %d", len(results))
+		}
+	})
+
+	t.Run("search is case-insensitive", func(t *testing.T) {
+		results, err := store.SearchByTitle("CHOCOLATE", 10)
+		if err != nil {
+			t.Fatalf("failed to search recipes: %v", err)
+		}
+
+		if len(results) != 1 {
+			t.Errorf("expected 1 recipe matching 'CHOCOLATE', got %d", len(results))
+		}
+		if len(results) > 0 && results[0].Title != "Chocolate Cake" {
+			t.Errorf("expected 'Chocolate Cake', got '%s'", results[0].Title)
+		}
+	})
+
+	t.Run("respects limit parameter", func(t *testing.T) {
+		results, err := store.SearchByTitle("cake", 1)
+		if err != nil {
+			t.Fatalf("failed to search recipes: %v", err)
+		}
+
+		if len(results) != 1 {
+			t.Errorf("expected 1 recipe with limit 1, got %d", len(results))
+		}
+	})
+
+	t.Run("returns empty slice when no matches", func(t *testing.T) {
+		results, err := store.SearchByTitle("pizza", 10)
+		if err != nil {
+			t.Fatalf("failed to search recipes: %v", err)
+		}
+
+		if len(results) != 0 {
+			t.Errorf("expected 0 recipes matching 'pizza', got %d", len(results))
+		}
+	})
+}
+
 func itoa(i int) string {
 	return strconv.Itoa(i)
 }

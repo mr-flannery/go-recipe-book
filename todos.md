@@ -5,15 +5,17 @@
 
 - UX improvements!!
   - the layout of the create/edit page still sucks
-  - get rid of the weird top part of the navbar, and the name. the fuck is taste magazine
   - also I need to test the mobile layout!
   - the admin registration UX could be improved, by listing denied and approved registrations, and also by make the experience more dynamic, showing success messages or something like this.
   - when adding a tag, the focus isn't on the input component any more, but it should
   - also when in the tag filter component, when pressing backspace, it should remove the latest tag
 
-- mobile UX
-  - navbar and filter menu look like shit
-  
+- the current syntax for recipes and ingredients is not mobile friendly, probably
+  - also on desktop some of the default shortcuts of the editor are annoying
+  - if an ingredient is mentioned in the instructions, i want there to be syntax to automatically fill in that ingredient into the text. ideally also with the option to put in a fraction of the overall quantity, e.g. if the usage of some ingredient is split over several steps.
+  - if the instructions mention some ingredient twice, there should be some section where everythings summed up, e.g. for the purpose of creating a shopping list. maybe a shopping list button would be the actual thing to do here.
+  - also the whole thing really only works well with some integration with an ingredient API that also contains stuff like calorie count etc.
+
 
 - cmd-enter should trigger certain actions on certain pages
 

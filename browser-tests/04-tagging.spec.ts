@@ -1,5 +1,6 @@
 import { test as base, expect, Page } from '@playwright/test';
 import { TEST_USERS } from './test-users';
+import { fillToastEditor } from './editor-helpers';
 
 type AuthFixtures = {
   user1Page: Page;
@@ -54,8 +55,8 @@ test.describe('Tagging', () => {
       await user1Page.locator('#preptime').fill(testRecipe.prepTime);
       await user1Page.locator('#cooktime').fill(testRecipe.cookTime);
       await user1Page.locator('#calories').fill(testRecipe.calories);
-      await user1Page.locator('#ingredients').fill(testRecipe.ingredients);
-      await user1Page.locator('#instructions').fill(testRecipe.instructions);
+      await fillToastEditor(user1Page, 'ingredients-editor', testRecipe.ingredients);
+      await fillToastEditor(user1Page, 'instructions-editor', testRecipe.instructions);
 
       for (const tag of testRecipe.tags) {
         await user1Page.locator('#tags-input').fill(tag);
@@ -89,8 +90,8 @@ test.describe('Tagging', () => {
       await user1Page.locator('#preptime').fill(testRecipe.prepTime);
       await user1Page.locator('#cooktime').fill(testRecipe.cookTime);
       await user1Page.locator('#calories').fill(testRecipe.calories);
-      await user1Page.locator('#ingredients').fill(testRecipe.ingredients);
-      await user1Page.locator('#instructions').fill(testRecipe.instructions);
+      await fillToastEditor(user1Page, 'ingredients-editor', testRecipe.ingredients);
+      await fillToastEditor(user1Page, 'instructions-editor', testRecipe.instructions);
 
       await user1Page.locator('#tags-input').fill(testRecipe.initialTag);
       await user1Page.locator('#tags-input').press('Enter');
@@ -134,8 +135,8 @@ test.describe('Tagging', () => {
       await user1Page.locator('#preptime').fill(testRecipe.prepTime);
       await user1Page.locator('#cooktime').fill(testRecipe.cookTime);
       await user1Page.locator('#calories').fill(testRecipe.calories);
-      await user1Page.locator('#ingredients').fill(testRecipe.ingredients);
-      await user1Page.locator('#instructions').fill(testRecipe.instructions);
+      await fillToastEditor(user1Page, 'ingredients-editor', testRecipe.ingredients);
+      await fillToastEditor(user1Page, 'instructions-editor', testRecipe.instructions);
       await user1Page.locator('#tags-input').fill(testRecipe.tag);
       await user1Page.locator('#tags-input').press('Enter');
       await user1Page.getByRole('button', { name: /Create Recipe|Submit/i }).click();
@@ -171,8 +172,8 @@ test.describe('Tagging', () => {
       await user1Page.locator('#preptime').fill(testRecipe.prepTime);
       await user1Page.locator('#cooktime').fill(testRecipe.cookTime);
       await user1Page.locator('#calories').fill(testRecipe.calories);
-      await user1Page.locator('#ingredients').fill(testRecipe.ingredients);
-      await user1Page.locator('#instructions').fill(testRecipe.instructions);
+      await fillToastEditor(user1Page, 'ingredients-editor', testRecipe.ingredients);
+      await fillToastEditor(user1Page, 'instructions-editor', testRecipe.instructions);
       await user1Page.getByRole('button', { name: /Create Recipe|Submit/i }).click();
       await user1Page.waitForURL(/\/recipes\/\d+/);
 
@@ -215,8 +216,8 @@ test.describe('Tagging', () => {
       await user1Page.locator('#preptime').fill(testRecipe.prepTime);
       await user1Page.locator('#cooktime').fill(testRecipe.cookTime);
       await user1Page.locator('#calories').fill(testRecipe.calories);
-      await user1Page.locator('#ingredients').fill(testRecipe.ingredients);
-      await user1Page.locator('#instructions').fill(testRecipe.instructions);
+      await fillToastEditor(user1Page, 'ingredients-editor', testRecipe.ingredients);
+      await fillToastEditor(user1Page, 'instructions-editor', testRecipe.instructions);
       await user1Page.getByRole('button', { name: /Create Recipe|Submit/i }).click();
       await user1Page.waitForURL(/\/recipes\/\d+/);
 
@@ -262,8 +263,8 @@ test.describe('Tagging', () => {
       await user1Page.locator('#preptime').fill(testRecipe.prepTime);
       await user1Page.locator('#cooktime').fill(testRecipe.cookTime);
       await user1Page.locator('#calories').fill(testRecipe.calories);
-      await user1Page.locator('#ingredients').fill(testRecipe.ingredients);
-      await user1Page.locator('#instructions').fill(testRecipe.instructions);
+      await fillToastEditor(user1Page, 'ingredients-editor', testRecipe.ingredients);
+      await fillToastEditor(user1Page, 'instructions-editor', testRecipe.instructions);
 
       for (const tag of testRecipe.initialTags) {
         await user1Page.locator('#tags-input').fill(tag);
@@ -276,7 +277,7 @@ test.describe('Tagging', () => {
       const url = user1Page.url();
       const recipeId = url.match(/\/recipes\/(\d+)/)?.[1] || '';
 
-      await user1Page.getByRole('link', { name: 'Edit Recipe' }).click();
+      await user1Page.getByRole('link', { name: 'Edit' }).click();
       await user1Page.waitForURL(`/recipes/${recipeId}/update`);
 
       await expect(user1Page.locator('#tags-container .tag').getByText('tropical')).toBeVisible();
@@ -292,7 +293,7 @@ test.describe('Tagging', () => {
       await expect(user1Page.locator('#tags-container .tag').getByText('sweet')).toBeVisible();
       await expect(user1Page.locator('#tags-container .tag').getByText('dessert')).toBeVisible();
 
-      await user1Page.getByRole('button', { name: 'Update Recipe' }).click();
+      await user1Page.getByRole('button', { name: 'Update' }).click();
       await user1Page.waitForURL(`/recipes/${recipeId}`);
 
       await expect(user1Page.locator('#author-tags-container .tag').getByText('tropical')).not.toBeVisible();

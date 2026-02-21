@@ -146,7 +146,7 @@
                     hx-target="#recipe-grid"
                     hx-swap="beforeend"
                     hx-include="#filter-form"
-                    hx-vals='{"offset": "{​{.NextOffset}}"}'
+                    hx-vals='{"offset": "{{.NextOffset}}"}'
                     onclick="this.style.display='none'; document.getElementById('load-more-spinner').style.display='inline';">
                     Load More
                 </button><span id="load-more-spinner" style="display: none;">Loading...</span>

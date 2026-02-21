@@ -91,3 +91,8 @@ type FilterParams struct {
 	Limit         int
 	Offset        int
 }
+
+type RecipeSearchResult struct {
+	ID    int
+	Title string
+}

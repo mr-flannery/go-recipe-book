@@ -1,4 +1,5 @@
 import { test, expect } from './fixtures';
+import { fillToastEditor } from './editor-helpers';
 
 test.describe('Recipe Creation', () => {
   const testRecipe = {
@@ -25,8 +26,8 @@ test.describe('Recipe Creation', () => {
     await page.locator('#preptime').fill(testRecipe.prepTime);
     await page.locator('#cooktime').fill(testRecipe.cookTime);
     await page.locator('#calories').fill(testRecipe.calories);
-    await page.locator('#ingredients').fill(testRecipe.ingredients);
-    await page.locator('#instructions').fill(testRecipe.instructions);
+    await fillToastEditor(page, 'ingredients-editor', testRecipe.ingredients);
+    await fillToastEditor(page, 'instructions-editor', testRecipe.instructions);
 
     // Submit the form
     await page.getByRole('button', { name: /Create Recipe|Submit/i }).click();
@@ -45,11 +46,11 @@ test.describe('Recipe Creation', () => {
     // Navigate back to recipe overview
     await page.goto('/recipes');
 
-    // Verify the new recipe appears in the list
-    await expect(page.getByText(testRecipe.title)).toBeVisible();
+    // Verify the new recipe appears in the list (use exact match to avoid matching "Cancel Test Recipe...")
+    await expect(page.getByText(testRecipe.title, { exact: true })).toBeVisible();
 
     // Click on the recipe to navigate to its detail page
-    await page.getByText(testRecipe.title).click();
+    await page.getByText(testRecipe.title, { exact: true }).click();
     await page.waitForURL(/\/recipes\/\d+/);
 
     // Verify the recipe details again

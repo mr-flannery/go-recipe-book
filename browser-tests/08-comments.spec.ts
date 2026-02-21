@@ -1,5 +1,6 @@
 import { test as base, expect, Page } from '@playwright/test';
 import { TEST_USERS } from './test-users';
+import { fillToastEditor } from './editor-helpers';
 
 type AuthFixtures = {
   user1Page: Page;
@@ -41,8 +42,8 @@ async function createRecipe(page: Page, title: string): Promise<string> {
   await page.locator('#preptime').fill('10');
   await page.locator('#cooktime').fill('20');
   await page.locator('#calories').fill('300');
-  await page.locator('#ingredients').fill('- 1 cup rice');
-  await page.locator('#instructions').fill('1. Cook rice');
+  await fillToastEditor(page, 'ingredients-editor', '- 1 cup rice');
+  await fillToastEditor(page, 'instructions-editor', '1. Cook rice');
   await page.getByRole('button', { name: /Create Recipe|Submit/i }).click();
   await page.waitForURL(/\/recipes\/\d+/);
   return page.url().match(/\/recipes\/(\d+)/)?.[1] || '';

@@ -1,4 +1,4 @@
-.PHONY: dev run build test test-unit test-integration test-coverage clean db-start migrate help
+.PHONY: dev run build test test-unit test-integration test-coverage test-browser test-browser-ui clean db-start migrate help
 
 help:
 	@echo "Available commands:"
@@ -9,6 +9,8 @@ help:
 	@echo "  make test-unit        - Run unit tests only (fast, no Docker)"
 	@echo "  make test-integration - Run integration tests (requires Docker)"
 	@echo "  make test-coverage    - Run all tests with coverage report"
+	@echo "  make test-browser     - Run browser tests headless (requires server running)"
+	@echo "  make test-browser-ui  - Run browser tests with UI (requires server running)"
 	@echo "  make clean            - Remove build artifacts"
 	@echo "  make migrate          - Run database migrations"
 
@@ -44,3 +46,9 @@ clean:
 
 migrate:
 	go run ./src/main.go migrate
+
+test-browser:
+	cd browser-tests && npx playwright test
+
+test-browser-ui:
+	cd browser-tests && npx playwright test --ui

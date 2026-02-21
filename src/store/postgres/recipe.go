@@ -354,3 +354,26 @@ func (s *RecipeStore) GetRandomID() (int, error) {
 
 	return id, nil
 }
+
+func (s *RecipeStore) SearchByTitle(query string, limit int) ([]models.RecipeSearchResult, error) {
+	searchPattern := "%" + strings.ToLower(query) + "%"
+	rows, err := s.db.Query(
+		"SELECT id, title FROM recipes WHERE LOWER(title) LIKE $1 ORDER BY title LIMIT $2",
+		searchPattern, limit,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to search recipes: %v", err)
+	}
+	defer rows.Close()
+
+	var results []models.RecipeSearchResult
+	for rows.Next() {
+		var r models.RecipeSearchResult
+		if err := rows.Scan(&r.ID, &r.Title); err != nil {
+			return nil, fmt.Errorf("failed to scan recipe search result: %v", err)
+		}
+		results = append(results, r)
+	}
+
+	return results, rows.Err()
+}

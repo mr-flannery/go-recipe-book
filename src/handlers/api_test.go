@@ -228,6 +228,178 @@ func TestAPIHealthHandler_RespondsBasedOnHttpMethod(t *testing.T) {
 	})
 }
 
+func TestAPISearchIngredientsHandler_ReturnsMatchingIngredients(t *testing.T) {
+	t.Run("returns method not allowed when method is not GET", func(t *testing.T) {
+		h := &Handler{}
+		req := httptest.NewRequest(http.MethodPost, "/api/ingredients/search?q=flour", nil)
+		rec := httptest.NewRecorder()
+
+		h.APISearchIngredientsHandler(rec, req)
+
+		if rec.Code != http.StatusMethodNotAllowed {
+			t.Errorf("expected status %d, got %d", http.StatusMethodNotAllowed, rec.Code)
+		}
+	})
+
+	t.Run("returns empty array when query is empty", func(t *testing.T) {
+		h := &Handler{}
+		req := httptest.NewRequest(http.MethodGet, "/api/ingredients/search", nil)
+		rec := httptest.NewRecorder()
+
+		h.APISearchIngredientsHandler(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Errorf("expected status %d, got %d", http.StatusOK, rec.Code)
+		}
+
+		var results []string
+		json.NewDecoder(rec.Body).Decode(&results)
+		if len(results) != 0 {
+			t.Errorf("expected empty array, got %v", results)
+		}
+	})
+
+	t.Run("returns matching ingredients from store", func(t *testing.T) {
+		mockIngredientStore := &mocks.MockIngredientStore{
+			SearchFunc: func(query string, limit int) ([]string, error) {
+				if query == "flou" {
+					return []string{"flour", "all-purpose flour", "bread flour"}, nil
+				}
+				return []string{}, nil
+			},
+		}
+
+		h := &Handler{
+			IngredientStore: mockIngredientStore,
+		}
+
+		req := httptest.NewRequest(http.MethodGet, "/api/ingredients/search?q=flou", nil)
+		rec := httptest.NewRecorder()
+
+		h.APISearchIngredientsHandler(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Errorf("expected status %d, got %d", http.StatusOK, rec.Code)
+		}
+
+		var results []string
+		json.NewDecoder(rec.Body).Decode(&results)
+		if len(results) != 3 {
+			t.Errorf("expected 3 results, got %d", len(results))
+		}
+	})
+
+	t.Run("returns error when store fails", func(t *testing.T) {
+		mockIngredientStore := &mocks.MockIngredientStore{
+			SearchFunc: func(query string, limit int) ([]string, error) {
+				return nil, errors.New("database error")
+			},
+		}
+
+		h := &Handler{
+			IngredientStore: mockIngredientStore,
+		}
+
+		req := httptest.NewRequest(http.MethodGet, "/api/ingredients/search?q=test", nil)
+		rec := httptest.NewRecorder()
+
+		h.APISearchIngredientsHandler(rec, req)
+
+		if rec.Code != http.StatusInternalServerError {
+			t.Errorf("expected status %d, got %d", http.StatusInternalServerError, rec.Code)
+		}
+	})
+}
+
+func TestAPISearchRecipesHandler_ReturnsMatchingRecipes(t *testing.T) {
+	t.Run("returns method not allowed when method is not GET", func(t *testing.T) {
+		h := &Handler{}
+		req := httptest.NewRequest(http.MethodPost, "/api/recipes/search?q=cake", nil)
+		rec := httptest.NewRecorder()
+
+		h.APISearchRecipesHandler(rec, req)
+
+		if rec.Code != http.StatusMethodNotAllowed {
+			t.Errorf("expected status %d, got %d", http.StatusMethodNotAllowed, rec.Code)
+		}
+	})
+
+	t.Run("returns empty array when query is empty", func(t *testing.T) {
+		h := &Handler{}
+		req := httptest.NewRequest(http.MethodGet, "/api/recipes/search", nil)
+		rec := httptest.NewRecorder()
+
+		h.APISearchRecipesHandler(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Errorf("expected status %d, got %d", http.StatusOK, rec.Code)
+		}
+
+		var results []models.RecipeSearchResult
+		json.NewDecoder(rec.Body).Decode(&results)
+		if len(results) != 0 {
+			t.Errorf("expected empty array, got %v", results)
+		}
+	})
+
+	t.Run("returns matching recipes from store", func(t *testing.T) {
+		mockRecipeStore := &mocks.MockRecipeStore{
+			SearchByTitleFunc: func(query string, limit int) ([]models.RecipeSearchResult, error) {
+				if query == "cake" {
+					return []models.RecipeSearchResult{
+						{ID: 1, Title: "Chocolate Cake"},
+						{ID: 2, Title: "Carrot Cake"},
+					}, nil
+				}
+				return []models.RecipeSearchResult{}, nil
+			},
+		}
+
+		h := &Handler{
+			RecipeStore: mockRecipeStore,
+		}
+
+		req := httptest.NewRequest(http.MethodGet, "/api/recipes/search?q=cake", nil)
+		rec := httptest.NewRecorder()
+
+		h.APISearchRecipesHandler(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Errorf("expected status %d, got %d", http.StatusOK, rec.Code)
+		}
+
+		var results []models.RecipeSearchResult
+		json.NewDecoder(rec.Body).Decode(&results)
+		if len(results) != 2 {
+			t.Errorf("expected 2 results, got %d", len(results))
+		}
+		if results[0].Title != "Chocolate Cake" {
+			t.Errorf("expected first result 'Chocolate Cake', got '%s'", results[0].Title)
+		}
+	})
+
+	t.Run("returns error when store fails", func(t *testing.T) {
+		mockRecipeStore := &mocks.MockRecipeStore{
+			SearchByTitleFunc: func(query string, limit int) ([]models.RecipeSearchResult, error) {
+				return nil, errors.New("database error")
+			},
+		}
+
+		h := &Handler{
+			RecipeStore: mockRecipeStore,
+		}
+
+		req := httptest.NewRequest(http.MethodGet, "/api/recipes/search?q=test", nil)
+		rec := httptest.NewRecorder()
+
+		h.APISearchRecipesHandler(rec, req)
+
+		if rec.Code != http.StatusInternalServerError {
+			t.Errorf("expected status %d, got %d", http.StatusInternalServerError, rec.Code)
+		}
+	})
+}
+
 func TestAPICreateRecipeHandler_CreatesRecipeBasedOnInput(t *testing.T) {
 	t.Run("returns method not allowed when method is not POST", func(t *testing.T) {
 		h := &Handler{}

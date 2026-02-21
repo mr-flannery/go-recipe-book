@@ -11,6 +11,7 @@ type RecipeStore interface {
 	GetFiltered(params models.FilterParams) ([]models.Recipe, error)
 	CountFiltered(params models.FilterParams) (int, error)
 	GetRandomID() (int, error)
+	SearchByTitle(query string, limit int) ([]models.RecipeSearchResult, error)
 }
 
 type TagStore interface {
@@ -42,6 +43,11 @@ type CommentStore interface {
 
 type UserStore interface {
 	GetUsernameByID(userID int) (string, error)
+}
+
+type IngredientStore interface {
+	Search(query string, limit int) ([]string, error)
+	GetOrCreate(name string) (int, error)
 }
 
 type AuthUser struct {

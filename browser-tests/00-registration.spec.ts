@@ -22,12 +22,12 @@ test.describe('User Registration', () => {
   test('approved users can login successfully', async ({ page }) => {
     await loginUser(page, TEST_USERS.approved1.email, TEST_USERS.approved1.password);
     await expect(page).toHaveURL('/');
-    await expect(page.locator('.user-greeting')).toContainText(TEST_USERS.approved1.username);
+    await expect(page.getByRole('link', { name: 'Logout' })).toBeVisible();
     await page.getByRole('link', { name: 'Logout' }).click();
 
     await loginUser(page, TEST_USERS.approved2.email, TEST_USERS.approved2.password);
     await expect(page).toHaveURL('/');
-    await expect(page.locator('.user-greeting')).toContainText(TEST_USERS.approved2.username);
+    await expect(page.getByRole('link', { name: 'Logout' })).toBeVisible();
     await page.getByRole('link', { name: 'Logout' }).click();
   });
 

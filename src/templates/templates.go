@@ -3,9 +3,11 @@ package templates
 import (
 	"html/template"
 	"io/fs"
+	"log/slog"
 	"path/filepath"
 	"strings"
 
+	"github.com/mr-flannery/go-recipe-book/src/markdown"
 	"github.com/mr-flannery/go-recipe-book/src/models"
 	"github.com/mr-flannery/go-recipe-book/src/utils"
 )
@@ -31,6 +33,14 @@ var funcMap = template.FuncMap{
 			names[i] = t.Name
 		}
 		return strings.Join(names, ",")
+	},
+	"renderMarkdown": func(source string) template.HTML {
+		html, err := markdown.Render(source)
+		if err != nil {
+			slog.Error("Failed to render markdown", "error", err)
+			return template.HTML(template.HTMLEscapeString(source))
+		}
+		return template.HTML(html)
 	},
 }
 

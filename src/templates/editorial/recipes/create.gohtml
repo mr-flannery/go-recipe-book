@@ -7,6 +7,8 @@
     <title>Submit a Recipe - Taste Magazine</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.css">
+    <link rel="stylesheet" href="https://uicdn.toast.com/editor/latest/toastui-editor.min.css">
+    <script src="https://uicdn.toast.com/editor/latest/toastui-editor-all.min.js"></script>
     <link rel="stylesheet" href="/static/css/editorial.css">
 </head>
 <body class="has-sticky-actions">
@@ -75,27 +77,17 @@
                 {{template "tag-input-form" dict "ID" "tags" "InitialTags" ""}}
 
                 <div class="form-group">
-                    <label for="ingredients">Ingredients (Markdown) *</label>
-                    <textarea id="ingredients" name="ingredients" required placeholder="List your ingredients here. You can use Markdown formatting:
-
-- 2 cups all-purpose flour
-- 1 tsp baking powder
-- 1/2 cup sugar
-- **Optional:** 1 tsp vanilla extract"></textarea>
-                    <div class="help-text">Use Markdown formatting for better presentation. Each ingredient on a new line.</div>
+                    <label>Ingredients *</label>
+                    <input type="hidden" id="ingredients" name="ingredients" required>
+                    <div id="ingredients-editor"></div>
+                    <div class="help-text">Use @ingredient{name|quantity} for ingredients, e.g. @ingredient{flour|2 cups}. Link recipes with [[Recipe Name]].</div>
                 </div>
 
                 <div class="form-group">
-                    <label for="instructions">Instructions (Markdown) *</label>
-                    <textarea id="instructions" name="instructions" required placeholder="Provide step-by-step instructions. You can use Markdown formatting:
-
-1. **Preheat** oven to 350F (175C)
-2. In a large bowl, mix dry ingredients
-3. Add wet ingredients and stir until combined
-4. Bake for 25-30 minutes until golden brown
-
-*Tip: Let cool for 5 minutes before serving*"></textarea>
-                    <div class="help-text">Use numbered lists, bold text, and other Markdown formatting to make instructions clear.</div>
+                    <label>Instructions *</label>
+                    <input type="hidden" id="instructions" name="instructions" required>
+                    <div id="instructions-editor"></div>
+                    <div class="help-text">Use numbered lists for steps. Link to other recipes with [[Recipe Name]].</div>
                 </div>
 
             </form>
@@ -197,6 +189,21 @@
             if (cropper && imageInput.files[0]) {
                 updatePreview();
             }
+        });
+    </script>
+    <script src="/static/js/recipe-editor.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            RecipeEditor.init('ingredients-editor', {
+                hiddenInputId: 'ingredients',
+                height: '250px',
+                placeholder: 'List ingredients using @ingredient{name|quantity} syntax...'
+            });
+            RecipeEditor.init('instructions-editor', {
+                hiddenInputId: 'instructions',
+                height: '350px',
+                placeholder: 'Write step-by-step instructions...'
+            });
         });
     </script>
 

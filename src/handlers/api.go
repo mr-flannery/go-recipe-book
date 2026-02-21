@@ -12,6 +12,8 @@ import (
 	"github.com/mr-flannery/go-recipe-book/src/models"
 )
 
+// Using models.RecipeSearchResult for recipe search results
+
 type APIRecipeRequest struct {
 	Title          string `json:"title"`
 	IngredientsMD  string `json:"ingredients_md"`
@@ -173,4 +175,60 @@ func APIHealthHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	json.NewEncoder(w).Encode(response)
+}
+
+func (h *Handler) APISearchIngredientsHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		sendJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	query := r.URL.Query().Get("q")
+	if query == "" {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode([]string{})
+		return
+	}
+
+	results, err := h.IngredientStore.Search(query, 10)
+	if err != nil {
+		slog.Error("Failed to search ingredients", "error", err)
+		sendJSONError(w, "Failed to search ingredients", http.StatusInternalServerError)
+		return
+	}
+
+	if results == nil {
+		results = []string{}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(results)
+}
+
+func (h *Handler) APISearchRecipesHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		sendJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	query := r.URL.Query().Get("q")
+	if query == "" {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode([]models.RecipeSearchResult{})
+		return
+	}
+
+	results, err := h.RecipeStore.SearchByTitle(query, 10)
+	if err != nil {
+		slog.Error("Failed to search recipes", "error", err)
+		sendJSONError(w, "Failed to search recipes", http.StatusInternalServerError)
+		return
+	}
+
+	if results == nil {
+		results = []models.RecipeSearchResult{}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(results)
 }

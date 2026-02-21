@@ -114,12 +114,12 @@
 
         <section class="recipe-section">
             <h2>Ingredients</h2>
-            <div class="content">{{.Recipe.IngredientsMD}}</div>
+            <div class="content markdown-content">{{renderMarkdown .Recipe.IngredientsMD}}</div>
         </section>
 
         <section class="recipe-section">
             <h2>Instructions</h2>
-            <div class="content">{{.Recipe.InstructionsMD}}</div>
+            <div class="content markdown-content">{{renderMarkdown .Recipe.InstructionsMD}}</div>
         </section>
 
         <section class="comments-section">

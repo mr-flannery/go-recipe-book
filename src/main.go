@@ -66,6 +66,7 @@ func main() {
 	userTagStore := postgres.NewUserTagStore(database)
 	commentStore := postgres.NewCommentStore(database)
 	userStore := postgres.NewUserStore(database)
+	ingredientStore := postgres.NewIngredientStore(database)
 	renderer := templates.NewRenderer(templates.Templates)
 
 	mailClient, err := mail.NewMailClient(config.Mail.ApiKey, config.Mail.Domain)
@@ -74,7 +75,7 @@ func main() {
 		panic(err)
 	}
 
-	h := handlers.NewHandler(database, recipeStore, tagStore, userTagStore, commentStore, userStore, authStore, renderer, mailClient)
+	h := handlers.NewHandler(database, recipeStore, tagStore, userTagStore, commentStore, userStore, authStore, ingredientStore, renderer, mailClient)
 
 	userContext := auth.UserContextMiddleware(authStore)
 	requireAuth := auth.RequireAuth()
@@ -227,6 +228,14 @@ func main() {
 	mux.Handle("POST /api/recipe/upload",
 		requireAPIKey(
 			http.HandlerFunc(h.APICreateRecipeHandler)))
+	mux.Handle("GET /api/ingredients/search",
+		userContext(
+			requireAuth(
+				http.HandlerFunc(h.APISearchIngredientsHandler))))
+	mux.Handle("GET /api/recipes/search",
+		userContext(
+			requireAuth(
+				http.HandlerFunc(h.APISearchRecipesHandler))))
 
 	slog.Info("Ready to serve!")
 

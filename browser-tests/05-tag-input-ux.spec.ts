@@ -1,5 +1,6 @@
 import { test as base, expect, Page } from '@playwright/test';
 import { TEST_USERS } from './test-users';
+import { fillToastEditor } from './editor-helpers';
 
 type AuthFixtures = {
   userPage: Page;
@@ -29,8 +30,8 @@ test.describe('Tag Input UX', () => {
     await page.locator('#preptime').fill('5');
     await page.locator('#cooktime').fill('10');
     await page.locator('#calories').fill('100');
-    await page.locator('#ingredients').fill('- 1 item');
-    await page.locator('#instructions').fill('1. Do something');
+    await fillToastEditor(page, 'ingredients-editor', '- 1 item');
+    await fillToastEditor(page, 'instructions-editor', '1. Do something');
     await page.getByRole('button', { name: /Create Recipe|Submit/i }).click();
     await page.waitForURL(/\/recipes\/\d+/);
   }

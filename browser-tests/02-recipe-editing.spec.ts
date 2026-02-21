@@ -1,5 +1,6 @@
 import { test as base, expect, Page } from '@playwright/test';
 import { TEST_USERS } from './test-users';
+import { fillToastEditor, clearToastEditor } from './editor-helpers';
 
 type AuthFixtures = {
   user1Page: Page;
@@ -54,8 +55,8 @@ test.describe('Recipe Editing', () => {
     await user1Page.locator('#preptime').fill(testRecipe.prepTime);
     await user1Page.locator('#cooktime').fill(testRecipe.cookTime);
     await user1Page.locator('#calories').fill(testRecipe.calories);
-    await user1Page.locator('#ingredients').fill(testRecipe.ingredients);
-    await user1Page.locator('#instructions').fill(testRecipe.instructions);
+    await fillToastEditor(user1Page, 'ingredients-editor', testRecipe.ingredients);
+    await fillToastEditor(user1Page, 'instructions-editor', testRecipe.instructions);
 
     // Add tags
     for (const tag of testRecipe.tags) {
@@ -72,12 +73,12 @@ test.describe('Recipe Editing', () => {
     expect(recipeId).toBeTruthy();
 
     // Verify author sees Edit button
-    await expect(user1Page.getByRole('link', { name: 'Edit Recipe' })).toBeVisible();
+    await expect(user1Page.getByRole('link', { name: 'Edit' })).toBeVisible();
 
     // Non-author (user2) views the same recipe - should NOT see Edit button
     await user2Page.goto(`/recipes/${recipeId}`);
     await expect(user2Page.getByRole('heading', { name: testRecipe.title, level: 1 })).toBeVisible();
-    await expect(user2Page.getByRole('link', { name: 'Edit Recipe' })).not.toBeVisible();
+    await expect(user2Page.getByRole('link', { name: 'Edit' })).not.toBeVisible();
 
     // Non-author tries to access edit page directly - should see Access Denied error
     await user2Page.goto(`/recipes/${recipeId}/update`);
@@ -107,10 +108,10 @@ test.describe('Recipe Editing', () => {
     await user1Page.locator('#cooktime').fill(updatedRecipe.cookTime);
     await user1Page.locator('#calories').clear();
     await user1Page.locator('#calories').fill(updatedRecipe.calories);
-    await user1Page.locator('#ingredients').clear();
-    await user1Page.locator('#ingredients').fill(updatedRecipe.ingredients);
-    await user1Page.locator('#instructions').clear();
-    await user1Page.locator('#instructions').fill(updatedRecipe.instructions);
+    await clearToastEditor(user1Page, 'ingredients-editor');
+    await fillToastEditor(user1Page, 'ingredients-editor', updatedRecipe.ingredients);
+    await clearToastEditor(user1Page, 'instructions-editor');
+    await fillToastEditor(user1Page, 'instructions-editor', updatedRecipe.instructions);
 
     // Remove existing tags and add a new one
     const existingTags = user1Page.locator('#tags-container .tag');
@@ -122,7 +123,7 @@ test.describe('Recipe Editing', () => {
     await user1Page.locator('#tags-input').press('Enter');
 
     // Save changes
-    await user1Page.getByRole('button', { name: 'Update Recipe' }).click();
+    await user1Page.getByRole('button', { name: 'Update' }).click();
     await user1Page.waitForURL(`/recipes/${recipeId}`);
 
     // Verify all changes are persisted
@@ -155,8 +156,8 @@ test.describe('Recipe Editing', () => {
     await user1Page.locator('#preptime').fill(cancelTestRecipe.prepTime);
     await user1Page.locator('#cooktime').fill(cancelTestRecipe.cookTime);
     await user1Page.locator('#calories').fill(cancelTestRecipe.calories);
-    await user1Page.locator('#ingredients').fill(cancelTestRecipe.ingredients);
-    await user1Page.locator('#instructions').fill(cancelTestRecipe.instructions);
+    await fillToastEditor(user1Page, 'ingredients-editor', cancelTestRecipe.ingredients);
+    await fillToastEditor(user1Page, 'instructions-editor', cancelTestRecipe.instructions);
 
     for (const tag of cancelTestRecipe.tags) {
       await user1Page.locator('#tags-input').fill(tag);
@@ -170,7 +171,7 @@ test.describe('Recipe Editing', () => {
     const cancelRecipeId = cancelRecipeUrl.match(/\/recipes\/(\d+)/)?.[1] || '';
 
     // Go to edit page
-    await user1Page.getByRole('link', { name: 'Edit Recipe' }).click();
+    await user1Page.getByRole('link', { name: 'Edit' }).click();
     await user1Page.waitForURL(`/recipes/${cancelRecipeId}/update`);
 
     // Make changes to all fields
@@ -182,10 +183,10 @@ test.describe('Recipe Editing', () => {
     await user1Page.locator('#cooktime').fill('88');
     await user1Page.locator('#calories').clear();
     await user1Page.locator('#calories').fill('9999');
-    await user1Page.locator('#ingredients').clear();
-    await user1Page.locator('#ingredients').fill('- Should not be saved');
-    await user1Page.locator('#instructions').clear();
-    await user1Page.locator('#instructions').fill('1. This should not appear');
+    await clearToastEditor(user1Page, 'ingredients-editor');
+    await fillToastEditor(user1Page, 'ingredients-editor', '- Should not be saved');
+    await clearToastEditor(user1Page, 'instructions-editor');
+    await fillToastEditor(user1Page, 'instructions-editor', '1. This should not appear');
 
     // Modify tags - remove existing and add new ones
     const cancelExistingTags = user1Page.locator('#tags-container .tag');

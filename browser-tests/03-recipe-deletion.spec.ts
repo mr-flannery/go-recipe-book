@@ -1,5 +1,6 @@
 import { test as base, expect, Page } from '@playwright/test';
 import { TEST_USERS } from './test-users';
+import { fillToastEditor } from './editor-helpers';
 
 type AuthFixtures = {
   user1Page: Page;
@@ -52,8 +53,8 @@ test.describe('Recipe Deletion', () => {
     await user1Page.locator('#preptime').fill(testRecipe.prepTime);
     await user1Page.locator('#cooktime').fill(testRecipe.cookTime);
     await user1Page.locator('#calories').fill(testRecipe.calories);
-    await user1Page.locator('#ingredients').fill(testRecipe.ingredients);
-    await user1Page.locator('#instructions').fill(testRecipe.instructions);
+    await fillToastEditor(user1Page, 'ingredients-editor', testRecipe.ingredients);
+    await fillToastEditor(user1Page, 'instructions-editor', testRecipe.instructions);
 
     await user1Page.getByRole('button', { name: /Create Recipe|Submit/i }).click();
     await user1Page.waitForURL(/\/recipes\/\d+/);
@@ -63,12 +64,12 @@ test.describe('Recipe Deletion', () => {
     expect(recipeId).toBeTruthy();
 
     // Verify author sees Delete button
-    await expect(user1Page.getByRole('button', { name: 'Delete Recipe' })).toBeVisible();
+    await expect(user1Page.getByRole('button', { name: 'Delete' })).toBeVisible();
 
     // Non-author (user2) views the same recipe - should NOT see Delete button
     await user2Page.goto(`/recipes/${recipeId}`);
     await expect(user2Page.getByRole('heading', { name: testRecipe.title, level: 1 })).toBeVisible();
-    await expect(user2Page.getByRole('button', { name: 'Delete Recipe' })).not.toBeVisible();
+    await expect(user2Page.getByRole('button', { name: 'Delete' })).not.toBeVisible();
 
     // Non-author tries to delete via API directly - should be forbidden
     const deleteResponse = await user2Page.request.delete(`/recipes/${recipeId}/delete`);
@@ -82,7 +83,7 @@ test.describe('Recipe Deletion', () => {
 
     // Author deletes the recipe
     user1Page.on('dialog', dialog => dialog.accept());
-    await user1Page.getByRole('button', { name: 'Delete Recipe' }).click();
+    await user1Page.getByRole('button', { name: 'Delete' }).click();
 
     // Should redirect to recipes list
     await user1Page.waitForURL('/recipes');
