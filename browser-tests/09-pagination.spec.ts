@@ -33,7 +33,7 @@ test.describe('Pagination Controls', () => {
     await page.waitForResponse(response => 
       response.url().includes('/recipes/filter') && response.status() === 200
     );
-    await page.waitForTimeout(100);
+    await page.waitForTimeout(200);
   }
 
   async function getActivePage(paginationSelector: string, page): Promise<number> {

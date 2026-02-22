@@ -94,7 +94,7 @@ test.describe('Recipe Filtering', () => {
     await page.waitForResponse(response => 
       response.url().includes('/recipes/filter') && response.status() === 200
     );
-    await page.waitForTimeout(100);
+    await page.waitForTimeout(200);
   }
 
   async function createSimpleRecipe(page: Page, title: string): Promise<void> {
