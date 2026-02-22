@@ -67,6 +67,7 @@ func main() {
 	commentStore := postgres.NewCommentStore(database)
 	userStore := postgres.NewUserStore(database)
 	ingredientStore := postgres.NewIngredientStore(database)
+	userPreferencesStore := postgres.NewUserPreferencesStore(database)
 	renderer := templates.NewRenderer(templates.Templates)
 
 	mailClient, err := mail.NewMailClient(config.Mail.ApiKey, config.Mail.Domain)
@@ -75,7 +76,7 @@ func main() {
 		panic(err)
 	}
 
-	h := handlers.NewHandler(database, recipeStore, tagStore, userTagStore, commentStore, userStore, authStore, ingredientStore, renderer, mailClient)
+	h := handlers.NewHandler(database, recipeStore, tagStore, userTagStore, commentStore, userStore, authStore, ingredientStore, userPreferencesStore, renderer, mailClient)
 
 	userContext := auth.UserContextMiddleware(authStore)
 	requireAuth := auth.RequireAuth()
@@ -182,6 +183,10 @@ func main() {
 	mux.Handle("POST /recipes/filter",
 		userContext(
 			http.HandlerFunc(h.FilterRecipesHTMXHandler)))
+	mux.Handle("POST /api/preferences/page-size",
+		userContext(
+			requireAuth(
+				http.HandlerFunc(h.SetPageSizeHandler))))
 
 	mux.Handle("GET /recipes/{id}",
 		userContext(

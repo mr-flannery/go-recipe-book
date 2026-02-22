@@ -491,32 +491,28 @@ test.describe('Recipe Filtering', () => {
       expect(parseInt(afterMatch![3])).toBe(initialTotal);
     });
 
-    test('load more button disappears when all recipes are loaded', async ({ user1Page: page }) => {
+    test('load more button disappears when navigating to last page', async ({ user1Page: page }) => {
       await page.goto('/recipes');
 
       const totalCount = parseInt(await page.locator('#total-count').textContent() || '0');
       
-      // Skip test if we need many pages (would take too long)
-      if (totalCount > 60 || totalCount <= 20) {
+      // Skip test if there's only one page
+      if (totalCount <= 20) {
         test.skip();
         return;
       }
 
-      // Keep clicking Load More until it disappears
-      while (await page.getByRole('button', { name: 'Load More' }).isVisible()) {
-        await page.getByRole('button', { name: 'Load More' }).click();
-        await page.waitForResponse(response => 
-          response.url().includes('/recipes/filter') && response.status() === 200
-        );
-        await page.waitForTimeout(100);
-      }
+      // Navigate to last page using pagination control
+      await page.locator('#pagination-control .pagination-last').click();
+      await waitForFilterResults(page);
 
-      // Count total recipe cards to verify all loaded
-      const recipeCards = await page.locator('.recipe-card').count();
-      expect(recipeCards).toBe(totalCount);
-
-      // Load more button should be gone
+      // Load More should not be visible on last page
       await expect(page.getByRole('button', { name: 'Load More' })).not.toBeVisible();
+
+      // Verify we're showing the correct number of recipes for the last page
+      const recipeCards = await page.locator('.recipe-card').count();
+      const expectedOnLastPage = totalCount % 20 || 20;
+      expect(recipeCards).toBe(expectedOnLastPage);
     });
   });
 

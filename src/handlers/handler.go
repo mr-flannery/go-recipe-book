@@ -9,29 +9,31 @@ import (
 )
 
 type Handler struct {
-	DB              *sql.DB
-	RecipeStore     store.RecipeStore
-	TagStore        store.TagStore
-	UserTagStore    store.UserTagStore
-	CommentStore    store.CommentStore
-	UserStore       store.UserStore
-	AuthStore       store.AuthStore
-	IngredientStore store.IngredientStore
-	Renderer        templates.Renderer
-	MailClient      mail.MailClient
+	DB                   *sql.DB
+	RecipeStore          store.RecipeStore
+	TagStore             store.TagStore
+	UserTagStore         store.UserTagStore
+	CommentStore         store.CommentStore
+	UserStore            store.UserStore
+	AuthStore            store.AuthStore
+	IngredientStore      store.IngredientStore
+	UserPreferencesStore store.UserPreferencesStore
+	Renderer             templates.Renderer
+	MailClient           mail.MailClient
 }
 
-func NewHandler(db *sql.DB, recipeStore store.RecipeStore, tagStore store.TagStore, userTagStore store.UserTagStore, commentStore store.CommentStore, userStore store.UserStore, authStore store.AuthStore, ingredientStore store.IngredientStore, renderer templates.Renderer, mailClient mail.MailClient) *Handler {
+func NewHandler(db *sql.DB, recipeStore store.RecipeStore, tagStore store.TagStore, userTagStore store.UserTagStore, commentStore store.CommentStore, userStore store.UserStore, authStore store.AuthStore, ingredientStore store.IngredientStore, userPreferencesStore store.UserPreferencesStore, renderer templates.Renderer, mailClient mail.MailClient) *Handler {
 	return &Handler{
-		DB:              db,
-		RecipeStore:     recipeStore,
-		TagStore:        tagStore,
-		UserTagStore:    userTagStore,
-		CommentStore:    commentStore,
-		UserStore:       userStore,
-		AuthStore:       authStore,
-		IngredientStore: ingredientStore,
-		Renderer:        renderer,
-		MailClient:      mailClient,
+		DB:                   db,
+		RecipeStore:          recipeStore,
+		TagStore:             tagStore,
+		UserTagStore:         userTagStore,
+		CommentStore:         commentStore,
+		UserStore:            userStore,
+		AuthStore:            authStore,
+		IngredientStore:      ingredientStore,
+		UserPreferencesStore: userPreferencesStore,
+		Renderer:             renderer,
+		MailClient:           mailClient,
 	}
 }
