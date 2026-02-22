@@ -1,25 +1,9 @@
 {{define "recipe-cards-more"}}
 {{template "pagination-footer-oob" .}}
-<div class="page-marker" id="page-marker-{{.CurrentPage}}">{{.RangeStart}}-{{.RangeEnd}} of {{.TotalCount}}</div>
+<div class="page-marker" id="page-marker-{{.CurrentPage}}">{{.RangeStart}}-{{.RangeEnd}}</div>
 {{$currentUserID := 0}}
 {{if .CurrentUser}}{{$currentUserID = .CurrentUser.ID}}{{end}}
 {{range .Recipes}}
 {{template "recipe-card" dict "Recipe" . "IsLoggedIn" $.IsLoggedIn "CurrentUserID" $currentUserID}}
-{{end}}
-{{if .HasMore}}
-<div id="load-more-container" hx-swap-oob="true" class="load-more-container">
-    <button class="btn"
-        hx-post="/recipes/filter"
-        hx-target="#recipe-grid"
-        hx-swap="beforeend"
-        hx-include="#filter-form"
-        hx-vals='{"offset": "{{.NextOffset}}", "mode": "load_more", "page_size": "{{.PageSize}}"}'
-        hx-indicator="#load-more-spinner">
-        Load More
-    </button>
-    <span id="load-more-spinner" class="htmx-indicator">Loading...</span>
-</div>
-{{else}}
-<div id="load-more-container" hx-swap-oob="true" class="load-more-container"></div>
 {{end}}
 {{end}}

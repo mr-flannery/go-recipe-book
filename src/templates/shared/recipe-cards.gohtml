@@ -1,51 +1,21 @@
 {{define "recipe-cards"}}
 <div id="recipe-count" hx-swap-oob="true" class="recipe-count">
-    {{.RangeStart}}-{{.RangeEnd}} of <span id="total-count">{{.TotalCount}}</span>
+    <span id="total-count">{{.TotalCount}}</span> recipes
 </div>
 {{template "pagination-oob" .}}
+{{template "load-previous-header-oob" .}}
 {{template "pagination-footer-oob" .}}
 {{template "page-size-oob" .}}
 <div id="recipe-results">
     {{if .Recipes}}
-    {{if .HasPrevious}}
-    <div id="load-previous-container" class="load-previous-container">
-        <button class="btn btn-secondary"
-            hx-post="/recipes/filter"
-            hx-target="#recipe-grid"
-            hx-swap="afterbegin"
-            hx-include="#filter-form"
-            hx-vals='{"offset": "{{.PrevOffset}}", "mode": "load_previous", "page_size": "{{.PageSize}}"}'
-            hx-indicator="#load-previous-spinner">
-            Load Previous
-        </button>
-        <span id="load-previous-spinner" class="htmx-indicator">Loading...</span>
-    </div>
-    {{else}}
-    <div id="load-previous-container" class="load-previous-container"></div>
-    {{end}}
     <div class="recipe-grid" id="recipe-grid">
+        <div class="page-marker" id="page-marker-{{.CurrentPage}}">{{.RangeStart}}-{{.RangeEnd}}</div>
         {{$currentUserID := 0}}
         {{if .CurrentUser}}{{$currentUserID = .CurrentUser.ID}}{{end}}
         {{range .Recipes}}
         {{template "recipe-card" dict "Recipe" . "IsLoggedIn" $.IsLoggedIn "CurrentUserID" $currentUserID}}
         {{end}}
     </div>
-    {{if .HasMore}}
-    <div id="load-more-container" class="load-more-container">
-        <button class="btn"
-            hx-post="/recipes/filter"
-            hx-target="#recipe-grid"
-            hx-swap="beforeend"
-            hx-include="#filter-form"
-            hx-vals='{"offset": "{{.NextOffset}}", "mode": "load_more", "page_size": "{{.PageSize}}"}'
-            hx-indicator="#load-more-spinner">
-            Load More
-        </button>
-        <span id="load-more-spinner" class="htmx-indicator">Loading...</span>
-    </div>
-    {{else}}
-    <div id="load-more-container" class="load-more-container"></div>
-    {{end}}
     {{else}}
     <div class="no-results">
         <h2>No Recipes Found</h2>

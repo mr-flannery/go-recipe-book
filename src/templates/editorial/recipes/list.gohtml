@@ -129,7 +129,7 @@
         <div class="pagination-header">
             <div class="pagination-left">
                 <div id="recipe-count" class="recipe-count">
-                    {{.RangeStart}}-{{.RangeEnd}} of <span id="total-count">{{.TotalCount}}</span>
+                    <span id="total-count">{{.TotalCount}}</span> recipes
                 </div>
                 <div id="page-size-control" class="page-size-control">
                     <label for="page-size-select">Show</label>
@@ -145,35 +145,20 @@
                     </select>
                 </div>
             </div>
+            <div class="pagination-center" id="load-previous-header"></div>
             {{template "pagination" .}}
         </div>
 
         <div id="recipe-results">
             {{if .Recipes}}
-            <div id="load-previous-container" class="load-previous-container"></div>
             <div class="recipe-grid" id="recipe-grid">
+                <div class="page-marker" id="page-marker-{{.CurrentPage}}">{{.RangeStart}}-{{.RangeEnd}}</div>
                 {{$currentUserID := 0}}
                 {{if .CurrentUser}}{{$currentUserID = .CurrentUser.ID}}{{end}}
                 {{range .Recipes}}
                 {{template "recipe-card" dict "Recipe" . "IsLoggedIn" $.IsLoggedIn "CurrentUserID" $currentUserID}}
                 {{end}}
             </div>
-            {{if .HasMore}}
-            <div id="load-more-container" class="load-more-container">
-                <button id="load-more-btn" class="btn"
-                    hx-post="/recipes/filter"
-                    hx-target="#recipe-grid"
-                    hx-swap="beforeend"
-                    hx-include="#filter-form"
-                    hx-vals='{"offset": "{{.NextOffset}}", "mode": "load_more", "page_size": "{{.PageSize}}"}'
-                    hx-indicator="#load-more-spinner">
-                    Load More
-                </button>
-                <span id="load-more-spinner" class="htmx-indicator">Loading...</span>
-            </div>
-            {{else}}
-            <div id="load-more-container" class="load-more-container"></div>
-            {{end}}
             {{else}}
             <div class="no-results">
                 <h2>No Recipes Found</h2>
@@ -183,7 +168,28 @@
         </div>
 
         <div class="pagination-footer" id="pagination-footer">
-            {{template "pagination-inner" .}}
+            <div></div>
+            <div class="pagination-center">
+                {{if .HasMore}}
+                <div id="load-more-container" class="load-more-container">
+                    <button id="load-more-btn" class="btn"
+                        hx-post="/recipes/filter"
+                        hx-target="#recipe-grid"
+                        hx-swap="beforeend"
+                        hx-include="#filter-form"
+                        hx-vals='{"offset": "{{.NextOffset}}", "mode": "load_more", "page_size": "{{.PageSize}}"}'
+                        hx-indicator="#load-more-spinner">
+                        Load More
+                    </button>
+                    <span id="load-more-spinner" class="htmx-indicator">Loading...</span>
+                </div>
+                {{else}}
+                <div id="load-more-container" class="load-more-container"></div>
+                {{end}}
+            </div>
+            <div class="pagination">
+                {{template "pagination-inner" .}}
+            </div>
         </div>
     </main>
 

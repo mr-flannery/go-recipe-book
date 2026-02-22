@@ -1,17 +1,19 @@
 package handlers
 
 type PaginationData struct {
-	CurrentPage int
-	TotalPages  int
-	PageSize    int
-	PageNumbers []int
-	TotalCount  int
-	RangeStart  int
-	RangeEnd    int
-	HasMore     bool
-	HasPrevious bool
-	NextOffset  int
-	PrevOffset  int
+	CurrentPage    int
+	TotalPages     int
+	PageSize       int
+	PageNumbers    []int
+	TotalCount     int
+	RangeStart     int
+	RangeEnd       int
+	HasMore        bool
+	HasPrevious    bool
+	NextOffset     int
+	PrevOffset     int
+	NextRangeStart int
+	NextRangeEnd   int
 }
 
 func CalculatePagination(totalCount, currentPage, pageSize, loadedCount int) PaginationData {
@@ -44,18 +46,27 @@ func CalculatePagination(totalCount, currentPage, pageSize, loadedCount int) Pag
 	hasMore := rangeEnd < totalCount
 	hasPrevious := currentPage > 1
 
+	nextRangeStart := rangeEnd + 1
+	nextRangeEnd := min(rangeEnd+pageSize, totalCount)
+	if nextRangeStart > totalCount {
+		nextRangeStart = 0
+		nextRangeEnd = 0
+	}
+
 	return PaginationData{
-		CurrentPage: currentPage,
-		TotalPages:  totalPages,
-		PageSize:    pageSize,
-		PageNumbers: pageNumbers,
-		TotalCount:  totalCount,
-		RangeStart:  rangeStart,
-		RangeEnd:    rangeEnd,
-		HasMore:     hasMore,
-		HasPrevious: hasPrevious,
-		NextOffset:  offset + loadedCount,
-		PrevOffset:  max(0, offset-pageSize),
+		CurrentPage:    currentPage,
+		TotalPages:     totalPages,
+		PageSize:       pageSize,
+		PageNumbers:    pageNumbers,
+		TotalCount:     totalCount,
+		RangeStart:     rangeStart,
+		RangeEnd:       rangeEnd,
+		HasMore:        hasMore,
+		HasPrevious:    hasPrevious,
+		NextOffset:     offset + loadedCount,
+		PrevOffset:     max(0, offset-pageSize),
+		NextRangeStart: nextRangeStart,
+		NextRangeEnd:   nextRangeEnd,
 	}
 }
 

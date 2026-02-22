@@ -16,6 +16,8 @@
   - if the instructions mention some ingredient twice, there should be some section where everythings summed up, e.g. for the purpose of creating a shopping list. maybe a shopping list button would be the actual thing to do here.
   - also the whole thing really only works well with some integration with an ingredient API that also contains stuff like calorie count etc.
 
+- don't send registration mails in dev mode
+
 
 - cmd-enter should trigger certain actions on certain pages
 

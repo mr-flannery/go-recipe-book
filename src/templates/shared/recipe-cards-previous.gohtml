@@ -1,25 +1,10 @@
 {{define "recipe-cards-previous"}}
 {{template "pagination-oob" .}}
-<div class="page-marker" id="page-marker-{{.CurrentPage}}">{{.RangeStart}}-{{.RangeEnd}} of {{.TotalCount}}</div>
+{{template "load-previous-header-oob" .}}
+<div class="page-marker" id="page-marker-{{.CurrentPage}}">{{.RangeStart}}-{{.RangeEnd}}</div>
 {{$currentUserID := 0}}
 {{if .CurrentUser}}{{$currentUserID = .CurrentUser.ID}}{{end}}
 {{range .Recipes}}
 {{template "recipe-card" dict "Recipe" . "IsLoggedIn" $.IsLoggedIn "CurrentUserID" $currentUserID}}
-{{end}}
-{{if .HasPrevious}}
-<div id="load-previous-container" hx-swap-oob="true" class="load-previous-container">
-    <button class="btn btn-secondary"
-        hx-post="/recipes/filter"
-        hx-target="#recipe-grid"
-        hx-swap="afterbegin"
-        hx-include="#filter-form"
-        hx-vals='{"offset": "{{.PrevOffset}}", "mode": "load_previous", "page_size": "{{.PageSize}}"}'
-        hx-indicator="#load-previous-spinner">
-        Load Previous
-    </button>
-    <span id="load-previous-spinner" class="htmx-indicator">Loading...</span>
-</div>
-{{else}}
-<div id="load-previous-container" hx-swap-oob="true" class="load-previous-container"></div>
 {{end}}
 {{end}}

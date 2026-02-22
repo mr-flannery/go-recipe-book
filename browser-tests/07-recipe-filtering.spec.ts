@@ -362,25 +362,22 @@ test.describe('Recipe Filtering', () => {
   });
 
   test.describe('Recipe Count Indicator', () => {
-    test('shows recipe range on initial page load', async ({ user1Page: page }) => {
+    test('shows page marker on initial page load', async ({ user1Page: page }) => {
       await page.goto('/recipes');
 
-      const countElement = page.locator('#recipe-count');
-      await expect(countElement).toBeVisible();
-      await expect(countElement).toContainText('of');
+      const pageMarker = page.locator('.page-marker').first();
+      await expect(pageMarker).toBeVisible();
 
-      const countText = await countElement.textContent() || '';
-      const match = countText.match(/(\d+)-(\d+) of (\d+)/);
+      const markerText = await pageMarker.textContent() || '';
+      const match = markerText.match(/(\d+)-(\d+)/);
       expect(match).not.toBeNull();
       
       const rangeStart = parseInt(match![1]);
       const rangeEnd = parseInt(match![2]);
-      const totalCount = parseInt(match![3]);
       
       expect(rangeStart).toBe(1);
       expect(rangeEnd).toBeGreaterThan(0);
       expect(rangeEnd).toBeLessThanOrEqual(20);
-      expect(totalCount).toBeGreaterThanOrEqual(rangeEnd);
     });
 
     test('count updates when filtering narrows results', async ({ user1Page: page }) => {
@@ -392,15 +389,9 @@ test.describe('Recipe Filtering', () => {
       await page.locator('#filter-tags-input').press('Enter');
       await waitForFilterResults(page);
 
-      const countText = await page.locator('#recipe-count').textContent() || '';
-      const match = countText.match(/(\d+)-(\d+) of (\d+)/);
-      expect(match).not.toBeNull();
-      
-      const filteredRangeEnd = parseInt(match![2]);
-      const filteredTotal = parseInt(match![3]);
+      const filteredTotal = parseInt(await page.locator('#total-count').textContent() || '0');
 
       expect(filteredTotal).toBeLessThan(initialTotal);
-      expect(filteredRangeEnd).toBeLessThanOrEqual(filteredTotal);
     });
 
     test('count shows 0-0 when no recipes match filter', async ({ user1Page: page }) => {
@@ -409,8 +400,8 @@ test.describe('Recipe Filtering', () => {
       await page.locator('#search').fill('xyznonexistent12345');
       await waitForFilterResults(page);
 
-      const countElement = page.locator('#recipe-count');
-      await expect(countElement).toContainText('0-0 of 0');
+      const countElement = page.locator('#total-count');
+      await expect(countElement).toContainText('0');
     });
 
     test('count updates when clearing filters', async ({ user1Page: page }) => {
@@ -445,8 +436,10 @@ test.describe('Recipe Filtering', () => {
       
       await page.goto('/recipes');
 
-      // Initially there should be no page markers
-      await expect(page.locator('.page-marker')).toHaveCount(0);
+      // Initially there should be one page marker for the first page
+      await expect(page.locator('.page-marker')).toHaveCount(1);
+      const firstMarker = page.locator('.page-marker').first();
+      await expect(firstMarker).toContainText('1-');
 
       // Click Load More
       await page.getByRole('button', { name: 'Load More' }).click();
@@ -454,11 +447,12 @@ test.describe('Recipe Filtering', () => {
         response.url().includes('/recipes/filter') && response.status() === 200
       );
 
-      // Page marker should appear with range format (e.g., "21-40 of 1214")
-      const pageMarker = page.locator('.page-marker').first();
-      await expect(pageMarker).toBeVisible();
-      const markerText = await pageMarker.textContent() || '';
-      expect(markerText).toMatch(/\d+-\d+ of \d+/);
+      // A second page marker should appear with range format (e.g., "21-40")
+      await expect(page.locator('.page-marker')).toHaveCount(2);
+      const secondMarker = page.locator('.page-marker').nth(1);
+      await expect(secondMarker).toBeVisible();
+      const markerText = await secondMarker.textContent() || '';
+      expect(markerText).toMatch(/\d+-\d+/);
     });
 
     test('top count stays static after loading more', async ({ user1Page: page }) => {
@@ -467,13 +461,12 @@ test.describe('Recipe Filtering', () => {
       
       await page.goto('/recipes');
 
-      const initialCountText = await page.locator('#recipe-count').textContent() || '';
-      const initialMatch = initialCountText.match(/(\d+)-(\d+) of (\d+)/);
+      const initialCountText = await page.locator('#total-count').textContent() || '';
+      const initialMatch = initialCountText.match(/(\d+)/);
       expect(initialMatch).not.toBeNull();
       const initialRangeStart = parseInt(initialMatch![1]);
       const initialRangeEnd = parseInt(initialMatch![2]);
       const initialTotal = parseInt(initialMatch![3]);
-      expect(initialRangeEnd).toBeLessThanOrEqual(20);
 
       // Click Load More
       await page.getByRole('button', { name: 'Load More' }).click();
@@ -483,8 +476,8 @@ test.describe('Recipe Filtering', () => {
       await page.waitForTimeout(100);
 
       // Top count indicator should remain unchanged (static 1-20 of N)
-      const afterCountText = await page.locator('#recipe-count').textContent() || '';
-      const afterMatch = afterCountText.match(/(\d+)-(\d+) of (\d+)/);
+      const afterCountText = await page.locator('#total-count').textContent() || '';
+      const afterMatch = afterCountText.match(/(\d+)/);
       expect(afterMatch).not.toBeNull();
       expect(parseInt(afterMatch![1])).toBe(initialRangeStart);
       expect(parseInt(afterMatch![2])).toBe(initialRangeEnd);
