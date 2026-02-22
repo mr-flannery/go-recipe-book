@@ -29,11 +29,16 @@ test.describe('Pagination Controls', () => {
     }
   }
 
-  async function waitForFilterResults(page): Promise<void> {
-    await page.waitForResponse(response => 
+  async function clickAndWaitForHtmx(page, locator): Promise<void> {
+    const responsePromise = page.waitForResponse(response => 
       response.url().includes('/recipes/filter') && response.status() === 200
     );
-    await page.waitForTimeout(200);
+    await locator.click();
+    await responsePromise;
+    await page.waitForFunction(() => {
+      return document.querySelectorAll('.htmx-request').length === 0 &&
+             document.querySelectorAll('.htmx-settling').length === 0;
+    }, { timeout: 5000 });
   }
 
   async function getActivePage(paginationSelector: string, page): Promise<number> {
@@ -83,8 +88,7 @@ test.describe('Pagination Controls', () => {
     test('clicking page number in header updates both controls', async ({ authenticatedPage: page }) => {
       await page.goto('/recipes');
 
-      await page.locator('#pagination-control .pagination-btn.pagination-page').filter({ hasText: '2' }).click();
-      await waitForFilterResults(page);
+      await clickAndWaitForHtmx(page, page.locator('#pagination-control .pagination-btn.pagination-page').filter({ hasText: '2' }));
 
       const headerActivePage = await getActivePage('#pagination-control', page);
       const footerActivePage = await getActivePage('#pagination-footer', page);
@@ -96,8 +100,7 @@ test.describe('Pagination Controls', () => {
     test('clicking page number in footer updates both controls', async ({ authenticatedPage: page }) => {
       await page.goto('/recipes');
 
-      await page.locator('#pagination-footer .pagination-btn.pagination-page').filter({ hasText: '2' }).click();
-      await waitForFilterResults(page);
+      await clickAndWaitForHtmx(page, page.locator('#pagination-footer .pagination-btn.pagination-page').filter({ hasText: '2' }));
 
       const headerActivePage = await getActivePage('#pagination-control', page);
       const footerActivePage = await getActivePage('#pagination-footer', page);
@@ -112,8 +115,7 @@ test.describe('Pagination Controls', () => {
       await page.goto('/recipes');
 
       // Navigate to page 2 first
-      await page.locator('#pagination-control .pagination-btn.pagination-page').filter({ hasText: '2' }).click();
-      await waitForFilterResults(page);
+      await clickAndWaitForHtmx(page, page.locator('#pagination-control .pagination-btn.pagination-page').filter({ hasText: '2' }));
 
       const headerBefore = await getActivePage('#pagination-control', page);
       const footerBefore = await getActivePage('#pagination-footer', page);
@@ -121,8 +123,7 @@ test.describe('Pagination Controls', () => {
       expect(footerBefore).toBe(2);
 
       // Click Load More
-      await page.getByRole('button', { name: 'Load More' }).click();
-      await waitForFilterResults(page);
+      await clickAndWaitForHtmx(page, page.getByRole('button', { name: 'Load More' }));
 
       const headerAfter = await getActivePage('#pagination-control', page);
       const footerAfter = await getActivePage('#pagination-footer', page);
@@ -136,8 +137,7 @@ test.describe('Pagination Controls', () => {
       await page.goto('/recipes');
 
       // Navigate to page 3 first
-      await page.locator('#pagination-control .pagination-btn.pagination-page').filter({ hasText: '3' }).click();
-      await waitForFilterResults(page);
+      await clickAndWaitForHtmx(page, page.locator('#pagination-control .pagination-btn.pagination-page').filter({ hasText: '3' }));
 
       const headerBefore = await getActivePage('#pagination-control', page);
       const footerBefore = await getActivePage('#pagination-footer', page);
@@ -145,8 +145,7 @@ test.describe('Pagination Controls', () => {
       expect(footerBefore).toBe(3);
 
       // Click Load Previous
-      await page.getByRole('button', { name: 'Load Previous' }).click();
-      await waitForFilterResults(page);
+      await clickAndWaitForHtmx(page, page.getByRole('button', { name: 'Load Previous' }));
 
       const headerAfter = await getActivePage('#pagination-control', page);
       const footerAfter = await getActivePage('#pagination-footer', page);
@@ -160,12 +159,10 @@ test.describe('Pagination Controls', () => {
       await page.goto('/recipes');
 
       // Navigate to page 3
-      await page.locator('#pagination-control .pagination-btn.pagination-page').filter({ hasText: '3' }).click();
-      await waitForFilterResults(page);
+      await clickAndWaitForHtmx(page, page.locator('#pagination-control .pagination-btn.pagination-page').filter({ hasText: '3' }));
 
       // Click Load More - footer should show page 4
-      await page.getByRole('button', { name: 'Load More' }).click();
-      await waitForFilterResults(page);
+      await clickAndWaitForHtmx(page, page.getByRole('button', { name: 'Load More' }));
 
       let headerPage = await getActivePage('#pagination-control', page);
       let footerPage = await getActivePage('#pagination-footer', page);
@@ -173,8 +170,7 @@ test.describe('Pagination Controls', () => {
       expect(footerPage).toBe(4);
 
       // Click Load Previous - header should show page 2
-      await page.getByRole('button', { name: 'Load Previous' }).click();
-      await waitForFilterResults(page);
+      await clickAndWaitForHtmx(page, page.getByRole('button', { name: 'Load Previous' }));
 
       headerPage = await getActivePage('#pagination-control', page);
       footerPage = await getActivePage('#pagination-footer', page);
@@ -188,12 +184,10 @@ test.describe('Pagination Controls', () => {
       await page.goto('/recipes');
 
       // Go to page 3
-      await page.locator('#pagination-control .pagination-btn.pagination-page').filter({ hasText: '3' }).click();
-      await waitForFilterResults(page);
+      await clickAndWaitForHtmx(page, page.locator('#pagination-control .pagination-btn.pagination-page').filter({ hasText: '3' }));
 
       // Click first page button
-      await page.locator('#pagination-control .pagination-first').click();
-      await waitForFilterResults(page);
+      await clickAndWaitForHtmx(page, page.locator('#pagination-control .pagination-first'));
 
       const headerPage = await getActivePage('#pagination-control', page);
       expect(headerPage).toBe(1);
@@ -206,8 +200,7 @@ test.describe('Pagination Controls', () => {
       const totalPages = Math.ceil(totalCount / 20);
 
       // Click last page button
-      await page.locator('#pagination-control .pagination-last').click();
-      await waitForFilterResults(page);
+      await clickAndWaitForHtmx(page, page.locator('#pagination-control .pagination-last'));
 
       const headerPage = await getActivePage('#pagination-control', page);
       expect(headerPage).toBe(totalPages);
@@ -217,12 +210,10 @@ test.describe('Pagination Controls', () => {
       await page.goto('/recipes');
 
       // Go to page 3
-      await page.locator('#pagination-control .pagination-btn.pagination-page').filter({ hasText: '3' }).click();
-      await waitForFilterResults(page);
+      await clickAndWaitForHtmx(page, page.locator('#pagination-control .pagination-btn.pagination-page').filter({ hasText: '3' }));
 
       // Click previous
-      await page.locator('#pagination-control .pagination-prev').click();
-      await waitForFilterResults(page);
+      await clickAndWaitForHtmx(page, page.locator('#pagination-control .pagination-prev'));
 
       const headerPage = await getActivePage('#pagination-control', page);
       expect(headerPage).toBe(2);
@@ -232,8 +223,7 @@ test.describe('Pagination Controls', () => {
       await page.goto('/recipes');
 
       // Click next
-      await page.locator('#pagination-control .pagination-next').click();
-      await waitForFilterResults(page);
+      await clickAndWaitForHtmx(page, page.locator('#pagination-control .pagination-next'));
 
       const headerPage = await getActivePage('#pagination-control', page);
       expect(headerPage).toBe(2);
@@ -250,8 +240,7 @@ test.describe('Pagination Controls', () => {
       await page.goto('/recipes');
 
       // Go to last page
-      await page.locator('#pagination-control .pagination-last').click();
-      await waitForFilterResults(page);
+      await clickAndWaitForHtmx(page, page.locator('#pagination-control .pagination-last'));
 
       await expect(page.locator('#pagination-control .pagination-next')).not.toBeVisible();
       await expect(page.locator('#pagination-control .pagination-last')).not.toBeVisible();
@@ -263,8 +252,7 @@ test.describe('Pagination Controls', () => {
       await page.goto('/recipes');
 
       // Navigate to last page using pagination
-      await page.locator('#pagination-control .pagination-last').click();
-      await waitForFilterResults(page);
+      await clickAndWaitForHtmx(page, page.locator('#pagination-control .pagination-last'));
 
       // Load More should not be visible on last page
       await expect(page.getByRole('button', { name: 'Load More' })).not.toBeVisible();
@@ -283,8 +271,7 @@ test.describe('Pagination Controls', () => {
       await expect(page.getByRole('button', { name: 'Load Previous' })).not.toBeVisible();
 
       // Navigate to page 2
-      await page.locator('#pagination-control .pagination-btn.pagination-page').filter({ hasText: '2' }).click();
-      await waitForFilterResults(page);
+      await clickAndWaitForHtmx(page, page.locator('#pagination-control .pagination-btn.pagination-page').filter({ hasText: '2' }));
 
       // Load Previous should now be visible
       await expect(page.getByRole('button', { name: 'Load Previous' })).toBeVisible();
@@ -294,12 +281,10 @@ test.describe('Pagination Controls', () => {
       await page.goto('/recipes');
 
       // Navigate to page 2
-      await page.locator('#pagination-control .pagination-btn.pagination-page').filter({ hasText: '2' }).click();
-      await waitForFilterResults(page);
+      await clickAndWaitForHtmx(page, page.locator('#pagination-control .pagination-btn.pagination-page').filter({ hasText: '2' }));
 
       // Click Load Previous to load page 1
-      await page.getByRole('button', { name: 'Load Previous' }).click();
-      await waitForFilterResults(page);
+      await clickAndWaitForHtmx(page, page.getByRole('button', { name: 'Load Previous' }));
 
       // Load Previous should disappear since we're now at page 1
       await expect(page.getByRole('button', { name: 'Load Previous' })).not.toBeVisible();

@@ -94,7 +94,10 @@ test.describe('Recipe Filtering', () => {
     await page.waitForResponse(response => 
       response.url().includes('/recipes/filter') && response.status() === 200
     );
-    await page.waitForTimeout(200);
+    await page.waitForFunction(() => {
+      return document.querySelectorAll('.htmx-request').length === 0 &&
+             document.querySelectorAll('.htmx-settling').length === 0;
+    }, { timeout: 5000 });
   }
 
   async function createSimpleRecipe(page: Page, title: string): Promise<void> {
