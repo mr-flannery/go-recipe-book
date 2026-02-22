@@ -1,5 +1,6 @@
 package handlers
 
+// TODO: this is technically not a handler for anything. should it live in the handlers package?
 type PaginationData struct {
 	CurrentPage    int
 	TotalPages     int

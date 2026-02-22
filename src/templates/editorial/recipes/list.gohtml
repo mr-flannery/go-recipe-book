@@ -137,7 +137,8 @@
                         hx-post="/recipes/filter"
                         hx-target="#recipe-results"
                         hx-include="#filter-form"
-                        hx-vals='js:{"page": "1", "page_size": document.getElementById("page-size-select").value}'>
+                        hx-vals='js:{"page": "1", "page_size": document.getElementById("page-size-select").value}'
+                        {{if .IsLoggedIn}}hx-on::after-request="fetch('/api/preferences/page-size', {method: 'POST', headers: {'Content-Type': 'application/x-www-form-urlencoded'}, body: 'page_size=' + this.value})"{{end}}>
                         <option value="10" {{if eq .PageSize 10}}selected{{end}}>10</option>
                         <option value="20" {{if eq .PageSize 20}}selected{{end}}>20</option>
                         <option value="50" {{if eq .PageSize 50}}selected{{end}}>50</option>
