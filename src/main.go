@@ -70,10 +70,17 @@ func main() {
 	userPreferencesStore := postgres.NewUserPreferencesStore(database)
 	renderer := templates.NewRenderer(templates.Templates)
 
-	mailClient, err := mail.NewMailClient(config.Mail.ApiKey, config.Mail.Domain)
-	if err != nil {
-		slog.Error("Failed to create mail client", "error", err)
-		panic(err)
+	var mailClient mail.MailClient
+	if config.Environment.Mode == "development" {
+		slog.Info("Using logging mail client (dev mode)")
+		mailClient = mail.NewLoggingMailClient()
+	} else {
+		var err error
+		mailClient, err = mail.NewMailClient(config.Mail.ApiKey, config.Mail.Domain)
+		if err != nil {
+			slog.Error("Failed to create mail client", "error", err)
+			panic(err)
+		}
 	}
 
 	h := handlers.NewHandler(database, recipeStore, tagStore, userTagStore, commentStore, userStore, authStore, ingredientStore, userPreferencesStore, renderer, mailClient)
