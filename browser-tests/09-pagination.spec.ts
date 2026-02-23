@@ -3,7 +3,7 @@ import { fillToastEditor } from './editor-helpers';
 
 test.describe('Pagination Controls', () => {
   const uniqueId = Date.now();
-  const MIN_RECIPES_FOR_PAGINATION = 45;
+  const MIN_RECIPES_FOR_PAGINATION = 65;
 
   async function createSimpleRecipe(page, title: string): Promise<void> {
     await page.goto('/recipes/create');
