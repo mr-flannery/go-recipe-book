@@ -126,38 +126,71 @@
             </form>
         </div>
 
-        <div id="recipe-count" class="recipe-count">
-            {{.RangeStart}}-{{.RangeEnd}} of <span id="total-count">{{.TotalCount}}</span>
+        <div class="pagination-header">
+            <div class="pagination-left">
+                <div id="recipe-count" class="recipe-count">
+                    <span id="total-count">{{.TotalCount}}</span> recipes
+                </div>
+                <div id="page-size-control" class="page-size-control">
+                    <label for="page-size-select">Show</label>
+                    <select id="page-size-select" name="page_size_select"
+                        hx-post="/recipes/filter"
+                        hx-target="#recipe-results"
+                        hx-include="#filter-form"
+                        hx-vals='js:{"page": "1", "page_size": document.getElementById("page-size-select").value}'
+                        {{if .IsLoggedIn}}hx-on::after-request="fetch('/api/preferences/page-size', {method: 'POST', headers: {'Content-Type': 'application/x-www-form-urlencoded'}, body: 'page_size=' + this.value})"{{end}}>
+                        <option value="10" {{if eq .PageSize 10}}selected{{end}}>10</option>
+                        <option value="20" {{if eq .PageSize 20}}selected{{end}}>20</option>
+                        <option value="50" {{if eq .PageSize 50}}selected{{end}}>50</option>
+                        <option value="100" {{if eq .PageSize 100}}selected{{end}}>100</option>
+                    </select>
+                </div>
+            </div>
+            <div class="pagination-center" id="load-previous-header"></div>
+            {{template "pagination" .}}
         </div>
 
         <div id="recipe-results">
             {{if .Recipes}}
             <div class="recipe-grid" id="recipe-grid">
+                <div class="page-marker" id="page-marker-{{.CurrentPage}}">{{.RangeStart}}-{{.RangeEnd}}</div>
                 {{$currentUserID := 0}}
                 {{if .CurrentUser}}{{$currentUserID = .CurrentUser.ID}}{{end}}
                 {{range .Recipes}}
                 {{template "recipe-card" dict "Recipe" . "IsLoggedIn" $.IsLoggedIn "CurrentUserID" $currentUserID}}
                 {{end}}
             </div>
-            {{if .HasMore}}
-<div id="load-more-container" class="load-more-container">
-                <button id="load-more-btn" class="btn"
-                    hx-post="/recipes/filter"
-                    hx-target="#recipe-grid"
-                    hx-swap="beforeend"
-                    hx-include="#filter-form"
-                    hx-vals='{"offset": "{{.NextOffset}}"}'
-                    onclick="this.style.display='none'; document.getElementById('load-more-spinner').style.display='inline';">
-                    Load More
-                </button><span id="load-more-spinner" style="display: none;">Loading...</span>
-            </div>
-            {{end}}
             {{else}}
             <div class="no-results">
                 <h2>No Recipes Found</h2>
                 <p>Be the first to contribute to our collection.</p>
             </div>
             {{end}}
+        </div>
+
+        <div class="pagination-footer" id="pagination-footer">
+            <div></div>
+            <div class="pagination-center">
+                {{if .HasMore}}
+                <div id="load-more-container" class="load-more-container">
+                    <button id="load-more-btn" class="btn"
+                        hx-post="/recipes/filter"
+                        hx-target="#recipe-grid"
+                        hx-swap="beforeend"
+                        hx-include="#filter-form"
+                        hx-vals='{"offset": "{{.NextOffset}}", "mode": "load_more", "page_size": "{{.PageSize}}"}'
+                        hx-indicator="#load-more-spinner">
+                        Load More
+                    </button>
+                    <span id="load-more-spinner" class="htmx-indicator">Loading...</span>
+                </div>
+                {{else}}
+                <div id="load-more-container" class="load-more-container"></div>
+                {{end}}
+            </div>
+            <div class="pagination">
+                {{template "pagination-inner" .}}
+            </div>
         </div>
     </main>
 

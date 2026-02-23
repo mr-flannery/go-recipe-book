@@ -98,3 +98,8 @@ type AuthStore interface {
 	GetAllUsers() ([]AuthUser, error)
 	DeleteUser(userID int) error
 }
+
+type UserPreferencesStore interface {
+	Get(userID int) (*models.UserPreferences, error)
+	SetPageSize(userID, pageSize int) error
+}

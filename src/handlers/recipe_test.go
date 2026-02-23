@@ -1209,7 +1209,7 @@ func TestFilterRecipesHTMXHandler_HandlesPagination(t *testing.T) {
 		t.Errorf("expected offset 20, got %d", capturedParams.Offset)
 	}
 
-	if capturedParams.Limit != RecipesPerPage {
-		t.Errorf("expected limit %d, got %d", RecipesPerPage, capturedParams.Limit)
+	if capturedParams.Limit != models.DefaultPageSize {
+		t.Errorf("expected limit %d, got %d", models.DefaultPageSize, capturedParams.Limit)
 	}
 }

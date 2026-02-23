@@ -72,3 +72,14 @@ Recipe Book Team`, username)
 
 	return mc.SendEmail(userEmail, username, subject, content)
 }
+
+type loggingMailClient struct{}
+
+func NewLoggingMailClient() MailClient {
+	return &loggingMailClient{}
+}
+
+func (l *loggingMailClient) SendEmail(recipientEmail, recipientName, subject, plainContent string) error {
+	fmt.Printf("[DEV] Email not sent - To: %s <%s>, Subject: %s\n", recipientName, recipientEmail, subject)
+	return nil
+}

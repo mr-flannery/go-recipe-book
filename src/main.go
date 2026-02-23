@@ -67,15 +67,23 @@ func main() {
 	commentStore := postgres.NewCommentStore(database)
 	userStore := postgres.NewUserStore(database)
 	ingredientStore := postgres.NewIngredientStore(database)
+	userPreferencesStore := postgres.NewUserPreferencesStore(database)
 	renderer := templates.NewRenderer(templates.Templates)
 
-	mailClient, err := mail.NewMailClient(config.Mail.ApiKey, config.Mail.Domain)
-	if err != nil {
-		slog.Error("Failed to create mail client", "error", err)
-		panic(err)
+	var mailClient mail.MailClient
+	if config.Environment.Mode == "development" {
+		slog.Info("Using logging mail client (dev mode)")
+		mailClient = mail.NewLoggingMailClient()
+	} else {
+		var err error
+		mailClient, err = mail.NewMailClient(config.Mail.ApiKey, config.Mail.Domain)
+		if err != nil {
+			slog.Error("Failed to create mail client", "error", err)
+			panic(err)
+		}
 	}
 
-	h := handlers.NewHandler(database, recipeStore, tagStore, userTagStore, commentStore, userStore, authStore, ingredientStore, renderer, mailClient)
+	h := handlers.NewHandler(database, recipeStore, tagStore, userTagStore, commentStore, userStore, authStore, ingredientStore, userPreferencesStore, renderer, mailClient)
 
 	userContext := auth.UserContextMiddleware(authStore)
 	requireAuth := auth.RequireAuth()
@@ -182,6 +190,10 @@ func main() {
 	mux.Handle("POST /recipes/filter",
 		userContext(
 			http.HandlerFunc(h.FilterRecipesHTMXHandler)))
+	mux.Handle("POST /api/preferences/page-size",
+		userContext(
+			requireAuth(
+				http.HandlerFunc(h.SetPageSizeHandler))))
 
 	mux.Handle("GET /recipes/{id}",
 		userContext(

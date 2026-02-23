@@ -1,0 +1,124 @@
+{{define "pagination-inner"}}
+{{if gt .TotalPages 1}}
+<div class="pagination-inner">
+    {{if gt .CurrentPage 1}}
+    <button class="pagination-btn pagination-first"
+        hx-post="/recipes/filter"
+        hx-target="#recipe-results"
+        hx-include="#filter-form"
+        hx-vals='{"page": "1", "page_size": "{{.PageSize}}"}'
+        title="First page">&lt;&lt;</button>
+    <button class="pagination-btn pagination-prev"
+        hx-post="/recipes/filter"
+        hx-target="#recipe-results"
+        hx-include="#filter-form"
+        hx-vals='{"page": "{{subtract .CurrentPage 1}}", "page_size": "{{.PageSize}}"}'
+        title="Previous page">&lt;</button>
+    {{end}}
+    
+    <div class="pagination-pages">
+        {{range .PageNumbers}}
+        {{if eq . $.CurrentPage}}
+        <span class="pagination-page current">{{.}}</span>
+        {{else}}
+        <button class="pagination-btn pagination-page"
+            hx-post="/recipes/filter"
+            hx-target="#recipe-results"
+            hx-include="#filter-form"
+            hx-vals='{"page": "{{.}}", "page_size": "{{$.PageSize}}"}'>{{.}}</button>
+        {{end}}
+        {{end}}
+    </div>
+    
+    {{if lt .CurrentPage .TotalPages}}
+    <button class="pagination-btn pagination-next"
+        hx-post="/recipes/filter"
+        hx-target="#recipe-results"
+        hx-include="#filter-form"
+        hx-vals='{"page": "{{add .CurrentPage 1}}", "page_size": "{{.PageSize}}"}'
+        title="Next page">&gt;</button>
+    <button class="pagination-btn pagination-last"
+        hx-post="/recipes/filter"
+        hx-target="#recipe-results"
+        hx-include="#filter-form"
+        hx-vals='{"page": "{{.TotalPages}}", "page_size": "{{.PageSize}}"}'
+        title="Last page">&gt;&gt;</button>
+    {{end}}
+</div>
+{{end}}
+{{end}}
+
+{{define "pagination"}}
+<div class="pagination" id="pagination-control">
+    {{template "pagination-inner" .}}
+</div>
+{{end}}
+
+{{define "pagination-oob"}}
+<div class="pagination" id="pagination-control" hx-swap-oob="true">
+    {{template "pagination-inner" .}}
+</div>
+{{end}}
+
+{{define "load-previous-header-oob"}}
+<div class="pagination-center" id="load-previous-header" hx-swap-oob="true">
+    {{if .HasPrevious}}
+    <div id="load-previous-container" class="load-previous-container">
+        <button class="btn btn-secondary"
+            hx-post="/recipes/filter"
+            hx-target="#recipe-grid"
+            hx-swap="afterbegin"
+            hx-include="#filter-form"
+            hx-vals='{"offset": "{{.PrevOffset}}", "mode": "load_previous", "page_size": "{{.PageSize}}"}'
+            hx-indicator="#load-previous-spinner">
+            Load Previous
+        </button>
+        <span id="load-previous-spinner" class="htmx-indicator">Loading...</span>
+    </div>
+    {{end}}
+</div>
+{{end}}
+
+{{define "pagination-footer-oob"}}
+<div class="pagination-footer" id="pagination-footer" hx-swap-oob="true">
+    <div></div>
+    <div class="pagination-center">
+        {{if .HasMore}}
+        <div id="load-more-container" class="load-more-container">
+            <button class="btn"
+                hx-post="/recipes/filter"
+                hx-target="#recipe-grid"
+                hx-swap="beforeend"
+                hx-include="#filter-form"
+                hx-vals='{"offset": "{{.NextOffset}}", "mode": "load_more", "page_size": "{{.PageSize}}"}'
+                hx-indicator="#load-more-spinner">
+                Load More
+            </button>
+            <span id="load-more-spinner" class="htmx-indicator">Loading...</span>
+        </div>
+        {{else}}
+        <div id="load-more-container" class="load-more-container"></div>
+        {{end}}
+    </div>
+    <div class="pagination">
+        {{template "pagination-inner" .}}
+    </div>
+</div>
+{{end}}
+
+{{define "page-size-oob"}}
+<div id="page-size-control" hx-swap-oob="true" class="page-size-control">
+    <label for="page-size-select">Show</label>
+    <select id="page-size-select" name="page_size_select"
+        hx-post="/recipes/filter"
+        hx-target="#recipe-results"
+        hx-include="#filter-form"
+        hx-vals='js:{"page": "1", "page_size": document.getElementById("page-size-select").value}'
+        {{if .IsLoggedIn}}hx-on::after-request="fetch('/api/preferences/page-size', {method: 'POST', headers: {'Content-Type': 'application/x-www-form-urlencoded'}, body: 'page_size=' + this.value})"{{end}}>
+        <option value="10" {{if eq .PageSize 10}}selected{{end}}>10</option>
+        <option value="20" {{if eq .PageSize 20}}selected{{end}}>20</option>
+        <option value="50" {{if eq .PageSize 50}}selected{{end}}>50</option>
+        <option value="100" {{if eq .PageSize 100}}selected{{end}}>100</option>
+    </select>
+</div>
+{{end}}

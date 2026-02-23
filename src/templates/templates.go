@@ -42,6 +42,12 @@ var funcMap = template.FuncMap{
 		}
 		return template.HTML(html)
 	},
+	"add": func(a, b int) int {
+		return a + b
+	},
+	"subtract": func(a, b int) int {
+		return a - b
+	},
 }
 
 func loadTemplatesForTheme(root string, theme string) (*template.Template, error) {

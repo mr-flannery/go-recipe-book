@@ -131,12 +131,20 @@ func (h *Handler) PostCreateRecipeHandler(w http.ResponseWriter, r *http.Request
 	http.Redirect(w, r, fmt.Sprintf("/recipes/%d", recipeID), http.StatusSeeOther)
 }
 
-// might want to make this configurable at some point
-const RecipesPerPage = 20
-
 func (h *Handler) ListRecipesHandler(w http.ResponseWriter, r *http.Request) {
+	userInfo := auth.GetUserInfoFromContext(r.Context())
+	var currentUser *auth.User
+	pageSize := models.DefaultPageSize
+
+	if userInfo.IsLoggedIn {
+		currentUser, _ = auth.GetUserBySession(h.AuthStore, r)
+		if prefs, err := h.UserPreferencesStore.Get(currentUser.ID); err == nil {
+			pageSize = prefs.PageSize
+		}
+	}
+
 	filterParams := models.FilterParams{
-		Limit: RecipesPerPage,
+		Limit: pageSize,
 	}
 	recipes, err := h.RecipeStore.GetFiltered(filterParams)
 	if err != nil {
@@ -156,44 +164,27 @@ func (h *Handler) ListRecipesHandler(w http.ResponseWriter, r *http.Request) {
 		recipes[i].Tags = tagsMap[recipes[i].ID]
 	}
 
-	userInfo := auth.GetUserInfoFromContext(r.Context())
-	var currentUser *auth.User
-	if userInfo.IsLoggedIn {
-		currentUser, _ = auth.GetUserBySession(h.AuthStore, r)
+	if userInfo.IsLoggedIn && currentUser != nil {
 		userTagsMap, _ := h.UserTagStore.GetForRecipes(currentUser.ID, recipeIDs)
 		for i := range recipes {
 			recipes[i].UserTags = userTagsMap[recipes[i].ID]
 		}
 	}
 
-	hasMore := len(recipes) == RecipesPerPage
-
-	rangeStart := 1
-	rangeEnd := len(recipes)
-	if rangeEnd == 0 {
-		rangeStart = 0
-	}
+	pagination := CalculatePagination(totalCount, 1, pageSize, len(recipes))
 
 	data := struct {
 		Recipes     []models.Recipe
 		UserInfo    *auth.UserInfo
 		IsLoggedIn  bool
 		CurrentUser *auth.User
-		NextOffset  int
-		HasMore     bool
-		TotalCount  int
-		RangeStart  int
-		RangeEnd    int
+		PaginationData
 	}{
-		Recipes:     recipes,
-		UserInfo:    userInfo,
-		IsLoggedIn:  userInfo.IsLoggedIn,
-		CurrentUser: currentUser,
-		NextOffset:  RecipesPerPage,
-		HasMore:     hasMore,
-		TotalCount:  totalCount,
-		RangeStart:  rangeStart,
-		RangeEnd:    rangeEnd,
+		Recipes:        recipes,
+		UserInfo:       userInfo,
+		IsLoggedIn:     userInfo.IsLoggedIn,
+		CurrentUser:    currentUser,
+		PaginationData: pagination,
 	}
 
 	h.Renderer.RenderPage(w, "list.gohtml", data)
@@ -613,14 +604,34 @@ func (h *Handler) RandomRecipeHandler(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) FilterRecipesHTMXHandler(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 
+	currentUser, err := auth.GetUserBySession(h.AuthStore, r)
+	isLoggedIn := err == nil
+
+	pageSize := models.DefaultPageSize
+	if pageSizeStr := r.FormValue("page_size"); pageSizeStr != "" {
+		if ps, err := strconv.Atoi(pageSizeStr); err == nil && ps > 0 && ps <= 100 {
+			pageSize = ps
+		}
+	} else if isLoggedIn {
+		if prefs, err := h.UserPreferencesStore.Get(currentUser.ID); err == nil {
+			pageSize = prefs.PageSize
+		}
+	}
+
+	mode := r.FormValue("mode")
+	page, _ := strconv.Atoi(r.FormValue("page"))
 	offset, _ := strconv.Atoi(r.FormValue("offset"))
+
+	if page > 0 {
+		offset = (page - 1) * pageSize
+	}
 	if offset < 0 {
 		offset = 0
 	}
 
 	filterParams := models.FilterParams{
 		Search: strings.TrimSpace(r.FormValue("search")),
-		Limit:  RecipesPerPage,
+		Limit:  pageSize,
 		Offset: offset,
 	}
 
@@ -655,9 +666,6 @@ func (h *Handler) FilterRecipesHTMXHandler(w http.ResponseWriter, r *http.Reques
 		}
 	}
 
-	currentUser, err := auth.GetUserBySession(h.AuthStore, r)
-	isLoggedIn := err == nil
-
 	if r.FormValue("authored_by_me") == "1" && isLoggedIn {
 		filterParams.AuthorID = currentUser.ID
 	}
@@ -673,7 +681,7 @@ func (h *Handler) FilterRecipesHTMXHandler(w http.ResponseWriter, r *http.Reques
 		}
 	}
 
-	slog.Info("Filtering recipes", "params", filterParams)
+	slog.Info("Filtering recipes", "params", filterParams, "mode", mode, "page", page)
 
 	recipes, err := h.RecipeStore.GetFiltered(filterParams)
 	if err != nil {
@@ -704,43 +712,51 @@ func (h *Handler) FilterRecipesHTMXHandler(w http.ResponseWriter, r *http.Reques
 		}
 	}
 
-	hasMore := len(recipes) == RecipesPerPage
-	nextOffset := offset + RecipesPerPage
+	currentPage := (offset / pageSize) + 1
+	pagination := CalculatePagination(totalCount, currentPage, pageSize, len(recipes))
 
-	// Range shows current page's recipes (1-20, then 21-40, etc.)
-	rangeStart := offset + 1
-	rangeEnd := offset + len(recipes)
-	if len(recipes) == 0 {
-		rangeStart = 0
-	}
-
-	// Use recipe-cards for initial filter (offset=0), recipe-cards-more for pagination
 	templateName := "recipe-cards"
-	if offset > 0 {
+	if mode == "load_more" {
 		templateName = "recipe-cards-more"
+	} else if mode == "load_previous" {
+		templateName = "recipe-cards-previous"
 	}
 
 	data := struct {
 		Recipes     []models.Recipe
 		IsLoggedIn  bool
 		CurrentUser *auth.User
-		HasMore     bool
-		NextOffset  int
-		TotalCount  int
-		RangeStart  int
-		RangeEnd    int
-		PageNumber  int
+		PaginationData
 	}{
-		Recipes:     recipes,
-		IsLoggedIn:  isLoggedIn,
-		CurrentUser: currentUser,
-		HasMore:     hasMore,
-		NextOffset:  nextOffset,
-		TotalCount:  totalCount,
-		RangeStart:  rangeStart,
-		RangeEnd:    rangeEnd,
-		PageNumber:  (offset / RecipesPerPage) + 1,
+		Recipes:        recipes,
+		IsLoggedIn:     isLoggedIn,
+		CurrentUser:    currentUser,
+		PaginationData: pagination,
 	}
 
 	h.Renderer.RenderFragment(w, templateName, data)
+}
+
+func (h *Handler) SetPageSizeHandler(w http.ResponseWriter, r *http.Request) {
+	currentUser, err := auth.GetUserBySession(h.AuthStore, r)
+	if err != nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	r.ParseForm()
+	pageSizeStr := r.FormValue("page_size")
+	pageSize, err := strconv.Atoi(pageSizeStr)
+	if err != nil || pageSize < 10 || pageSize > 100 {
+		http.Error(w, "Invalid page size", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.UserPreferencesStore.SetPageSize(currentUser.ID, pageSize); err != nil {
+		slog.Error("Failed to save page size preference", "error", err)
+		http.Error(w, "Failed to save preference", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
 }

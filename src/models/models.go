@@ -96,3 +96,10 @@ type RecipeSearchResult struct {
 	ID    int
 	Title string
 }
+
+type UserPreferences struct {
+	UserID   int
+	PageSize int
+}
+
+const DefaultPageSize = 20

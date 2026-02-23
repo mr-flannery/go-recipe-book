@@ -1,5 +1,6 @@
-{{define "recipe-cards-more"}}
-{{template "pagination-footer-oob" .}}
+{{define "recipe-cards-previous"}}
+{{template "pagination-oob" .}}
+{{template "load-previous-header-oob" .}}
 <div class="page-marker" id="page-marker-{{.CurrentPage}}">{{.RangeStart}}-{{.RangeEnd}}</div>
 {{$currentUserID := 0}}
 {{if .CurrentUser}}{{$currentUserID = .CurrentUser.ID}}{{end}}
