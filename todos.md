@@ -18,11 +18,6 @@
 
 - the vscode launch/debug setting is kinda annoying right now
 
-- cookie banner
-- is the imprint up to date?
-  - also how do I handle the imprint containing my address without pushing my address to github?
-  - do it as a github secret?
-
 - SEO/performance testing
   - can I use gzip and shit like this?
 
