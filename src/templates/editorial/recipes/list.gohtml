@@ -30,7 +30,7 @@
         }
     </script>
 </head>
-<body class="has-sticky-actions">
+<body>
     {{template "navbar" .UserInfo}}
 
     <main class="main-content">
@@ -232,13 +232,13 @@
         }
     </script>
 
-    {{template "footer" .UserInfo}}
-
     <div class="sticky-actions">
         <div class="sticky-actions-inner">
             <a href="/recipes/create" class="btn primary">Submit a Recipe</a>
         </div>
     </div>
+
+    {{template "footer" .UserInfo}}
 </body>
 </html>
 {{end}}

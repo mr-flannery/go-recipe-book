@@ -11,7 +11,7 @@
     <script src="https://uicdn.toast.com/editor/latest/toastui-editor-all.min.js"></script>
     <link rel="stylesheet" href="/static/css/editorial.css">
 </head>
-<body class="has-sticky-actions">
+<body>
     {{template "navbar" .UserInfo}}
 
     <main class="main-content">
@@ -207,14 +207,14 @@
         });
     </script>
 
-    {{template "footer" .UserInfo}}
-
     <div class="sticky-actions">
         <div class="sticky-actions-inner">
             <button type="submit" form="recipe-form" class="btn primary">Submit</button>
             <a href="/recipes" class="btn">Cancel</a>
         </div>
     </div>
+
+    {{template "footer" .UserInfo}}
 </body>
 </html>
 {{end}}

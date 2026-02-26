@@ -989,7 +989,6 @@ a:hover { color: var(--ink); }
     text-align: center;
     padding: 40px;
     border-top: 3px double var(--ink);
-    margin-top: 60px;
 }
 
 .footer-text {
@@ -1200,10 +1199,8 @@ a:hover { color: var(--ink); }
 
 /* Sticky action bar */
 .sticky-actions {
-    position: fixed;
+    position: sticky;
     bottom: 0;
-    left: 0;
-    right: 0;
     background: var(--paper);
     border-top: 1px solid var(--rule);
     box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
@@ -1222,14 +1219,6 @@ a:hover { color: var(--ink); }
 .sticky-actions .btn {
     min-width: 120px;
     text-align: center;
-}
-
-.has-sticky-actions {
-    padding-bottom: 80px;
-}
-
-.has-sticky-actions .footer {
-    margin-bottom: 70px;
 }
 
 /* Stats strip */

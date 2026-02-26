@@ -78,7 +78,7 @@
         });
     </script>
 </head>
-<body{{if .IsAuthor}} class="has-sticky-actions"{{end}}>
+<body>
     {{template "navbar" .UserInfo}}
 
     <main class="main-content">
@@ -192,8 +192,6 @@
         </section>
     </main>
 
-    {{template "footer" .UserInfo}}
-
     {{if .IsAuthor}}
     <div class="sticky-actions">
         <div class="sticky-actions-inner">
@@ -202,6 +200,8 @@
         </div>
     </div>
     {{end}}
+
+    {{template "footer" .UserInfo}}
 </body>
 </html>
 {{end}}
