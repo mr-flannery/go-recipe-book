@@ -192,6 +192,7 @@
         });
     </script>
     <script src="/static/js/recipe-editor.js"></script>
+    <script src="/static/js/form-validation.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             RecipeEditor.init('ingredients-editor', {
@@ -204,6 +205,7 @@
                 height: '350px',
                 placeholder: 'Write step-by-step instructions...'
             });
+            FormValidation.init('#recipe-form');
         });
     </script>
 

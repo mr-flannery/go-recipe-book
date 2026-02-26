@@ -1791,6 +1791,51 @@ a.wikilink:hover {
     background: rgba(139, 0, 0, 0.1);
 }
 
+/* Form validation styling */
+.form-group input:user-invalid,
+.form-group textarea:user-invalid,
+.form-group select:user-invalid,
+.form-group input.invalid,
+.form-group textarea.invalid,
+.form-group select.invalid {
+    border-color: var(--error);
+    background: #fef2f2;
+}
+
+.form-group input:user-invalid:focus,
+.form-group textarea:user-invalid:focus,
+.form-group select:user-invalid:focus,
+.form-group input.invalid:focus,
+.form-group textarea.invalid:focus,
+.form-group select.invalid:focus {
+    border-color: var(--error);
+    outline: none;
+}
+
+.field-error {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 11px;
+    letter-spacing: 1px;
+    color: var(--error);
+    margin-top: 6px;
+    display: none;
+}
+
+.field-error.visible {
+    display: block;
+}
+
+.form-group.has-error .field-error {
+    display: block;
+}
+
+.form-group.has-error input,
+.form-group.has-error textarea,
+.form-group.has-error select {
+    border-color: var(--error);
+    background: #fef2f2;
+}
+
 /* TOAST UI Editor overrides */
 .toastui-editor-defaultUI {
     border: 1px solid var(--rule) !important;
@@ -1804,4 +1849,8 @@ a.wikilink:hover {
 
 .toastui-editor-md-container .toastui-editor-md-preview {
     background: var(--paper);
+}
+
+.form-group.has-error .toastui-editor-defaultUI {
+    border-color: var(--error) !important;
 }

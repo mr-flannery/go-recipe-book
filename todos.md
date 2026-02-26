@@ -2,9 +2,7 @@
   - what do I really need to do before deploying
   - what is nice to have but can be done after going live with the intial version
 
-
 - UX improvements!!
-  - the layout of the create/edit page still sucks
   - also I need to test the mobile layout!
   - the admin registration UX could be improved, by listing denied and approved registrations, and also by make the experience more dynamic, showing success messages or something like this.
   - when adding a tag, the focus isn't on the input component any more, but it should
@@ -16,8 +14,7 @@
   - if the instructions mention some ingredient twice, there should be some section where everythings summed up, e.g. for the purpose of creating a shopping list. maybe a shopping list button would be the actual thing to do here.
   - also the whole thing really only works well with some integration with an ingredient API that also contains stuff like calorie count etc.
 
-- the client input validation ui sucks
-- the edit and delete buttons on the view recipe page are inconsisten with how buttons are styled everywhere else
+- sql injection???
 
 - the vscode launch/debug setting is kinda annoying right now
 
