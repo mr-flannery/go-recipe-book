@@ -65,3 +65,7 @@ runner-build-errors.log
 build-errors.log
 
 config.yaml
+
+# Act (local CI runner)
+.secrets
+.act-artifacts/

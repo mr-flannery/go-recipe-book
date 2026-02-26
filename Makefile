@@ -1,4 +1,4 @@
-.PHONY: dev run build test test-unit test-integration test-coverage test-browser test-browser-ui clean db-start migrate help
+.PHONY: dev run build test test-unit test-integration test-coverage test-browser test-browser-ui clean db-start migrate ci-local help
 
 help:
 	@echo "Available commands:"
@@ -13,6 +13,7 @@ help:
 	@echo "  make test-browser-ui  - Run browser tests with UI (requires server running)"
 	@echo "  make clean            - Remove build artifacts"
 	@echo "  make migrate          - Run database migrations"
+	@echo "  make ci-local         - Run GitHub Actions CI pipeline locally using act"
 
 dev:
 	air
@@ -52,3 +53,17 @@ test-browser:
 
 test-browser-ui:
 	cd browser-tests && npx playwright test --ui
+
+ci-local:
+	@if ! command -v act >/dev/null 2>&1; then \
+		echo "Error: 'act' is not installed. Install it with:"; \
+		echo "  brew install act    (macOS)"; \
+		echo "  or see https://github.com/nektos/act#installation"; \
+		exit 1; \
+	fi
+	@if [ ! -f .secrets ]; then \
+		echo "Error: .secrets file not found. Copy .secrets.example to .secrets and fill in values."; \
+		exit 1; \
+	fi
+	@mkdir -p .act-artifacts
+	act --secret-file .secrets --artifact-server-path .act-artifacts
