@@ -87,6 +87,28 @@ func (s *UserTagStore) GetByRecipeID(userID int, recipeID int) ([]models.UserTag
 	return tags, nil
 }
 
+func (s *UserTagStore) GetByUserID(userID int) ([]models.UserTag, error) {
+	rows, err := s.db.Query(
+		"SELECT id, user_id, recipe_id, name FROM user_tags WHERE user_id = $1 ORDER BY recipe_id, name",
+		userID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get user tags: %v", err)
+	}
+	defer rows.Close()
+
+	var tags []models.UserTag
+	for rows.Next() {
+		var tag models.UserTag
+		if err := rows.Scan(&tag.ID, &tag.UserID, &tag.RecipeID, &tag.Name); err != nil {
+			return nil, fmt.Errorf("failed to scan user tag: %v", err)
+		}
+		tags = append(tags, tag)
+	}
+
+	return tags, nil
+}
+
 func (s *UserTagStore) GetForRecipes(userID int, recipeIDs []int) (map[int][]models.UserTag, error) {
 	result := make(map[int][]models.UserTag)
 	if len(recipeIDs) == 0 {

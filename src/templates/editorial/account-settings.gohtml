@@ -1,0 +1,75 @@
+{{define "account-settings.gohtml"}}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Account Settings - Taste Magazine</title>
+    <link rel="stylesheet" href="/static/css/editorial.css">
+</head>
+<body>
+    {{template "navbar" .UserInfo}}
+
+    <main class="main-content">
+        <div class="page-header">
+            <h1>Account Settings</h1>
+            <p>Manage your account and data</p>
+        </div>
+
+        {{if .Success}}
+        <div class="success" style="max-width: 700px; margin: 0 auto 20px;">{{.Success}}</div>
+        {{end}}
+        {{if .Error}}
+        <div class="error" style="max-width: 700px; margin: 0 auto 20px;">{{.Error}}</div>
+        {{end}}
+
+        <div class="card" style="max-width: 700px; margin: 0 auto 30px;">
+            <h2 style="font-size: 1.3rem; margin-bottom: 15px;">Export Your Data</h2>
+            <p style="line-height: 1.7; margin-bottom: 20px; color: var(--muted);">
+                Download a copy of all your personal data, including your account information, 
+                recipes you've created, comments, and personal tags. The data will be exported 
+                as a JSON file.
+            </p>
+            <a href="/account/export" class="btn primary">Download My Data</a>
+        </div>
+
+        <div class="card" style="max-width: 700px; margin: 0 auto; border: 1px solid #c53030;">
+            <h2 style="font-size: 1.3rem; margin-bottom: 15px; color: #c53030;">Delete Account</h2>
+            <p style="line-height: 1.7; margin-bottom: 20px; color: var(--muted);">
+                Permanently delete your account and all associated data. This action cannot be undone.
+                Your recipes, comments, and personal tags will be removed. We recommend exporting 
+                your data before deletion.
+            </p>
+            
+            <details style="margin-top: 20px;">
+                <summary style="cursor: pointer; color: #c53030; font-weight: 500;">
+                    I want to delete my account
+                </summary>
+                
+                <form method="POST" action="/account/delete" style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--rule);">
+                    <div class="form-group">
+                        <label for="password">Enter your password to confirm</label>
+                        <input type="password" id="password" name="password" required 
+                               placeholder="Your current password">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="confirm_delete">Type DELETE to confirm</label>
+                        <input type="text" id="confirm_delete" name="confirm_delete" required 
+                               placeholder="Type DELETE" pattern="DELETE" 
+                               title="Please type DELETE in capital letters">
+                    </div>
+                    
+                    <button type="submit" class="btn" 
+                            style="background: #c53030; color: white; border: none;">
+                        Permanently Delete My Account
+                    </button>
+                </form>
+            </details>
+        </div>
+    </main>
+
+    {{template "footer" .UserInfo}}
+</body>
+</html>
+{{end}}

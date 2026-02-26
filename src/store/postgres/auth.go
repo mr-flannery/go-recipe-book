@@ -68,6 +68,27 @@ func (s *AuthStore) GetUserByID(userID int) (*store.AuthUser, error) {
 	return &user, nil
 }
 
+func (s *AuthStore) GetFullUserByID(userID int) (*store.FullAuthUser, error) {
+	var user store.FullAuthUser
+	query := `
+		SELECT id, username, email, is_admin, is_active, created_at, last_login
+		FROM users 
+		WHERE id = $1 AND is_active = true`
+
+	err := s.db.QueryRow(query, userID).Scan(
+		&user.ID, &user.Username, &user.Email,
+		&user.IsAdmin, &user.IsActive, &user.CreatedAt, &user.LastLogin)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, fmt.Errorf("user not found")
+		}
+		return nil, fmt.Errorf("failed to get user: %w", err)
+	}
+
+	return &user, nil
+}
+
 func (s *AuthStore) GetUserIDByUsername(username string) (int, error) {
 	var userID int
 	err := s.db.QueryRow("SELECT id FROM users WHERE username = $1", username).Scan(&userID)

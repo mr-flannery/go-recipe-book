@@ -38,6 +38,12 @@ type Config struct {
 		Domain string `yaml:"domain"`
 		ApiKey string `yaml:"api_key"`
 	} `yaml:"mail"`
+	Imprint struct {
+		Name    string `yaml:"name"`
+		Address string `yaml:"address"`
+		Email   string `yaml:"email"`
+		Phone   string `yaml:"phone"`
+	} `yaml:"imprint"`
 }
 
 var (
@@ -111,5 +117,17 @@ func applyEnvOverrides(cfg *Config) {
 	}
 	if v := os.Getenv("MAIL_API_KEY"); v != "" {
 		cfg.Mail.ApiKey = v
+	}
+	if v := os.Getenv("IMPRINT_NAME"); v != "" {
+		cfg.Imprint.Name = v
+	}
+	if v := os.Getenv("IMPRINT_ADDRESS"); v != "" {
+		cfg.Imprint.Address = v
+	}
+	if v := os.Getenv("IMPRINT_EMAIL"); v != "" {
+		cfg.Imprint.Email = v
+	}
+	if v := os.Getenv("IMPRINT_PHONE"); v != "" {
+		cfg.Imprint.Phone = v
 	}
 }

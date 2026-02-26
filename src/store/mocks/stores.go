@@ -140,6 +140,7 @@ type MockUserTagStore struct {
 	GetOrCreateFunc   func(userID, recipeID int, name string) (models.UserTag, error)
 	SearchFunc        func(userID int, query string) ([]string, error)
 	GetByRecipeIDFunc func(userID, recipeID int) ([]models.UserTag, error)
+	GetByUserIDFunc   func(userID int) ([]models.UserTag, error)
 	GetForRecipesFunc func(userID int, recipeIDs []int) (map[int][]models.UserTag, error)
 	RemoveFunc        func(userID, tagID int) error
 }
@@ -165,6 +166,13 @@ func (m *MockUserTagStore) GetByRecipeID(userID, recipeID int) ([]models.UserTag
 	return nil, nil
 }
 
+func (m *MockUserTagStore) GetByUserID(userID int) ([]models.UserTag, error) {
+	if m.GetByUserIDFunc != nil {
+		return m.GetByUserIDFunc(userID)
+	}
+	return nil, nil
+}
+
 func (m *MockUserTagStore) GetForRecipes(userID int, recipeIDs []int) (map[int][]models.UserTag, error) {
 	if m.GetForRecipesFunc != nil {
 		return m.GetForRecipesFunc(userID, recipeIDs)
@@ -182,6 +190,7 @@ func (m *MockUserTagStore) Remove(userID, tagID int) error {
 type MockCommentStore struct {
 	GetByRecipeIDFunc            func(recipeID string) ([]models.Comment, error)
 	GetByIDFunc                  func(commentID int) (models.Comment, error)
+	GetByUserIDFunc              func(userID int) ([]models.Comment, error)
 	SaveFunc                     func(comment models.Comment) error
 	UpdateFunc                   func(commentID int, content string) error
 	DeleteFunc                   func(commentID int) error
@@ -200,6 +209,13 @@ func (m *MockCommentStore) GetByID(commentID int) (models.Comment, error) {
 		return m.GetByIDFunc(commentID)
 	}
 	return models.Comment{}, nil
+}
+
+func (m *MockCommentStore) GetByUserID(userID int) ([]models.Comment, error) {
+	if m.GetByUserIDFunc != nil {
+		return m.GetByUserIDFunc(userID)
+	}
+	return nil, nil
 }
 
 func (m *MockCommentStore) Save(comment models.Comment) error {

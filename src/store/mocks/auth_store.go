@@ -6,6 +6,7 @@ type MockAuthStore struct {
 	GetUserByEmailFunc            func(email string) (*store.AuthUser, string, error)
 	UpdateLastLoginFunc           func(userID int) error
 	GetUserByIDFunc               func(userID int) (*store.AuthUser, error)
+	GetFullUserByIDFunc           func(userID int) (*store.FullAuthUser, error)
 	GetUserIDByUsernameFunc       func(username string) (int, error)
 	CreateSessionFunc             func(session *store.Session) error
 	GetSessionFunc                func(sessionID string) (*store.Session, error)
@@ -41,6 +42,13 @@ func (m *MockAuthStore) UpdateLastLogin(userID int) error {
 func (m *MockAuthStore) GetUserByID(userID int) (*store.AuthUser, error) {
 	if m.GetUserByIDFunc != nil {
 		return m.GetUserByIDFunc(userID)
+	}
+	return nil, nil
+}
+
+func (m *MockAuthStore) GetFullUserByID(userID int) (*store.FullAuthUser, error) {
+	if m.GetFullUserByIDFunc != nil {
+		return m.GetFullUserByIDFunc(userID)
 	}
 	return nil, nil
 }

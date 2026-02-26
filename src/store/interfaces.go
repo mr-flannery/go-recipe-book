@@ -1,6 +1,10 @@
 package store
 
-import "github.com/mr-flannery/go-recipe-book/src/models"
+import (
+	"time"
+
+	"github.com/mr-flannery/go-recipe-book/src/models"
+)
 
 type RecipeStore interface {
 	Save(recipe models.Recipe) (int, error)
@@ -28,6 +32,7 @@ type UserTagStore interface {
 	GetOrCreate(userID, recipeID int, name string) (models.UserTag, error)
 	Search(userID int, query string) ([]string, error)
 	GetByRecipeID(userID, recipeID int) ([]models.UserTag, error)
+	GetByUserID(userID int) ([]models.UserTag, error)
 	GetForRecipes(userID int, recipeIDs []int) (map[int][]models.UserTag, error)
 	Remove(userID, tagID int) error
 }
@@ -35,6 +40,7 @@ type UserTagStore interface {
 type CommentStore interface {
 	GetByRecipeID(recipeID string) ([]models.Comment, error)
 	GetByID(commentID int) (models.Comment, error)
+	GetByUserID(userID int) ([]models.Comment, error)
 	Save(comment models.Comment) error
 	Update(commentID int, content string) error
 	Delete(commentID int) error
@@ -73,10 +79,21 @@ type RegistrationRequest struct {
 	Status       string
 }
 
+type FullAuthUser struct {
+	ID        int
+	Username  string
+	Email     string
+	IsAdmin   bool
+	IsActive  bool
+	CreatedAt time.Time
+	LastLogin *time.Time
+}
+
 type AuthStore interface {
 	GetUserByEmail(email string) (*AuthUser, string, error) // returns user, passwordHash, error
 	UpdateLastLogin(userID int) error
 	GetUserByID(userID int) (*AuthUser, error)
+	GetFullUserByID(userID int) (*FullAuthUser, error)
 	GetUserIDByUsername(username string) (int, error)
 
 	CreateSession(session *Session) error

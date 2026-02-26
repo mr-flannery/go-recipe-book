@@ -17,21 +17,18 @@
         </div>
 
         <div class="card" style="max-width: 700px; margin: 0 auto;">
-            <h2 style="font-size: 1.5rem; margin-bottom: 20px;">Legal Information</h2>
-            <p style="line-height: 1.8; margin-bottom: 30px;">
-                This is the imprint page for Taste Magazine Recipe Collection.
-            </p>
+            <h2 style="font-size: 1.5rem; margin-bottom: 20px;">Information according to TMG § 5</h2>
             
-            <h3 style="font-size: 1.2rem; margin-bottom: 15px; padding-top: 20px; border-top: 1px solid var(--rule);">Contact Information</h3>
+            <h3 style="font-size: 1.2rem; margin-bottom: 15px;">Responsible for content</h3>
             <p style="line-height: 2; margin-bottom: 30px;">
-                Taste Magazine<br>
-                Email: info@recipebook.com<br>
-                Phone: +1 (555) 123-4567
+                {{if .Name}}{{.Name}}{{else}}[Name not configured]{{end}}<br>
+                {{if .Address}}{{.Address}}{{else}}[Address not configured]{{end}}
             </p>
             
-            <h3 style="font-size: 1.2rem; margin-bottom: 15px; padding-top: 20px; border-top: 1px solid var(--rule);">Responsible for Content</h3>
-            <p style="margin-bottom: 30px;">
-                Recipe Book Team
+            <h3 style="font-size: 1.2rem; margin-bottom: 15px; padding-top: 20px; border-top: 1px solid var(--rule);">Contact</h3>
+            <p style="line-height: 2; margin-bottom: 30px;">
+                {{if .Email}}Email: {{.Email}}<br>{{end}}
+                {{if .Phone}}Phone: {{.Phone}}{{end}}
             </p>
             
             <h3 style="font-size: 1.2rem; margin-bottom: 15px; padding-top: 20px; border-top: 1px solid var(--rule);">Disclaimer</h3>

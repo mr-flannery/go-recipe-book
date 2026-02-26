@@ -14,7 +14,7 @@
   - if the instructions mention some ingredient twice, there should be some section where everythings summed up, e.g. for the purpose of creating a shopping list. maybe a shopping list button would be the actual thing to do here.
   - also the whole thing really only works well with some integration with an ingredient API that also contains stuff like calorie count etc.
 
-- sql injection???
+- OWASP top10 checking would probably also be a good idea
 
 - the vscode launch/debug setting is kinda annoying right now
 

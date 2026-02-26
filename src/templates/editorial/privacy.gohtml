@@ -1,0 +1,145 @@
+{{define "privacy.gohtml"}}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy Policy - Taste Magazine</title>
+    <link rel="stylesheet" href="/static/css/editorial.css">
+    <style>
+        .privacy-content h2 {
+            font-size: 1.3rem;
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--rule);
+        }
+        .privacy-content h2:first-child {
+            margin-top: 0;
+            padding-top: 0;
+            border-top: none;
+        }
+        .privacy-content p, .privacy-content ul {
+            line-height: 1.8;
+            margin-bottom: 1rem;
+        }
+        .privacy-content ul {
+            margin-left: 1.5rem;
+        }
+        .privacy-content li {
+            margin-bottom: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    {{template "navbar" .}}
+
+    <main class="main-content">
+        <div class="page-header">
+            <h1>Privacy Policy</h1>
+            <p>How we handle your data</p>
+        </div>
+
+        <div class="card privacy-content" style="max-width: 800px; margin: 0 auto;">
+            
+            <h2>1. Data Controller</h2>
+            <p>
+                The data controller responsible for processing your personal data on this website is specified in the <a href="/imprint">Imprint</a>.
+                {{if .ContactEmail}}For privacy-related inquiries, contact us at: {{.ContactEmail}}{{end}}
+            </p>
+
+            <h2>2. Data We Collect</h2>
+            <p>We collect and process the following personal data:</p>
+            <ul>
+                <li><strong>Account data:</strong> Username, email address, and encrypted password when you register</li>
+                <li><strong>Session data:</strong> IP address and browser information (user agent) for security purposes when you log in</li>
+                <li><strong>User preferences:</strong> Display settings like page size preferences</li>
+                <li><strong>Content you create:</strong> Recipes, comments, and proposed changes you submit</li>
+                <li><strong>Server logs:</strong> Our hosting provider may log IP addresses and access times for security and troubleshooting</li>
+            </ul>
+
+            <h2>3. Purpose and Legal Basis</h2>
+            <p>We process your data for the following purposes:</p>
+            <ul>
+                <li><strong>Account management:</strong> To create and maintain your account (legal basis: contract fulfillment)</li>
+                <li><strong>Authentication:</strong> To verify your identity when you log in (legal basis: contract fulfillment)</li>
+                <li><strong>Security:</strong> To detect and prevent unauthorized access and abuse (legal basis: legitimate interest)</li>
+                <li><strong>Service operation:</strong> To provide the recipe sharing functionality (legal basis: contract fulfillment)</li>
+            </ul>
+
+            <h2>4. Cookies</h2>
+            <p>
+                This website uses only a <strong>session cookie</strong> that is strictly necessary for the login functionality.
+                This cookie stores a session identifier to keep you logged in while you use the site.
+            </p>
+            <p>Cookie details:</p>
+            <ul>
+                <li><strong>Name:</strong> session (or __Secure-session in production)</li>
+                <li><strong>Purpose:</strong> Authentication / keeping you logged in</li>
+                <li><strong>Duration:</strong> 24 hours, or until you log out</li>
+                <li><strong>Type:</strong> Strictly necessary (no consent required under GDPR)</li>
+            </ul>
+            <p>
+                We do not use analytics cookies, tracking cookies, or any third-party cookies.
+            </p>
+
+            <h2>5. Data Retention</h2>
+            <ul>
+                <li><strong>Account data:</strong> Retained until you delete your account</li>
+                <li><strong>Session data:</strong> Automatically deleted after 24 hours or when you log out</li>
+                <li><strong>Content (recipes, comments):</strong> Retained until you or an admin deletes it</li>
+                <li><strong>Server logs:</strong> Typically retained for 30 days by our hosting provider</li>
+            </ul>
+
+            <h2>6. Your Rights (GDPR)</h2>
+            <p>Under the General Data Protection Regulation, you have the following rights:</p>
+            <ul>
+                <li><strong>Right of access:</strong> Request information about what data we have about you</li>
+                <li><strong>Right to rectification:</strong> Request correction of inaccurate data</li>
+                <li><strong>Right to erasure:</strong> Request deletion of your account and associated data</li>
+                <li><strong>Right to data portability:</strong> Request an export of your data in a machine-readable format</li>
+                <li><strong>Right to object:</strong> Object to data processing based on legitimate interest</li>
+                <li><strong>Right to lodge a complaint:</strong> File a complaint with your local data protection authority</li>
+            </ul>
+            <p>
+                To exercise these rights, use the account settings page or contact us at the email address in the Imprint.
+                We will respond to your request within 30 days.
+            </p>
+
+            <h2>7. Data Sharing</h2>
+            <p>
+                We do not sell your data. Your data may be processed by:
+            </p>
+            <ul>
+                <li><strong>Hosting provider:</strong> Our web hosting service processes data as necessary to operate the servers</li>
+            </ul>
+            <p>
+                We have appropriate data processing agreements in place with our service providers.
+            </p>
+
+            <h2>8. Data Security</h2>
+            <p>
+                We implement appropriate technical and organizational measures to protect your data:
+            </p>
+            <ul>
+                <li>Passwords are hashed using Argon2id (state-of-the-art password hashing)</li>
+                <li>Session cookies are HTTP-only and secure (not accessible via JavaScript)</li>
+                <li>HTTPS encryption for all data in transit</li>
+                <li>Regular cleanup of expired sessions</li>
+            </ul>
+
+            <h2>9. Changes to This Policy</h2>
+            <p>
+                We may update this privacy policy from time to time. The current version is always available on this page.
+            </p>
+
+            <p style="margin-top: 2rem; color: var(--muted); font-size: 0.9rem;">
+                Last updated: February 2026
+            </p>
+        </div>
+    </main>
+
+    {{template "footer" .}}
+</body>
+</html>
+{{end}}

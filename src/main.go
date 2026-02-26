@@ -112,12 +112,26 @@ func main() {
 	mux.Handle("/", userContext(http.HandlerFunc(h.HomeHandler)))
 
 	mux.Handle("/imprint", userContext(http.HandlerFunc(h.ImprintHandler)))
+	mux.Handle("/privacy", userContext(http.HandlerFunc(h.PrivacyHandler)))
 
 	mux.Handle("GET /login", userContext(http.HandlerFunc(h.GetLoginHandler)))
 	mux.Handle("POST /login", userContext(http.HandlerFunc(h.PostLoginHandler)))
 	mux.HandleFunc("GET /logout", h.LogoutHandler)
 	mux.Handle("GET /register", userContext(http.HandlerFunc(h.GetRegisterHandler)))
 	mux.Handle("POST /register", userContext(http.HandlerFunc(h.PostRegisterHandler)))
+
+	mux.Handle("GET /account",
+		userContext(
+			requireAuth(
+				http.HandlerFunc(h.GetAccountSettingsHandler))))
+	mux.Handle("GET /account/export",
+		userContext(
+			requireAuth(
+				http.HandlerFunc(h.ExportUserDataHandler))))
+	mux.Handle("POST /account/delete",
+		userContext(
+			requireAuth(
+				http.HandlerFunc(h.DeleteOwnAccountHandler))))
 
 	requireAdminAuth := func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
