@@ -64,6 +64,18 @@
                 });
             }
         }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const commentTextarea = document.getElementById('new-comment');
+            if (commentTextarea) {
+                commentTextarea.addEventListener('keydown', function(e) {
+                    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+                        e.preventDefault();
+                        this.form.requestSubmit();
+                    }
+                });
+            }
+        });
     </script>
 </head>
 <body{{if .IsAuthor}} class="has-sticky-actions"{{end}}>
@@ -158,8 +170,8 @@
             </div>
 
             {{if .IsLoggedIn}}
-            <div style="margin-top: 40px; padding-top: 30px; border-top: 1px solid var(--rule);">
-                <h3 style="font-size: 1.3rem; margin-bottom: 20px;">Leave a Comment</h3>
+            <div class="comment-form-section">
+                <h3>Leave a Comment</h3>
                 <form hx-post="/recipes/{{.Recipe.ID}}/comments/htmx" 
                       hx-target="#comments-list" 
                       hx-swap="afterbegin"
@@ -185,8 +197,8 @@
     {{if .IsAuthor}}
     <div class="sticky-actions">
         <div class="sticky-actions-inner">
-            <a href="/recipes/{{.Recipe.ID}}/update" class="btn">Edit</a>
-            <button onclick="deleteRecipe({{.Recipe.ID}})" class="btn danger">Delete</button>
+            <a href="/recipes/{{.Recipe.ID}}/update" class="btn primary">Edit</a>
+            <button onclick="deleteRecipe({{.Recipe.ID}})" class="btn">Delete</button>
         </div>
     </div>
     {{end}}

@@ -295,6 +295,20 @@
         }
     }
 
+    function setupFormShortcuts() {
+        const form = document.getElementById('recipe-form');
+        if (!form) return;
+
+        document.addEventListener('keydown', function(e) {
+            if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+                e.preventDefault();
+                form.requestSubmit();
+            }
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', setupFormShortcuts);
+
     window.RecipeEditor = {
         init: initEditor,
         get: getEditor,

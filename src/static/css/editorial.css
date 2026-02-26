@@ -612,7 +612,10 @@ a:hover { color: var(--ink); }
 
 .comment {
     padding: 25px 0;
-    border-bottom: 1px solid var(--rule);
+}
+
+.comment + .comment {
+    border-top: 1px solid var(--rule);
 }
 
 .comment-header {
@@ -677,6 +680,17 @@ a:hover { color: var(--ink); }
     margin-top: 10px;
     display: flex;
     gap: 10px;
+}
+
+.comment-form-section {
+    margin-top: 20px;
+    padding-top: 30px;
+    border-top: 1px solid var(--rule);
+}
+
+.comment-form-section h3 {
+    font-size: 1.3rem;
+    margin-bottom: 20px;
 }
 
 /* Filters */
