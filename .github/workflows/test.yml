@@ -81,7 +81,7 @@ jobs:
         working-directory: browser-tests
         run: |
           npm ci
-          npx playwright install --with-deps chromium
+          npx playwright install --with-deps chromium firefox webkit
 
       - name: Start services with Docker Compose
         env:
@@ -97,7 +97,9 @@ jobs:
 
       - name: Run Playwright tests
         working-directory: browser-tests
-        run: npx playwright test --project=chromium
+        env:
+          BROWSER_TEST_MODE: minimal
+        run: npx playwright test
 
       - name: Stop services
         if: always()

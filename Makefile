@@ -1,19 +1,24 @@
-.PHONY: dev run build test test-unit test-integration test-coverage test-browser test-browser-ui clean db-start migrate ci-local help
+.PHONY: dev run build test test-unit test-integration test-coverage test-browser test-browser-full test-browser-medium test-browser-minimal test-browser-ui test-browser-full-ui clean db-start migrate ci-local qr help
 
 help:
 	@echo "Available commands:"
-	@echo "  make dev              - Start development server with hot reload"
-	@echo "  make run              - Run the server directly (no hot reload)"
-	@echo "  make build            - Build the binary to bin/app"
-	@echo "  make test             - Run all tests"
-	@echo "  make test-unit        - Run unit tests only (fast, no Docker)"
-	@echo "  make test-integration - Run integration tests (requires Docker)"
-	@echo "  make test-coverage    - Run all tests with coverage report"
-	@echo "  make test-browser     - Run browser tests headless (requires server running)"
-	@echo "  make test-browser-ui  - Run browser tests with UI (requires server running)"
-	@echo "  make clean            - Remove build artifacts"
-	@echo "  make migrate          - Run database migrations"
-	@echo "  make ci-local         - Run GitHub Actions CI pipeline locally using act"
+	@echo "  make dev                  - Start development server with hot reload"
+	@echo "  make run                  - Run the server directly (no hot reload)"
+	@echo "  make build                - Build the binary to bin/app"
+	@echo "  make test                 - Run all tests"
+	@echo "  make test-unit            - Run unit tests only (fast, no Docker)"
+	@echo "  make test-integration     - Run integration tests (requires Docker)"
+	@echo "  make test-coverage        - Run all tests with coverage report"
+	@echo "  make test-browser         - Run browser tests headless, minimal mode (requires server running)"
+	@echo "  make test-browser-full    - Run browser tests: all browsers + mobile viewports"
+	@echo "  make test-browser-medium  - Run browser tests: chromium desktop + mobile viewports"
+	@echo "  make test-browser-minimal - Run browser tests: chromium desktop only"
+	@echo "  make test-browser-ui      - Run browser tests with UI (requires server running)"
+	@echo "  make test-browser-full-ui    - Run browser tests: all browsers + mobile viewports with UI"
+	@echo "  make clean                - Remove build artifacts"
+	@echo "  make migrate              - Run database migrations"
+	@echo "  make ci-local             - Run GitHub Actions CI pipeline locally using act"
+	@echo "  make qr                   - Show QR code to access server from mobile"
 
 dev:
 	air
@@ -48,11 +53,22 @@ clean:
 migrate:
 	go run ./src/main.go migrate
 
-test-browser:
-	cd browser-tests && npx playwright test
+test-browser: test-browser-minimal
+
+test-browser-full:
+	cd browser-tests && BROWSER_TEST_MODE=full npx playwright test
+
+test-browser-medium:
+	cd browser-tests && BROWSER_TEST_MODE=medium npx playwright test
+
+test-browser-minimal:
+	cd browser-tests && BROWSER_TEST_MODE=minimal npx playwright test
 
 test-browser-ui:
 	cd browser-tests && npx playwright test --ui
+
+test-browser-full-ui:
+	cd browser-tests && BROWSER_TEST_MODE=full npx playwright test --ui
 
 ci-local:
 	@if ! command -v act >/dev/null 2>&1; then \
@@ -67,3 +83,6 @@ ci-local:
 	fi
 	@mkdir -p .act-artifacts
 	act --secret-file .secrets --artifact-server-path .act-artifacts
+
+qr:
+	@go run ./cmd/qr
