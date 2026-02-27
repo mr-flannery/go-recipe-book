@@ -147,16 +147,97 @@ func (h *Handler) ListRecipesHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	filterParams := models.FilterParams{
-		Limit: pageSize,
+	query := r.URL.Query()
+
+	if ps := query.Get("page_size"); ps != "" {
+		if parsed, err := strconv.Atoi(ps); err == nil && parsed > 0 && parsed <= 100 {
+			pageSize = parsed
+		}
 	}
+
+	currentPage := 1
+	if p := query.Get("page"); p != "" {
+		if parsed, err := strconv.Atoi(p); err == nil && parsed > 0 {
+			currentPage = parsed
+		}
+	}
+
+	filterState := FilterState{
+		Page:         currentPage,
+		PageSize:     pageSize,
+		Search:       strings.TrimSpace(query.Get("search")),
+		Tags:         query.Get("tags"),
+		UserTags:     query.Get("user_tags"),
+		AuthoredByMe: query.Get("authored_by_me") == "1",
+	}
+
+	if calOp := query.Get("calories_op"); calOp != "" {
+		filterState.CaloriesOp = calOp
+		if calVal, err := strconv.Atoi(query.Get("calories_value")); err == nil && calVal > 0 {
+			filterState.CaloriesValue = calVal
+		}
+	}
+	if prepOp := query.Get("prep_time_op"); prepOp != "" {
+		filterState.PrepTimeOp = prepOp
+		if prepVal, err := strconv.Atoi(query.Get("prep_time_value")); err == nil && prepVal > 0 {
+			filterState.PrepTimeValue = prepVal
+		}
+	}
+	if cookOp := query.Get("cook_time_op"); cookOp != "" {
+		filterState.CookTimeOp = cookOp
+		if cookVal, err := strconv.Atoi(query.Get("cook_time_value")); err == nil && cookVal > 0 {
+			filterState.CookTimeValue = cookVal
+		}
+	}
+
+	offset := (currentPage - 1) * pageSize
+	limit := pageSize
+
+	filterParams := models.FilterParams{
+		Search:        filterState.Search,
+		Limit:         limit,
+		Offset:        offset,
+		CaloriesOp:    filterState.CaloriesOp,
+		CaloriesValue: filterState.CaloriesValue,
+		PrepTimeOp:    filterState.PrepTimeOp,
+		PrepTimeValue: filterState.PrepTimeValue,
+		CookTimeOp:    filterState.CookTimeOp,
+		CookTimeValue: filterState.CookTimeValue,
+	}
+
+	if filterState.Tags != "" {
+		for _, tag := range strings.Split(filterState.Tags, ",") {
+			tag = strings.TrimSpace(tag)
+			if tag != "" {
+				filterParams.Tags = append(filterParams.Tags, tag)
+			}
+		}
+	}
+
+	if filterState.AuthoredByMe && userInfo.IsLoggedIn && currentUser != nil {
+		filterParams.AuthorID = currentUser.ID
+	}
+
+	if filterState.UserTags != "" && userInfo.IsLoggedIn && currentUser != nil {
+		filterParams.UserID = currentUser.ID
+		for _, tag := range strings.Split(filterState.UserTags, ",") {
+			tag = strings.TrimSpace(tag)
+			if tag != "" {
+				filterParams.UserTags = append(filterParams.UserTags, tag)
+			}
+		}
+	}
+
 	recipes, err := h.RecipeStore.GetFiltered(filterParams)
 	if err != nil {
 		h.Renderer.RenderError(w, r, http.StatusInternalServerError, "Failed to fetch recipes. Please try again later.")
 		return
 	}
 
-	totalCount, _ := h.RecipeStore.CountFiltered(models.FilterParams{})
+	countParams := filterParams
+	countParams.Limit = 0
+	countParams.Offset = 0
+	totalCount, _ := h.RecipeStore.CountFiltered(countParams)
 
 	recipeIDs := make([]int, len(recipes))
 	for i, r := range recipes {
@@ -175,7 +256,7 @@ func (h *Handler) ListRecipesHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	pagination := CalculatePagination(totalCount, 1, pageSize, len(recipes))
+	pagination := CalculatePagination(totalCount, currentPage, pageSize)
 
 	data := struct {
 		Recipes     []models.Recipe
@@ -183,6 +264,7 @@ func (h *Handler) ListRecipesHandler(w http.ResponseWriter, r *http.Request) {
 		IsLoggedIn  bool
 		CurrentUser *auth.User
 		ViewMode    string
+		FilterState FilterState
 		PaginationData
 	}{
 		Recipes:        recipes,
@@ -190,6 +272,7 @@ func (h *Handler) ListRecipesHandler(w http.ResponseWriter, r *http.Request) {
 		IsLoggedIn:     userInfo.IsLoggedIn,
 		CurrentUser:    currentUser,
 		ViewMode:       viewMode,
+		FilterState:    filterState,
 		PaginationData: pagination,
 	}
 
@@ -636,20 +719,28 @@ func (h *Handler) FilterRecipesHTMXHandler(w http.ResponseWriter, r *http.Reques
 		}
 	}
 
-	mode := r.FormValue("mode")
-	page, _ := strconv.Atoi(r.FormValue("page"))
-	offset, _ := strconv.Atoi(r.FormValue("offset"))
-
-	if page > 0 {
-		offset = (page - 1) * pageSize
+	currentPage := 1
+	if p := r.FormValue("page"); p != "" {
+		if parsed, err := strconv.Atoi(p); err == nil && parsed > 0 {
+			currentPage = parsed
+		}
 	}
-	if offset < 0 {
-		offset = 0
+
+	offset := (currentPage - 1) * pageSize
+	limit := pageSize
+
+	filterState := FilterState{
+		Page:         currentPage,
+		PageSize:     pageSize,
+		Search:       strings.TrimSpace(r.FormValue("search")),
+		Tags:         r.FormValue("tags"),
+		UserTags:     r.FormValue("user_tags"),
+		AuthoredByMe: r.FormValue("authored_by_me") == "1",
 	}
 
 	filterParams := models.FilterParams{
-		Search: strings.TrimSpace(r.FormValue("search")),
-		Limit:  pageSize,
+		Search: filterState.Search,
+		Limit:  limit,
 		Offset: offset,
 	}
 
@@ -657,6 +748,8 @@ func (h *Handler) FilterRecipesHTMXHandler(w http.ResponseWriter, r *http.Reques
 		if calories, err := strconv.Atoi(caloriesStr); err == nil && calories > 0 {
 			filterParams.CaloriesValue = calories
 			filterParams.CaloriesOp = r.FormValue("calories_op")
+			filterState.CaloriesValue = calories
+			filterState.CaloriesOp = filterParams.CaloriesOp
 		}
 	}
 
@@ -664,6 +757,8 @@ func (h *Handler) FilterRecipesHTMXHandler(w http.ResponseWriter, r *http.Reques
 		if prepTime, err := strconv.Atoi(prepTimeStr); err == nil && prepTime > 0 {
 			filterParams.PrepTimeValue = prepTime
 			filterParams.PrepTimeOp = r.FormValue("prep_time_op")
+			filterState.PrepTimeValue = prepTime
+			filterState.PrepTimeOp = filterParams.PrepTimeOp
 		}
 	}
 
@@ -671,11 +766,13 @@ func (h *Handler) FilterRecipesHTMXHandler(w http.ResponseWriter, r *http.Reques
 		if cookTime, err := strconv.Atoi(cookTimeStr); err == nil && cookTime > 0 {
 			filterParams.CookTimeValue = cookTime
 			filterParams.CookTimeOp = r.FormValue("cook_time_op")
+			filterState.CookTimeValue = cookTime
+			filterState.CookTimeOp = filterParams.CookTimeOp
 		}
 	}
 
-	if tagsStr := r.FormValue("tags"); tagsStr != "" {
-		tags := strings.Split(tagsStr, ",")
+	if filterState.Tags != "" {
+		tags := strings.Split(filterState.Tags, ",")
 		for _, tag := range tags {
 			tag = strings.TrimSpace(tag)
 			if tag != "" {
@@ -684,13 +781,13 @@ func (h *Handler) FilterRecipesHTMXHandler(w http.ResponseWriter, r *http.Reques
 		}
 	}
 
-	if r.FormValue("authored_by_me") == "1" && isLoggedIn {
+	if filterState.AuthoredByMe && isLoggedIn {
 		filterParams.AuthorID = currentUser.ID
 	}
 
-	if userTagsStr := r.FormValue("user_tags"); userTagsStr != "" && isLoggedIn {
+	if filterState.UserTags != "" && isLoggedIn {
 		filterParams.UserID = currentUser.ID
-		tags := strings.Split(userTagsStr, ",")
+		tags := strings.Split(filterState.UserTags, ",")
 		for _, tag := range tags {
 			tag = strings.TrimSpace(tag)
 			if tag != "" {
@@ -699,7 +796,7 @@ func (h *Handler) FilterRecipesHTMXHandler(w http.ResponseWriter, r *http.Reques
 		}
 	}
 
-	slog.Info("Filtering recipes", "params", filterParams, "mode", mode, "page", page)
+	slog.Info("Filtering recipes", "params", filterParams, "page", currentPage)
 
 	recipes, err := h.RecipeStore.GetFiltered(filterParams)
 	if err != nil {
@@ -730,15 +827,9 @@ func (h *Handler) FilterRecipesHTMXHandler(w http.ResponseWriter, r *http.Reques
 		}
 	}
 
-	currentPage := (offset / pageSize) + 1
-	pagination := CalculatePagination(totalCount, currentPage, pageSize, len(recipes))
+	pagination := CalculatePagination(totalCount, currentPage, pageSize)
 
-	templateName := "recipe-cards"
-	if mode == "load_more" {
-		templateName = "recipe-cards-more"
-	} else if mode == "load_previous" {
-		templateName = "recipe-cards-previous"
-	}
+	w.Header().Set("HX-Replace-Url", filterState.ToURLQuery())
 
 	data := struct {
 		Recipes     []models.Recipe
@@ -754,7 +845,7 @@ func (h *Handler) FilterRecipesHTMXHandler(w http.ResponseWriter, r *http.Reques
 		PaginationData: pagination,
 	}
 
-	h.Renderer.RenderFragment(w, templateName, data)
+	h.Renderer.RenderFragment(w, "recipe-cards", data)
 }
 
 func (h *Handler) SetPageSizeHandler(w http.ResponseWriter, r *http.Request) {

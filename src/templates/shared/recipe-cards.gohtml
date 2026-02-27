@@ -3,7 +3,6 @@
     <span id="total-count">{{.TotalCount}}</span> recipes
 </div>
 {{template "pagination-oob" .}}
-{{template "load-previous-header-oob" .}}
 {{template "pagination-footer-oob" .}}
 {{template "page-size-oob" .}}
 {{template "view-toggle-oob" .}}
@@ -11,7 +10,6 @@
     {{if .Recipes}}
     {{if eq .ViewMode "list"}}
     <div id="recipe-grid">
-        <div class="page-marker-list" id="page-marker-{{.CurrentPage}}">{{.RangeStart}}-{{.RangeEnd}}</div>
         <div class="recipe-list">
             {{$currentUserID := 0}}
             {{if .CurrentUser}}{{$currentUserID = .CurrentUser.ID}}{{end}}
@@ -22,7 +20,6 @@
     </div>
     {{else}}
     <div class="recipe-grid" id="recipe-grid">
-        <div class="page-marker-grid" id="page-marker-{{.CurrentPage}}">{{.RangeStart}}-{{.RangeEnd}}</div>
         {{$currentUserID := 0}}
         {{if .CurrentUser}}{{$currentUserID = .CurrentUser.ID}}{{end}}
         {{range .Recipes}}

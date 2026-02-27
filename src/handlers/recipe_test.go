@@ -1193,7 +1193,7 @@ func TestFilterRecipesHTMXHandler_HandlesPagination(t *testing.T) {
 	}
 
 	form := url.Values{}
-	form.Set("offset", "20")
+	form.Set("page", "2")
 
 	req := httptest.NewRequest(http.MethodPost, "/recipes/filter", strings.NewReader(form.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
@@ -1205,6 +1205,7 @@ func TestFilterRecipesHTMXHandler_HandlesPagination(t *testing.T) {
 		t.Errorf("expected status %d, got %d", http.StatusOK, rec.Code)
 	}
 
+	// page=2 means offset should be (2-1)*20 = 20
 	if capturedParams.Offset != 20 {
 		t.Errorf("expected offset 20, got %d", capturedParams.Offset)
 	}

@@ -47,7 +47,7 @@
                 <div class="filter-row-inline">
                     <div class="filter-group filter-search">
                         <label for="search">Search</label>
-                        <input type="text" id="search" name="search" placeholder="Search...">
+                        <input type="text" id="search" name="search" placeholder="Search..." value="{{.FilterState.Search}}">
                     </div>
                     
                     <div class="filter-group filter-tags">
@@ -63,7 +63,7 @@
                     <div class="filter-group filter-checkbox">
                         <label>&nbsp;</label>
                         <label class="checkbox-label">
-                            <input type="checkbox" id="authored_by_me" name="authored_by_me" value="1">
+                            <input type="checkbox" id="authored_by_me" name="authored_by_me" value="1" {{if .FilterState.AuthoredByMe}}checked{{end}}>
                             My recipes
                         </label>
                     </div>
@@ -75,13 +75,13 @@
                             <div class="filter-metric-inputs">
                                 <select id="calories_op" name="calories_op">
                                     <option value="">Any</option>
-                                    <option value="eq">=</option>
-                                    <option value="lt">&lt;</option>
-                                    <option value="lte">&le;</option>
-                                    <option value="gt">&gt;</option>
-                                    <option value="gte">&ge;</option>
+                                    <option value="eq" {{if eq .FilterState.CaloriesOp "eq"}}selected{{end}}>=</option>
+                                    <option value="lt" {{if eq .FilterState.CaloriesOp "lt"}}selected{{end}}>&lt;</option>
+                                    <option value="lte" {{if eq .FilterState.CaloriesOp "lte"}}selected{{end}}>&le;</option>
+                                    <option value="gt" {{if eq .FilterState.CaloriesOp "gt"}}selected{{end}}>&gt;</option>
+                                    <option value="gte" {{if eq .FilterState.CaloriesOp "gte"}}selected{{end}}>&ge;</option>
                                 </select>
-                                <input type="number" id="calories_value" name="calories_value" placeholder="0" min="0">
+                                <input type="number" id="calories_value" name="calories_value" placeholder="0" min="0" {{if .FilterState.CaloriesValue}}value="{{.FilterState.CaloriesValue}}"{{end}}>
                             </div>
                         </div>
                         
@@ -90,13 +90,13 @@
                             <div class="filter-metric-inputs">
                                 <select id="prep_time_op" name="prep_time_op">
                                     <option value="">Any</option>
-                                    <option value="eq">=</option>
-                                    <option value="lt">&lt;</option>
-                                    <option value="lte">&le;</option>
-                                    <option value="gt">&gt;</option>
-                                    <option value="gte">&ge;</option>
+                                    <option value="eq" {{if eq .FilterState.PrepTimeOp "eq"}}selected{{end}}>=</option>
+                                    <option value="lt" {{if eq .FilterState.PrepTimeOp "lt"}}selected{{end}}>&lt;</option>
+                                    <option value="lte" {{if eq .FilterState.PrepTimeOp "lte"}}selected{{end}}>&le;</option>
+                                    <option value="gt" {{if eq .FilterState.PrepTimeOp "gt"}}selected{{end}}>&gt;</option>
+                                    <option value="gte" {{if eq .FilterState.PrepTimeOp "gte"}}selected{{end}}>&ge;</option>
                                 </select>
-                                <input type="number" id="prep_time_value" name="prep_time_value" placeholder="0" min="0">
+                                <input type="number" id="prep_time_value" name="prep_time_value" placeholder="0" min="0" {{if .FilterState.PrepTimeValue}}value="{{.FilterState.PrepTimeValue}}"{{end}}>
                                 <span class="unit-label">min</span>
                             </div>
                         </div>
@@ -106,13 +106,13 @@
                             <div class="filter-metric-inputs">
                                 <select id="cook_time_op" name="cook_time_op">
                                     <option value="">Any</option>
-                                    <option value="eq">=</option>
-                                    <option value="lt">&lt;</option>
-                                    <option value="lte">&le;</option>
-                                    <option value="gt">&gt;</option>
-                                    <option value="gte">&ge;</option>
+                                    <option value="eq" {{if eq .FilterState.CookTimeOp "eq"}}selected{{end}}>=</option>
+                                    <option value="lt" {{if eq .FilterState.CookTimeOp "lt"}}selected{{end}}>&lt;</option>
+                                    <option value="lte" {{if eq .FilterState.CookTimeOp "lte"}}selected{{end}}>&le;</option>
+                                    <option value="gt" {{if eq .FilterState.CookTimeOp "gt"}}selected{{end}}>&gt;</option>
+                                    <option value="gte" {{if eq .FilterState.CookTimeOp "gte"}}selected{{end}}>&ge;</option>
                                 </select>
-                                <input type="number" id="cook_time_value" name="cook_time_value" placeholder="0" min="0">
+                                <input type="number" id="cook_time_value" name="cook_time_value" placeholder="0" min="0" {{if .FilterState.CookTimeValue}}value="{{.FilterState.CookTimeValue}}"{{end}}>
                                 <span class="unit-label">min</span>
                             </div>
                         </div>
@@ -131,13 +131,13 @@
                 <div id="recipe-count" class="recipe-count">
                     <span id="total-count">{{.TotalCount}}</span> recipes
                 </div>
-                <div id="page-size-control" class="page-size-control">
+                <div id="page-size-control" class="page-size-control" data-current-page="{{.CurrentPage}}" data-current-page-size="{{.PageSize}}">
                     <label for="page-size-select">Show</label>
                     <select id="page-size-select" name="page_size_select"
                         hx-post="/recipes/filter"
                         hx-target="#recipe-results"
                         hx-include="#filter-form"
-                        hx-vals='js:{"page": "1", "page_size": document.getElementById("page-size-select").value}'
+                        hx-vals='js:{page: String(Math.floor(((parseInt(document.getElementById("page-size-control").dataset.currentPage) - 1) * parseInt(document.getElementById("page-size-control").dataset.currentPageSize)) / parseInt(document.getElementById("page-size-select").value)) + 1), page_size: document.getElementById("page-size-select").value}'
                         {{if .IsLoggedIn}}hx-on::after-request="fetch('/api/preferences/page-size', {method: 'POST', headers: {'Content-Type': 'application/x-www-form-urlencoded'}, body: 'page_size=' + this.value})"{{end}}>
                         <option value="10" {{if eq .PageSize 10}}selected{{end}}>10</option>
                         <option value="20" {{if eq .PageSize 20}}selected{{end}}>20</option>
@@ -147,7 +147,7 @@
                 </div>
                 {{template "view-toggle" .}}
             </div>
-            <div class="pagination-center" id="load-previous-header"></div>
+            <div class="pagination-center"></div>
             {{template "pagination" .}}
         </div>
 
@@ -155,7 +155,6 @@
             {{if .Recipes}}
             {{if eq .ViewMode "list"}}
             <div id="recipe-grid">
-                <div class="page-marker-list" id="page-marker-{{.CurrentPage}}">{{.RangeStart}}-{{.RangeEnd}}</div>
                 <div class="recipe-list">
                     {{$currentUserID := 0}}
                     {{if .CurrentUser}}{{$currentUserID = .CurrentUser.ID}}{{end}}
@@ -166,7 +165,6 @@
             </div>
             {{else}}
             <div class="recipe-grid" id="recipe-grid">
-                <div class="page-marker-grid" id="page-marker-{{.CurrentPage}}">{{.RangeStart}}-{{.RangeEnd}}</div>
                 {{$currentUserID := 0}}
                 {{if .CurrentUser}}{{$currentUserID = .CurrentUser.ID}}{{end}}
                 {{range .Recipes}}
@@ -184,24 +182,7 @@
 
         <div class="pagination-footer" id="pagination-footer">
             <div></div>
-            <div class="pagination-center">
-                {{if .HasMore}}
-                <div id="load-more-container" class="load-more-container">
-                    <button id="load-more-btn" class="btn"
-                        hx-post="/recipes/filter"
-                        hx-target="#recipe-grid"
-                        hx-swap="beforeend"
-                        hx-include="#filter-form"
-                        hx-vals='{"offset": "{{.NextOffset}}", "mode": "load_more", "page_size": "{{.PageSize}}", "view_mode": "{{.ViewMode}}"}'
-                        hx-indicator="#load-more-spinner">
-                        Load More
-                    </button>
-                    <span id="load-more-spinner" class="htmx-indicator">Loading...</span>
-                </div>
-                {{else}}
-                <div id="load-more-container" class="load-more-container"></div>
-                {{end}}
-            </div>
+            <div class="pagination-center"></div>
             <div class="pagination">
                 {{template "pagination-inner" .}}
             </div>
@@ -244,6 +225,7 @@
             }
             htmx.trigger(document.querySelector('form'), 'change');
         }
+
     </script>
 
     <div class="sticky-actions">
