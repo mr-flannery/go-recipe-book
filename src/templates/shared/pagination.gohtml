@@ -74,7 +74,7 @@
             hx-target="#recipe-grid"
             hx-swap="afterbegin"
             hx-include="#filter-form"
-            hx-vals='{"offset": "{{.PrevOffset}}", "mode": "load_previous", "page_size": "{{.PageSize}}"}'
+            hx-vals='{"offset": "{{.PrevOffset}}", "mode": "load_previous", "page_size": "{{.PageSize}}", "view_mode": "{{.ViewMode}}"}'
             hx-indicator="#load-previous-spinner">
             Load Previous
         </button>
@@ -95,7 +95,7 @@
                 hx-target="#recipe-grid"
                 hx-swap="beforeend"
                 hx-include="#filter-form"
-                hx-vals='{"offset": "{{.NextOffset}}", "mode": "load_more", "page_size": "{{.PageSize}}"}'
+                hx-vals='{"offset": "{{.NextOffset}}", "mode": "load_more", "page_size": "{{.PageSize}}", "view_mode": "{{.ViewMode}}"}'
                 hx-indicator="#load-more-spinner">
                 Load More
             </button>
@@ -125,5 +125,75 @@
         <option value="50" {{if eq .PageSize 50}}selected{{end}}>50</option>
         <option value="100" {{if eq .PageSize 100}}selected{{end}}>100</option>
     </select>
+</div>
+{{end}}
+
+{{define "view-toggle"}}
+<div id="view-toggle" class="view-toggle">
+    <button type="button" class="view-toggle-btn{{if ne .ViewMode "list"}} active{{end}}"
+        title="Grid view"
+        hx-post="/recipes/filter"
+        hx-target="#recipe-results"
+        hx-include="#filter-form"
+        hx-vals='{"page": "1", "view_mode": "grid"}'
+        {{if .IsLoggedIn}}hx-on::after-request="fetch('/api/preferences/view-mode', {method: 'POST', headers: {'Content-Type': 'application/x-www-form-urlencoded'}, body: 'view_mode=grid'})"{{end}}>
+        <svg class="view-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="7" height="7"/>
+            <rect x="14" y="3" width="7" height="7"/>
+            <rect x="3" y="14" width="7" height="7"/>
+            <rect x="14" y="14" width="7" height="7"/>
+        </svg>
+    </button>
+    <button type="button" class="view-toggle-btn{{if eq .ViewMode "list"}} active{{end}}"
+        title="List view"
+        hx-post="/recipes/filter"
+        hx-target="#recipe-results"
+        hx-include="#filter-form"
+        hx-vals='{"page": "1", "view_mode": "list"}'
+        {{if .IsLoggedIn}}hx-on::after-request="fetch('/api/preferences/view-mode', {method: 'POST', headers: {'Content-Type': 'application/x-www-form-urlencoded'}, body: 'view_mode=list'})"{{end}}>
+        <svg class="view-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="8" y1="6" x2="21" y2="6"/>
+            <line x1="8" y1="12" x2="21" y2="12"/>
+            <line x1="8" y1="18" x2="21" y2="18"/>
+            <line x1="3" y1="6" x2="3.01" y2="6"/>
+            <line x1="3" y1="12" x2="3.01" y2="12"/>
+            <line x1="3" y1="18" x2="3.01" y2="18"/>
+        </svg>
+    </button>
+</div>
+{{end}}
+
+{{define "view-toggle-oob"}}
+<div id="view-toggle" hx-swap-oob="true" class="view-toggle">
+    <button type="button" class="view-toggle-btn{{if ne .ViewMode "list"}} active{{end}}"
+        title="Grid view"
+        hx-post="/recipes/filter"
+        hx-target="#recipe-results"
+        hx-include="#filter-form"
+        hx-vals='{"page": "1", "view_mode": "grid"}'
+        {{if .IsLoggedIn}}hx-on::after-request="fetch('/api/preferences/view-mode', {method: 'POST', headers: {'Content-Type': 'application/x-www-form-urlencoded'}, body: 'view_mode=grid'})"{{end}}>
+        <svg class="view-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="7" height="7"/>
+            <rect x="14" y="3" width="7" height="7"/>
+            <rect x="3" y="14" width="7" height="7"/>
+            <rect x="14" y="14" width="7" height="7"/>
+        </svg>
+    </button>
+    <button type="button" class="view-toggle-btn{{if eq .ViewMode "list"}} active{{end}}"
+        title="List view"
+        hx-post="/recipes/filter"
+        hx-target="#recipe-results"
+        hx-include="#filter-form"
+        hx-vals='{"page": "1", "view_mode": "list"}'
+        {{if .IsLoggedIn}}hx-on::after-request="fetch('/api/preferences/view-mode', {method: 'POST', headers: {'Content-Type': 'application/x-www-form-urlencoded'}, body: 'view_mode=list'})"{{end}}>
+        <svg class="view-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="8" y1="6" x2="21" y2="6"/>
+            <line x1="8" y1="12" x2="21" y2="12"/>
+            <line x1="8" y1="18" x2="21" y2="18"/>
+            <line x1="3" y1="6" x2="3.01" y2="6"/>
+            <line x1="3" y1="12" x2="3.01" y2="12"/>
+            <line x1="3" y1="18" x2="3.01" y2="18"/>
+        </svg>
+    </button>
 </div>
 {{end}}

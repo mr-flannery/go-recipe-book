@@ -135,11 +135,15 @@ func (h *Handler) ListRecipesHandler(w http.ResponseWriter, r *http.Request) {
 	userInfo := auth.GetUserInfoFromContext(r.Context())
 	var currentUser *auth.User
 	pageSize := models.DefaultPageSize
+	viewMode := models.DefaultViewMode
 
 	if userInfo.IsLoggedIn {
 		currentUser, _ = auth.GetUserBySession(h.AuthStore, r)
 		if prefs, err := h.UserPreferencesStore.Get(currentUser.ID); err == nil {
 			pageSize = prefs.PageSize
+			if prefs.ViewMode != "" {
+				viewMode = prefs.ViewMode
+			}
 		}
 	}
 
@@ -178,12 +182,14 @@ func (h *Handler) ListRecipesHandler(w http.ResponseWriter, r *http.Request) {
 		UserInfo    *auth.UserInfo
 		IsLoggedIn  bool
 		CurrentUser *auth.User
+		ViewMode    string
 		PaginationData
 	}{
 		Recipes:        recipes,
 		UserInfo:       userInfo,
 		IsLoggedIn:     userInfo.IsLoggedIn,
 		CurrentUser:    currentUser,
+		ViewMode:       viewMode,
 		PaginationData: pagination,
 	}
 
@@ -608,6 +614,7 @@ func (h *Handler) FilterRecipesHTMXHandler(w http.ResponseWriter, r *http.Reques
 	isLoggedIn := err == nil
 
 	pageSize := models.DefaultPageSize
+	viewMode := models.DefaultViewMode
 	if pageSizeStr := r.FormValue("page_size"); pageSizeStr != "" {
 		if ps, err := strconv.Atoi(pageSizeStr); err == nil && ps > 0 && ps <= 100 {
 			pageSize = ps
@@ -615,6 +622,14 @@ func (h *Handler) FilterRecipesHTMXHandler(w http.ResponseWriter, r *http.Reques
 	} else if isLoggedIn {
 		if prefs, err := h.UserPreferencesStore.Get(currentUser.ID); err == nil {
 			pageSize = prefs.PageSize
+		}
+	}
+
+	if vm := r.FormValue("view_mode"); vm == models.ViewModeGrid || vm == models.ViewModeList {
+		viewMode = vm
+	} else if isLoggedIn {
+		if prefs, err := h.UserPreferencesStore.Get(currentUser.ID); err == nil && prefs.ViewMode != "" {
+			viewMode = prefs.ViewMode
 		}
 	}
 
@@ -726,11 +741,13 @@ func (h *Handler) FilterRecipesHTMXHandler(w http.ResponseWriter, r *http.Reques
 		Recipes     []models.Recipe
 		IsLoggedIn  bool
 		CurrentUser *auth.User
+		ViewMode    string
 		PaginationData
 	}{
 		Recipes:        recipes,
 		IsLoggedIn:     isLoggedIn,
 		CurrentUser:    currentUser,
+		ViewMode:       viewMode,
 		PaginationData: pagination,
 	}
 
@@ -754,6 +771,29 @@ func (h *Handler) SetPageSizeHandler(w http.ResponseWriter, r *http.Request) {
 
 	if err := h.UserPreferencesStore.SetPageSize(currentUser.ID, pageSize); err != nil {
 		slog.Error("Failed to save page size preference", "error", err)
+		http.Error(w, "Failed to save preference", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
+func (h *Handler) SetViewModeHandler(w http.ResponseWriter, r *http.Request) {
+	currentUser, err := auth.GetUserBySession(h.AuthStore, r)
+	if err != nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	r.ParseForm()
+	viewMode := r.FormValue("view_mode")
+	if viewMode != models.ViewModeGrid && viewMode != models.ViewModeList {
+		http.Error(w, "Invalid view mode", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.UserPreferencesStore.SetViewMode(currentUser.ID, viewMode); err != nil {
+		slog.Error("Failed to save view mode preference", "error", err)
 		http.Error(w, "Failed to save preference", http.StatusInternalServerError)
 		return
 	}

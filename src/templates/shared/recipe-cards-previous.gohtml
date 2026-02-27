@@ -1,10 +1,21 @@
-{{define "recipe-cards-previous"}}
-{{template "pagination-oob" .}}
-{{template "load-previous-header-oob" .}}
-<div class="page-marker" id="page-marker-{{.CurrentPage}}">{{.RangeStart}}-{{.RangeEnd}}</div>
-{{$currentUserID := 0}}
-{{if .CurrentUser}}{{$currentUserID = .CurrentUser.ID}}{{end}}
-{{range .Recipes}}
-{{template "recipe-card" dict "Recipe" . "IsLoggedIn" $.IsLoggedIn "CurrentUserID" $currentUserID}}
-{{end}}
-{{end}}
+{​{define "recipe-cards-previous"}}
+{​{template "pagination-oob" .}}
+{​{template "load-previous-header-oob" .}}
+{​{if eq .ViewMode "list"}}
+<div class="page-marker-list" id="page-marker-{​{.CurrentPage}}">{​{.RangeStart}}-{​{.RangeEnd}}</div>
+<div class="recipe-list">
+    {​{$currentUserID := 0}}
+    {​{if .CurrentUser}}{​{$currentUserID = .CurrentUser.ID}}{​{end}}
+    {​{range .Recipes}}
+    {​{template "recipe-list-item" dict "Recipe" . "IsLoggedIn" $.IsLoggedIn "CurrentUserID" $currentUserID}}
+    {​{end}}
+</div>
+{​{else}}
+<div class="page-marker-grid" id="page-marker-{​{.CurrentPage}}">{​{.RangeStart}}-{​{.RangeEnd}}</div>
+{​{$currentUserID := 0}}
+{​{if .CurrentUser}}{​{$currentUserID = .CurrentUser.ID}}{​{end}}
+{​{range .Recipes}}
+{​{template "recipe-card" dict "Recipe" . "IsLoggedIn" $.IsLoggedIn "CurrentUserID" $currentUserID}}
+{​{end}}
+{​{end}}
+{​{end}}

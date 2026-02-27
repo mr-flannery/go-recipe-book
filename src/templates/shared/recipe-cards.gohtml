@@ -6,16 +6,30 @@
 {{template "load-previous-header-oob" .}}
 {{template "pagination-footer-oob" .}}
 {{template "page-size-oob" .}}
+{{template "view-toggle-oob" .}}
 <div id="recipe-results">
     {{if .Recipes}}
+    {{if eq .ViewMode "list"}}
+    <div id="recipe-grid">
+        <div class="page-marker-list" id="page-marker-{{.CurrentPage}}">{{.RangeStart}}-{{.RangeEnd}}</div>
+        <div class="recipe-list">
+            {{$currentUserID := 0}}
+            {{if .CurrentUser}}{{$currentUserID = .CurrentUser.ID}}{{end}}
+            {{range .Recipes}}
+            {{template "recipe-list-item" dict "Recipe" . "IsLoggedIn" $.IsLoggedIn "CurrentUserID" $currentUserID}}
+            {{end}}
+        </div>
+    </div>
+    {{else}}
     <div class="recipe-grid" id="recipe-grid">
-        <div class="page-marker" id="page-marker-{{.CurrentPage}}">{{.RangeStart}}-{{.RangeEnd}}</div>
+        <div class="page-marker-grid" id="page-marker-{{.CurrentPage}}">{{.RangeStart}}-{{.RangeEnd}}</div>
         {{$currentUserID := 0}}
         {{if .CurrentUser}}{{$currentUserID = .CurrentUser.ID}}{{end}}
         {{range .Recipes}}
         {{template "recipe-card" dict "Recipe" . "IsLoggedIn" $.IsLoggedIn "CurrentUserID" $currentUserID}}
         {{end}}
     </div>
+    {{end}}
     {{else}}
     <div class="no-results">
         <h2>No Recipes Found</h2>

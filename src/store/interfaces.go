@@ -119,4 +119,5 @@ type AuthStore interface {
 type UserPreferencesStore interface {
 	Get(userID int) (*models.UserPreferences, error)
 	SetPageSize(userID, pageSize int) error
+	SetViewMode(userID int, viewMode string) error
 }

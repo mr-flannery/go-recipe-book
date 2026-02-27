@@ -20,6 +20,7 @@ import (
 type MockUserPreferencesStore struct {
 	GetFunc         func(userID int) (*models.UserPreferences, error)
 	SetPageSizeFunc func(userID, pageSize int) error
+	SetViewModeFunc func(userID int, viewMode string) error
 }
 
 func (m *MockUserPreferencesStore) Get(userID int) (*models.UserPreferences, error) {
@@ -32,6 +33,13 @@ func (m *MockUserPreferencesStore) Get(userID int) (*models.UserPreferences, err
 func (m *MockUserPreferencesStore) SetPageSize(userID, pageSize int) error {
 	if m.SetPageSizeFunc != nil {
 		return m.SetPageSizeFunc(userID, pageSize)
+	}
+	return nil
+}
+
+func (m *MockUserPreferencesStore) SetViewMode(userID int, viewMode string) error {
+	if m.SetViewModeFunc != nil {
+		return m.SetViewModeFunc(userID, viewMode)
 	}
 	return nil
 }

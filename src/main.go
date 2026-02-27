@@ -208,6 +208,10 @@ func main() {
 		userContext(
 			requireAuth(
 				http.HandlerFunc(h.SetPageSizeHandler))))
+	mux.Handle("POST /api/preferences/view-mode",
+		userContext(
+			requireAuth(
+				http.HandlerFunc(h.SetViewModeHandler))))
 
 	mux.Handle("GET /recipes/{id}",
 		userContext(

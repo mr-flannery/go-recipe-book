@@ -1,0 +1,57 @@
+{{define "recipe-list-item"}}
+<div class="recipe-list-item" onclick="navigateToRecipe(event, {{.Recipe.ID}})" style="cursor: pointer;">
+    <div class="recipe-list-thumbnail">
+        {{if .Recipe.ImageBase64}}
+        <img src="data:image/jpeg;base64,{{.Recipe.ImageBase64}}" alt="{{.Recipe.Title}}" class="recipe-thumbnail-img">
+        {{else}}
+        <div class="recipe-thumbnail-placeholder">No Image</div>
+        {{end}}
+    </div>
+    <div class="recipe-list-content">
+        <div class="recipe-list-main">
+            <h3 class="recipe-list-title">{{.Recipe.Title}}</h3>
+            {{if .Recipe.Summary}}
+            <p class="recipe-list-summary">{{.Recipe.Summary}}</p>
+            {{end}}
+            {{if or .Recipe.Tags .Recipe.UserTags}}
+            <div class="recipe-list-tags">
+                {{range .Recipe.Tags}}<span class="tag tag-author tag-small">{{.Name}}</span>{{end}}
+                {{range .Recipe.UserTags}}<span class="tag tag-user tag-small">{{.Name}}</span>{{end}}
+            </div>
+            {{end}}
+        </div>
+        <div class="recipe-list-meta">
+            {{if .Recipe.TotalTime}}
+            <span class="meta-item meta-time" title="Total: {{.Recipe.TotalTime}} min (Prep: {{.Recipe.PrepTime}}, Cook: {{.Recipe.CookTime}})">
+                <svg class="meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <polyline points="12 6 12 12 16 14"/>
+                </svg>
+                {{.Recipe.TotalTime}} min
+            </span>
+            {{end}}
+            {{if .Recipe.IngredientCount}}
+            <span class="meta-item meta-ingredients" title="{{.Recipe.IngredientCount}} ingredients">
+                <svg class="meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="8" y1="6" x2="21" y2="6"/>
+                    <line x1="8" y1="12" x2="21" y2="12"/>
+                    <line x1="8" y1="18" x2="21" y2="18"/>
+                    <line x1="3" y1="6" x2="3.01" y2="6"/>
+                    <line x1="3" y1="12" x2="3.01" y2="12"/>
+                    <line x1="3" y1="18" x2="3.01" y2="18"/>
+                </svg>
+                {{.Recipe.IngredientCount}} ingr
+            </span>
+            {{end}}
+            {{if .Recipe.Calories}}
+            <span class="meta-item meta-calories" title="{{.Recipe.Calories}} calories">
+                <svg class="meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 2c.5 3.5 4 6 4 10a4 4 0 1 1-8 0c0-4 3.5-6.5 4-10z"/>
+                </svg>
+                {{.Recipe.Calories}} cal
+            </span>
+            {{end}}
+        </div>
+    </div>
+</div>
+{{end}}
