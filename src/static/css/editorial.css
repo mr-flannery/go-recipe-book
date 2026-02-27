@@ -1591,8 +1591,8 @@ a:hover { color: var(--ink); }
     text-transform: uppercase;
     color: var(--muted);
     text-align: center;
-    padding: 15px 0;
-    margin-top: 10px;
+    /* padding: 15px 0; */
+    /* margin-top: 10px; */
     grid-column: 1 / -1;
 }
 
@@ -1605,7 +1605,6 @@ a:hover { color: var(--ink); }
     color: var(--muted);
     text-align: center;
     padding: 15px 0;
-    margin-top: 10px;
 }
 
 .page-marker-list:first-child {

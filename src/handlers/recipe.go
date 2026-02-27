@@ -627,6 +627,9 @@ func (h *Handler) FilterRecipesHTMXHandler(w http.ResponseWriter, r *http.Reques
 
 	if vm := r.FormValue("view_mode"); vm == models.ViewModeGrid || vm == models.ViewModeList {
 		viewMode = vm
+		if isLoggedIn {
+			h.UserPreferencesStore.SetViewMode(currentUser.ID, vm)
+		}
 	} else if isLoggedIn {
 		if prefs, err := h.UserPreferencesStore.Get(currentUser.ID); err == nil && prefs.ViewMode != "" {
 			viewMode = prefs.ViewMode
