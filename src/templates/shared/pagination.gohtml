@@ -7,12 +7,14 @@
         hx-target="#recipe-results"
         hx-include="#filter-form"
         hx-vals='{"page": "1", "page_size": "{{.PageSize}}"}'
+        hx-on:click="this.blur()"
         title="First page">&lt;&lt;</button>
     <button class="pagination-btn pagination-prev"
         hx-post="/recipes/filter"
         hx-target="#recipe-results"
         hx-include="#filter-form"
         hx-vals='{"page": "{{subtract .CurrentPage 1}}", "page_size": "{{.PageSize}}"}'
+        hx-on:click="this.blur()"
         title="Previous page">&lt;</button>
     {{end}}
     
@@ -25,7 +27,8 @@
             hx-post="/recipes/filter"
             hx-target="#recipe-results"
             hx-include="#filter-form"
-            hx-vals='{"page": "{{.}}", "page_size": "{{$.PageSize}}"}'>{{.}}</button>
+            hx-vals='{"page": "{{.}}", "page_size": "{{$.PageSize}}"}'
+            hx-on:click="this.blur()">{{.}}</button>
         {{end}}
         {{end}}
     </div>
@@ -36,12 +39,14 @@
         hx-target="#recipe-results"
         hx-include="#filter-form"
         hx-vals='{"page": "{{add .CurrentPage 1}}", "page_size": "{{.PageSize}}"}'
+        hx-on:click="this.blur()"
         title="Next page">&gt;</button>
     <button class="pagination-btn pagination-last"
         hx-post="/recipes/filter"
         hx-target="#recipe-results"
         hx-include="#filter-form"
         hx-vals='{"page": "{{.TotalPages}}", "page_size": "{{.PageSize}}"}'
+        hx-on:click="this.blur()"
         title="Last page">&gt;&gt;</button>
     {{end}}
 </div>

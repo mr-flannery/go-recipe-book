@@ -22,8 +22,8 @@
   - can I use gzip and shit like this?
 
 - browser tests in CI
-  - currently only test for chromium?
-  - check if parallelism can be increased
+  - fix mobile tests
+- 
 
 - performance testing
 
