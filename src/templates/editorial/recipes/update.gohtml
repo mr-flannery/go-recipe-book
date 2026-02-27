@@ -77,9 +77,21 @@
 
     <div class="sticky-actions">
         <div class="sticky-actions-inner">
-            <button type="submit" form="recipe-form" class="btn primary">Update</button>
-            <a href="/recipes/{{.Recipe.ID}}" class="btn">Cancel</a>
+            <button type="submit" form="recipe-form" class="btn primary" aria-label="Update">
+                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="20 6 9 17 4 12"/>
+                </svg>
+                <span class="btn-text">Update</span>
+            </button>
+            <a href="/recipes/{​{.Recipe.ID}}" class="btn" aria-label="Cancel">
+                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"/>
+                    <line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+                <span class="btn-text">Cancel</span>
+            </a>
         </div>
+    </div>
     </div>
 
     {{template "footer" .UserInfo}}
