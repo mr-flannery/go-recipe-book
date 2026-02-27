@@ -23,7 +23,7 @@
 
 - browser tests in CI
   - fix mobile tests
-- 
+- on mobile, some elements are too large, e.g. the tags and the headings on some pages.
 
 - performance testing
 

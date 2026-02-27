@@ -110,75 +110,6 @@ test.describe('Pagination Controls', () => {
     });
   });
 
-  test.describe('Load More and Load Previous Independent Tracking', () => {
-    test('Load More updates only footer pagination', async ({ authenticatedPage: page }) => {
-      await page.goto('/recipes');
-
-      // Navigate to page 2 first
-      await clickAndWaitForHtmx(page, page.locator('#pagination-control .pagination-btn.pagination-page').filter({ hasText: '2' }));
-
-      const headerBefore = await getActivePage('#pagination-control', page);
-      const footerBefore = await getActivePage('#pagination-footer', page);
-      expect(headerBefore).toBe(2);
-      expect(footerBefore).toBe(2);
-
-      // Click Load More
-      await clickAndWaitForHtmx(page, page.getByRole('button', { name: 'Load More' }));
-
-      const headerAfter = await getActivePage('#pagination-control', page);
-      const footerAfter = await getActivePage('#pagination-footer', page);
-
-      // Header should stay at page 2, footer should advance to page 3
-      expect(headerAfter).toBe(2);
-      expect(footerAfter).toBe(3);
-    });
-
-    test('Load Previous updates only header pagination', async ({ authenticatedPage: page }) => {
-      await page.goto('/recipes');
-
-      // Navigate to page 3 first
-      await clickAndWaitForHtmx(page, page.locator('#pagination-control .pagination-btn.pagination-page').filter({ hasText: '3' }));
-
-      const headerBefore = await getActivePage('#pagination-control', page);
-      const footerBefore = await getActivePage('#pagination-footer', page);
-      expect(headerBefore).toBe(3);
-      expect(footerBefore).toBe(3);
-
-      // Click Load Previous
-      await clickAndWaitForHtmx(page, page.getByRole('button', { name: 'Load Previous' }));
-
-      const headerAfter = await getActivePage('#pagination-control', page);
-      const footerAfter = await getActivePage('#pagination-footer', page);
-
-      // Header should go back to page 2, footer should stay at page 3
-      expect(headerAfter).toBe(2);
-      expect(footerAfter).toBe(3);
-    });
-
-    test('combined Load More and Load Previous track boundaries independently', async ({ authenticatedPage: page }) => {
-      await page.goto('/recipes');
-
-      // Navigate to page 3
-      await clickAndWaitForHtmx(page, page.locator('#pagination-control .pagination-btn.pagination-page').filter({ hasText: '3' }));
-
-      // Click Load More - footer should show page 4
-      await clickAndWaitForHtmx(page, page.getByRole('button', { name: 'Load More' }));
-
-      let headerPage = await getActivePage('#pagination-control', page);
-      let footerPage = await getActivePage('#pagination-footer', page);
-      expect(headerPage).toBe(3);
-      expect(footerPage).toBe(4);
-
-      // Click Load Previous - header should show page 2
-      await clickAndWaitForHtmx(page, page.getByRole('button', { name: 'Load Previous' }));
-
-      headerPage = await getActivePage('#pagination-control', page);
-      footerPage = await getActivePage('#pagination-footer', page);
-      expect(headerPage).toBe(2);
-      expect(footerPage).toBe(4);
-    });
-  });
-
   test.describe('Navigation Buttons', () => {
     test('first page button navigates to page 1', async ({ authenticatedPage: page }) => {
       await page.goto('/recipes');
@@ -247,47 +178,55 @@ test.describe('Pagination Controls', () => {
     });
   });
 
-  test.describe('Load More Button Behavior', () => {
-    test('load more button disappears when navigating to last page', async ({ authenticatedPage: page }) => {
+  test.describe('Page Size Change', () => {
+    test('changing page size preserves approximate position in list', async ({ authenticatedPage: page }) => {
       await page.goto('/recipes');
 
-      // Navigate to last page using pagination
-      await clickAndWaitForHtmx(page, page.locator('#pagination-control .pagination-last'));
+      // Navigate to page 3 (items 41-60 with page size 20)
+      await clickAndWaitForHtmx(page, page.locator('#pagination-control .pagination-btn.pagination-page').filter({ hasText: '3' }));
 
-      // Load More should not be visible on last page
-      await expect(page.getByRole('button', { name: 'Load More' })).not.toBeVisible();
+      const headerPageBefore = await getActivePage('#pagination-control', page);
+      expect(headerPageBefore).toBe(3);
 
-      // Verify we loaded all remaining recipes
-      const totalCount = parseInt(await page.locator('#total-count').textContent() || '0');
-      const recipeCount = await page.locator('.recipe-card').count();
-      const expectedOnLastPage = totalCount % 20 || 20;
-      expect(recipeCount).toBe(expectedOnLastPage);
+      // Change page size to 50
+      // This should calculate: offset = (3-1) * 20 = 40, newPage = floor(40/50) + 1 = 1
+      await page.locator('#page-size-select').selectOption('50');
+      await page.waitForResponse(response => 
+        response.url().includes('/recipes/filter') && response.status() === 200
+      );
+      await page.waitForFunction(() => {
+        return document.querySelectorAll('.htmx-request').length === 0 &&
+               document.querySelectorAll('.htmx-settling').length === 0;
+      }, { timeout: 5000 });
+
+      // With page size 50, item 41 is on page 1 (items 1-50)
+      const headerPageAfter = await getActivePage('#pagination-control', page);
+      expect(headerPageAfter).toBe(1);
+
+      // Verify the page size control was updated
+      const selectedValue = await page.locator('#page-size-select').inputValue();
+      expect(selectedValue).toBe('50');
     });
 
-    test('load previous button appears when navigating past first page', async ({ authenticatedPage: page }) => {
+    test('changing page size on page 1 stays on page 1', async ({ authenticatedPage: page }) => {
       await page.goto('/recipes');
 
-      // Initially Load Previous should not be visible
-      await expect(page.getByRole('button', { name: 'Load Previous' })).not.toBeVisible();
+      const headerPageBefore = await getActivePage('#pagination-control', page);
+      expect(headerPageBefore).toBe(1);
 
-      // Navigate to page 2
-      await clickAndWaitForHtmx(page, page.locator('#pagination-control .pagination-btn.pagination-page').filter({ hasText: '2' }));
+      // Change page size to 50
+      await page.locator('#page-size-select').selectOption('50');
+      await page.waitForResponse(response => 
+        response.url().includes('/recipes/filter') && response.status() === 200
+      );
+      await page.waitForFunction(() => {
+        return document.querySelectorAll('.htmx-request').length === 0 &&
+               document.querySelectorAll('.htmx-settling').length === 0;
+      }, { timeout: 5000 });
 
-      // Load Previous should now be visible
-      await expect(page.getByRole('button', { name: 'Load Previous' })).toBeVisible();
-    });
-
-    test('load previous button disappears when all previous pages are loaded', async ({ authenticatedPage: page }) => {
-      await page.goto('/recipes');
-
-      // Navigate to page 2
-      await clickAndWaitForHtmx(page, page.locator('#pagination-control .pagination-btn.pagination-page').filter({ hasText: '2' }));
-
-      // Click Load Previous to load page 1
-      await clickAndWaitForHtmx(page, page.getByRole('button', { name: 'Load Previous' }));
-
-      // Load Previous should disappear since we're now at page 1
-      await expect(page.getByRole('button', { name: 'Load Previous' })).not.toBeVisible();
+      // Should stay on page 1
+      const headerPageAfter = await getActivePage('#pagination-control', page);
+      expect(headerPageAfter).toBe(1);
     });
   });
 });

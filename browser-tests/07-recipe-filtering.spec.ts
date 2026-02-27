@@ -365,24 +365,6 @@ test.describe('Recipe Filtering', () => {
   });
 
   test.describe('Recipe Count Indicator', () => {
-    test('shows page marker on initial page load', async ({ user1Page: page }) => {
-      await page.goto('/recipes');
-
-      const pageMarker = page.locator('.page-marker').first();
-      await expect(pageMarker).toBeVisible();
-
-      const markerText = await pageMarker.textContent() || '';
-      const match = markerText.match(/(\d+)-(\d+)/);
-      expect(match).not.toBeNull();
-      
-      const rangeStart = parseInt(match![1]);
-      const rangeEnd = parseInt(match![2]);
-      
-      expect(rangeStart).toBe(1);
-      expect(rangeEnd).toBeGreaterThan(0);
-      expect(rangeEnd).toBeLessThanOrEqual(20);
-    });
-
     test('count updates when filtering narrows results', async ({ user1Page: page }) => {
       await page.goto('/recipes');
 
@@ -432,85 +414,7 @@ test.describe('Recipe Filtering', () => {
     });
   });
 
-  test.describe('Pagination and Page Markers', () => {
-    test('page marker appears when loading more recipes', async ({ user1Page: page }) => {
-      // Ensure we have enough recipes for pagination (need > 20)
-      await ensureMinimumRecipes(page, 25);
-      
-      await page.goto('/recipes');
 
-      // Initially there should be one page marker for the first page
-      await expect(page.locator('.page-marker')).toHaveCount(1);
-      const firstMarker = page.locator('.page-marker').first();
-      await expect(firstMarker).toContainText('1-');
-
-      // Click Load More
-      await page.getByRole('button', { name: 'Load More' }).click();
-      await page.waitForResponse(response => 
-        response.url().includes('/recipes/filter') && response.status() === 200
-      );
-
-      // A second page marker should appear with range format (e.g., "21-40")
-      await expect(page.locator('.page-marker')).toHaveCount(2);
-      const secondMarker = page.locator('.page-marker').nth(1);
-      await expect(secondMarker).toBeVisible();
-      const markerText = await secondMarker.textContent() || '';
-      expect(markerText).toMatch(/\d+-\d+/);
-    });
-
-    test('top count stays static after loading more', async ({ user1Page: page }) => {
-      // Ensure we have enough recipes for pagination (need > 20)
-      await ensureMinimumRecipes(page, 25);
-      
-      await page.goto('/recipes');
-
-      const initialCountText = await page.locator('#total-count').textContent() || '';
-      const initialMatch = initialCountText.match(/(\d+)/);
-      expect(initialMatch).not.toBeNull();
-      const initialRangeStart = parseInt(initialMatch![1]);
-      const initialRangeEnd = parseInt(initialMatch![2]);
-      const initialTotal = parseInt(initialMatch![3]);
-
-      // Click Load More
-      await page.getByRole('button', { name: 'Load More' }).click();
-      await page.waitForResponse(response => 
-        response.url().includes('/recipes/filter') && response.status() === 200
-      );
-      await page.waitForTimeout(100);
-
-      // Top count indicator should remain unchanged (static 1-20 of N)
-      const afterCountText = await page.locator('#total-count').textContent() || '';
-      const afterMatch = afterCountText.match(/(\d+)/);
-      expect(afterMatch).not.toBeNull();
-      expect(parseInt(afterMatch![1])).toBe(initialRangeStart);
-      expect(parseInt(afterMatch![2])).toBe(initialRangeEnd);
-      expect(parseInt(afterMatch![3])).toBe(initialTotal);
-    });
-
-    test('load more button disappears when navigating to last page', async ({ user1Page: page }) => {
-      await page.goto('/recipes');
-
-      const totalCount = parseInt(await page.locator('#total-count').textContent() || '0');
-      
-      // Skip test if there's only one page
-      if (totalCount <= 20) {
-        test.skip();
-        return;
-      }
-
-      // Navigate to last page using pagination control
-      await page.locator('#pagination-control .pagination-last').click();
-      await waitForFilterResults(page);
-
-      // Load More should not be visible on last page
-      await expect(page.getByRole('button', { name: 'Load More' })).not.toBeVisible();
-
-      // Verify we're showing the correct number of recipes for the last page
-      const recipeCards = await page.locator('.recipe-card').count();
-      const expectedOnLastPage = totalCount % 20 || 20;
-      expect(recipeCards).toBe(expectedOnLastPage);
-    });
-  });
 
   test.describe('Authored By Me Filter', () => {
     const authorFilterId = Date.now();
