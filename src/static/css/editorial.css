@@ -1943,6 +1943,17 @@ a:hover { color: var(--ink); }
     .form-group input.tag-input {
         font-size: 16px;
     }
+
+    .sticky-actions {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+    }
+
+    body.has-sticky-actions .footer {
+        padding-bottom: 80px;
+    }
 }
 
 @media (max-width: 768px) and (orientation: landscape) {

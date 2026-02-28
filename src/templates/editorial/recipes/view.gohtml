@@ -78,7 +78,7 @@
         });
     </script>
 </head>
-<body>
+<body{{if .IsAuthor}} class="has-sticky-actions"{{end}}>
     {{template "navbar" .UserInfo}}
 
     <main class="main-content">
