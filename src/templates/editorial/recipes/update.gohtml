@@ -5,8 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Edit Recipe - {{.Recipe.Title}} - Taste Magazine</title>
-    <link rel="stylesheet" href="https://uicdn.toast.com/editor/latest/toastui-editor.min.css">
-    <script src="https://uicdn.toast.com/editor/latest/toastui-editor-all.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/easymde/dist/easymde.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/easymde/dist/easymde.min.js"></script>
     <link rel="stylesheet" href="/static/css/editorial.css">
 </head>
 <body>
@@ -58,10 +58,15 @@
                 {{template "tag-input-form" dict "ID" "tags" "InitialTags" (joinTagNames .Recipe.Tags)}}
 
                 <div class="form-group">
-                    <label>Ingredients *</label>
-                    <input type="hidden" id="ingredients" name="ingredients" value="{{.Recipe.IngredientsMD}}" required>
-                    <div id="ingredients-editor"></div>
+                    <label for="ingredients">Ingredients *</label>
+                    <textarea id="ingredients" name="ingredients" required>{{.Recipe.IngredientsMD}}</textarea>
                     <div class="help-text">Use @ingredient{name|quantity} for ingredients, e.g. @ingredient{flour|2 cups}. Link recipes with [[Recipe Name]].</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="instructions">Instructions *</label>
+                    <textarea id="instructions" name="instructions" required>{{.Recipe.InstructionsMD}}</textarea>
+                    <div class="help-text">Use numbered lists for steps. Link to other recipes with [[Recipe Name]].</div>
                 </div>
 
                 <div class="form-group">
@@ -99,14 +104,12 @@
     <script src="/static/js/form-validation.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            RecipeEditor.init('ingredients-editor', {
-                hiddenInputId: 'ingredients',
-                height: '250px',
+            RecipeEditor.init('ingredients', {
+                minHeight: '200px',
                 placeholder: 'List ingredients using @ingredient{name|quantity} syntax...'
             });
-            RecipeEditor.init('instructions-editor', {
-                hiddenInputId: 'instructions',
-                height: '350px',
+            RecipeEditor.init('instructions', {
+                minHeight: '300px',
                 placeholder: 'Write step-by-step instructions...'
             });
             FormValidation.init('#recipe-form');

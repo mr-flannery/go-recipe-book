@@ -1379,6 +1379,10 @@ a:hover { color: var(--ink); }
     pointer-events: none;
 }
 
+.sticky-actions.hidden {
+    display: none;
+}
+
 .sticky-actions-inner {
     max-width: 1600px;
     margin: 0 auto;
@@ -1944,6 +1948,12 @@ a:hover { color: var(--ink); }
         font-size: 16px;
     }
 
+    .toastui-editor-contents,
+    .toastui-editor-md-container .ProseMirror,
+    .toastui-editor-ww-container .ProseMirror {
+        font-size: 16px !important;
+    }
+
     .sticky-actions {
         position: fixed;
         bottom: 0;
@@ -2232,21 +2242,66 @@ a.wikilink:hover {
     background: #fef2f2;
 }
 
-/* TOAST UI Editor overrides */
-.toastui-editor-defaultUI {
-    border: 1px solid var(--rule) !important;
-    border-radius: 4px;
+/* EasyMDE Editor Styling */
+.EasyMDEContainer {
+    font-family: 'Montserrat', sans-serif;
 }
 
-.toastui-editor-toolbar {
-    background: var(--paper) !important;
-    border-bottom: 1px solid var(--rule) !important;
-}
-
-.toastui-editor-md-container .toastui-editor-md-preview {
+.EasyMDEContainer .CodeMirror {
+    border: 1px solid var(--rule);
+    border-radius: 0 0 4px 4px;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 18px;
+    line-height: 1.6;
+    color: var(--ink);
     background: var(--paper);
 }
 
-.form-group.has-error .toastui-editor-defaultUI {
-    border-color: var(--error) !important;
+.EasyMDEContainer .CodeMirror-focused {
+    border-color: var(--ink);
+}
+
+.EasyMDEContainer .editor-toolbar {
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    border-bottom: none;
+    border-radius: 4px 4px 0 0;
+    padding: 8px;
+}
+
+.EasyMDEContainer .editor-toolbar button {
+    color: var(--ink);
+    border: none;
+    background: transparent;
+}
+
+.EasyMDEContainer .editor-toolbar button:hover {
+    background: var(--rule);
+}
+
+.EasyMDEContainer .editor-toolbar button.active {
+    background: var(--ink);
+    color: var(--paper);
+}
+
+.EasyMDEContainer .editor-toolbar i.separator {
+    border-left-color: var(--rule);
+}
+
+.EasyMDEContainer .editor-preview {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 18px;
+    line-height: 1.6;
+    color: var(--ink);
+    background: var(--paper);
+    padding: 20px;
+}
+
+.EasyMDEContainer .editor-preview .ingredient {
+    font-weight: 600;
+    color: var(--accent);
+}
+
+.form-group.has-error .EasyMDEContainer .CodeMirror {
+    border-color: var(--error);
 }

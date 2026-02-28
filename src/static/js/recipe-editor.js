@@ -1,5 +1,5 @@
 // Recipe Markdown Editor with custom syntax support
-// Depends on TOAST UI Editor loaded via CDN
+// Uses EasyMDE (https://github.com/Ionaru/easy-markdown-editor)
 
 (function() {
     'use strict';
@@ -7,75 +7,71 @@
     let editors = {};
     let popups = {};
 
-    function initEditor(elementId, options = {}) {
-        const element = document.getElementById(elementId);
-        if (!element) {
-            console.error('RecipeEditor: Element not found:', elementId);
+    function customPreviewRender(plainText) {
+        // First, use the default markdown renderer
+        let html = EasyMDE.prototype.markdown(plainText);
+
+        // Then process our custom @ingredient{name|quantity} syntax
+        html = html.replace(
+            /@ingredient\{([^|]+)\|([^}]+)\}/g,
+            '<span class="ingredient" data-name="$1">$2 $1</span>'
+        );
+
+        return html;
+    }
+
+    function initEditor(textareaId, options = {}) {
+        const textarea = document.getElementById(textareaId);
+        if (!textarea) {
+            console.error('RecipeEditor: Textarea not found:', textareaId);
             return null;
         }
 
-        const hiddenInput = document.getElementById(options.hiddenInputId);
-        const initialValue = hiddenInput ? hiddenInput.value : '';
-
-        const editor = new toastui.Editor({
-            el: element,
-            height: options.height || '400px',
-            initialEditType: 'markdown',
-            previewStyle: options.previewStyle || 'vertical',
-            initialValue: initialValue,
+        const editor = new EasyMDE({
+            element: textarea,
+            minHeight: options.minHeight || '300px',
             placeholder: options.placeholder || 'Write your content here...',
-            toolbarItems: [
-                ['heading', 'bold', 'italic', 'strike'],
-                ['hr', 'quote'],
-                ['ul', 'ol'],
-                ['table', 'link'],
-                ['code', 'codeblock']
+            spellChecker: false,
+            status: false,
+            toolbar: [
+                'bold', 'italic', 'heading', '|',
+                'quote', 'unordered-list', 'ordered-list', '|',
+                'link', 'table', '|',
+                'preview', 'guide'
             ],
-            hooks: {
-                addImageBlobHook: function(blob, callback) {
-                    alert('Image uploads are not supported in this editor.');
-                    return false;
-                }
-            },
-            customHTMLRenderer: {
-                text(node) {
-                    const content = node.literal;
-                    if (!content) return { type: 'text', content: '' };
-
-                    // TODO: this could be a link and/or some hover functionality later on
-                    const processed = content.replace(
-                        /@ingredient\{([^|]+)\|([^}]+)\}/g,
-                        '<span class="ingredient" data-name="$1">$2 $1</span>'
-                    );
-
-                    if (processed !== content) {
-                        return { type: 'html', content: processed };
-                    }
-                    return { type: 'text', content: content };
-                }
-            }
+            previewRender: customPreviewRender,
+            forceSync: true,
+            autofocus: false,
+            tabSize: 2
         });
 
-        // Sync to hidden input on change
-        if (hiddenInput) {
-            editor.on('change', function() {
-                hiddenInput.value = editor.getMarkdown();
-            });
-        }
-
-        editors[elementId] = editor;
+        editors[textareaId] = editor;
 
         // Set up autocomplete after a short delay to ensure DOM is ready
-        // TODO: after a short delay sounds like it's going to cause problems at some point in time...
         setTimeout(function() {
-            setupAutocomplete(editor, element, elementId);
+            setupAutocomplete(editor, textareaId);
         }, 100);
+
+        // Hide sticky actions when editor is focused on mobile
+        const stickyActions = document.querySelector('.sticky-actions');
+        if (stickyActions) {
+            const isMobile = function() {
+                return window.matchMedia('(max-width: 768px)').matches;
+            };
+            editor.codemirror.on('focus', function() {
+                if (isMobile()) {
+                    stickyActions.classList.add('hidden');
+                }
+            });
+            editor.codemirror.on('blur', function() {
+                stickyActions.classList.remove('hidden');
+            });
+        }
 
         return editor;
     }
 
-    function setupAutocomplete(editor, containerEl, editorId) {
-        // Create popup
+    function setupAutocomplete(editor, editorId) {
         const popup = document.createElement('div');
         popup.className = 'autocomplete-popup';
         popup.id = 'autocomplete-' + editorId;
@@ -84,24 +80,16 @@
         popups[editorId] = popup;
 
         let currentTrigger = null;
-        // Delays API requests until user stops typing (100-150ms) to avoid request spam
         let debounceTimer = null;
 
-        // Find the actual editable element - TOAST UI uses contenteditable divs
-        const mdContainer = containerEl.querySelector('.toastui-editor-md-container');
-        if (!mdContainer) {
-            console.error('RecipeEditor: Could not find markdown container');
-            return;
-        }
-
         function checkForTriggers() {
-            const markdown = editor.getMarkdown();
+            const markdown = editor.value();
 
             // Check for @ingredient{ trigger (incomplete - no closing })
             const ingredientMatch = markdown.match(/@ingredient\{([^|}]*)$/);
             if (ingredientMatch) {
                 currentTrigger = 'ingredient';
-                showAutocomplete(popup, ingredientMatch[1], 'ingredient', containerEl, editor, editorId);
+                showAutocomplete(popup, ingredientMatch[1], 'ingredient', editor, editorId);
                 return;
             }
 
@@ -109,7 +97,7 @@
             const recipeMatch = markdown.match(/\[\[([^\]|]*)$/);
             if (recipeMatch) {
                 currentTrigger = 'recipe';
-                showAutocomplete(popup, recipeMatch[1], 'recipe', containerEl, editor, editorId);
+                showAutocomplete(popup, recipeMatch[1], 'recipe', editor, editorId);
                 return;
             }
 
@@ -117,16 +105,10 @@
             currentTrigger = null;
         }
 
-        // Listen to the editor's change event
-        editor.on('change', function() {
+        // Listen to CodeMirror's change event
+        editor.codemirror.on('change', function() {
             clearTimeout(debounceTimer);
             debounceTimer = setTimeout(checkForTriggers, 150);
-        });
-
-        // Also use input event on the container for more immediate feedback
-        mdContainer.addEventListener('input', function() {
-            clearTimeout(debounceTimer);
-            debounceTimer = setTimeout(checkForTriggers, 100);
         });
 
         // Handle keyboard navigation
@@ -176,14 +158,14 @@
 
         // Close on click outside
         document.addEventListener('click', function(e) {
-            if (!popup.contains(e.target) && !containerEl.contains(e.target)) {
+            const editorWrapper = editor.codemirror.getWrapperElement();
+            if (!popup.contains(e.target) && !editorWrapper.contains(e.target)) {
                 hideAutocomplete(popup);
             }
         });
     }
 
-    async function showAutocomplete(popup, query, type, containerEl, editor, editorId) {
-        // Need at least 1 character to search
+    async function showAutocomplete(popup, query, type, editor, editorId) {
         if (!query || query.length < 1) {
             hideAutocomplete(popup);
             return;
@@ -192,8 +174,6 @@
         const endpoint = type === 'ingredient' 
             ? '/api/ingredients/search?q=' + encodeURIComponent(query)
             : '/api/recipes/search?q=' + encodeURIComponent(query);
-
-        console.log('RecipeEditor: Fetching', endpoint);
 
         try {
             const response = await fetch(endpoint);
@@ -241,12 +221,12 @@
                 list.appendChild(div);
             });
 
-            // Position popup
-            const editorRect = containerEl.getBoundingClientRect();
+            // Position popup near the editor
+            const editorWrapper = editor.codemirror.getWrapperElement();
+            const editorRect = editorWrapper.getBoundingClientRect();
             popup.style.left = (editorRect.left + 20) + 'px';
             popup.style.top = (editorRect.top + 60) + 'px';
             popup.classList.add('visible');
-
 
         } catch (error) {
             console.error('RecipeEditor: Fetch error:', error);
@@ -259,7 +239,7 @@
     }
 
     function insertSelection(editor, type, value) {
-        const markdown = editor.getMarkdown();
+        const markdown = editor.value();
         let newMarkdown = markdown;
 
         if (type === 'ingredient') {
@@ -275,23 +255,25 @@
         }
 
         if (newMarkdown !== markdown) {
-            editor.setMarkdown(newMarkdown);
-            editor.focus();
+            editor.value(newMarkdown);
+            editor.codemirror.focus();
+            // Move cursor to end
+            editor.codemirror.setCursor(editor.codemirror.lineCount(), 0);
         }
     }
 
-    function getEditor(elementId) {
-        return editors[elementId];
+    function getEditor(textareaId) {
+        return editors[textareaId];
     }
 
-    function destroyEditor(elementId) {
-        if (editors[elementId]) {
-            editors[elementId].destroy();
-            delete editors[elementId];
+    function destroyEditor(textareaId) {
+        if (editors[textareaId]) {
+            editors[textareaId].toTextArea();
+            delete editors[textareaId];
         }
-        if (popups[elementId]) {
-            popups[elementId].remove();
-            delete popups[elementId];
+        if (popups[textareaId]) {
+            popups[textareaId].remove();
+            delete popups[textareaId];
         }
     }
 
