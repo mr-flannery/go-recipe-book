@@ -1937,6 +1937,12 @@ a:hover { color: var(--ink); }
         width: 14px;
         height: 14px;
     }
+
+    .tag-input,
+    .tag-input-filter-widget .tag-input,
+    .form-group input.tag-input {
+        font-size: 16px;
+    }
 }
 
 @media (max-width: 768px) and (orientation: landscape) {
