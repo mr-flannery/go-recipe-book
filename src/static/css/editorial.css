@@ -1094,11 +1094,13 @@ a:hover { color: var(--ink); }
 @media (max-width: 768px) {
     .filter-metrics-group {
         flex: 1 1 100%;
+        flex-wrap: wrap;
         gap: 12px;
     }
     
     .filter-metrics-group .filter-metric {
-        flex: 1;
+        flex: 1 1 auto;
+        min-width: 0;
     }
     
     .filter-row-inline .filter-clear {

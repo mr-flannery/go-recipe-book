@@ -1214,3 +1214,470 @@ func TestFilterRecipesHTMXHandler_HandlesPagination(t *testing.T) {
 		t.Errorf("expected limit %d, got %d", models.DefaultPageSize, capturedParams.Limit)
 	}
 }
+
+func TestFilterRecipesHTMXHandler_SetsViewModeWhenValidParamProvided(t *testing.T) {
+	tests := []struct {
+		name          string
+		viewModeParam string
+		expectedMode  string
+	}{
+		{"grid mode", "grid", "grid"},
+		{"list mode", "list", "list"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockAuthStore := &mocks.MockAuthStore{
+				GetSessionFunc: func(sessionID string) (*store.Session, error) {
+					return nil, errors.New("no session")
+				},
+			}
+
+			mockRecipeStore := &mocks.MockRecipeStore{
+				GetFilteredFunc: func(params models.FilterParams) ([]models.Recipe, error) {
+					return []models.Recipe{}, nil
+				},
+				CountFilteredFunc: func(params models.FilterParams) (int, error) {
+					return 0, nil
+				},
+			}
+
+			mockTagStore := &mocks.MockTagStore{
+				GetForRecipesFunc: func(recipeIDs []int) (map[int][]models.Tag, error) {
+					return map[int][]models.Tag{}, nil
+				},
+			}
+
+			var capturedViewMode string
+			mockRenderer := &tmocks.MockRenderer{
+				RenderFragmentFunc: func(w http.ResponseWriter, name string, data any) {
+					if d, ok := data.(struct {
+						Recipes     []models.Recipe
+						IsLoggedIn  bool
+						CurrentUser *auth.User
+						ViewMode    string
+						PaginationData
+					}); ok {
+						capturedViewMode = d.ViewMode
+					}
+					w.WriteHeader(http.StatusOK)
+				},
+			}
+
+			h := &Handler{
+				AuthStore:   mockAuthStore,
+				RecipeStore: mockRecipeStore,
+				TagStore:    mockTagStore,
+				Renderer:    mockRenderer,
+			}
+
+			form := url.Values{}
+			form.Set("view_mode", tt.viewModeParam)
+
+			req := httptest.NewRequest(http.MethodPost, "/recipes/filter", strings.NewReader(form.Encode()))
+			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+			rec := httptest.NewRecorder()
+
+			h.FilterRecipesHTMXHandler(rec, req)
+
+			if rec.Code != http.StatusOK {
+				t.Errorf("expected status %d, got %d", http.StatusOK, rec.Code)
+			}
+
+			if capturedViewMode != tt.expectedMode {
+				t.Errorf("expected view mode '%s', got '%s'", tt.expectedMode, capturedViewMode)
+			}
+		})
+	}
+}
+
+func TestFilterRecipesHTMXHandler_UsesDefaultViewModeWhenInvalidParamProvided(t *testing.T) {
+	tests := []struct {
+		name          string
+		viewModeParam string
+	}{
+		{"invalid value", "invalid"},
+		{"empty value", ""},
+		{"numeric value", "123"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockAuthStore := &mocks.MockAuthStore{
+				GetSessionFunc: func(sessionID string) (*store.Session, error) {
+					return nil, errors.New("no session")
+				},
+			}
+
+			mockRecipeStore := &mocks.MockRecipeStore{
+				GetFilteredFunc: func(params models.FilterParams) ([]models.Recipe, error) {
+					return []models.Recipe{}, nil
+				},
+				CountFilteredFunc: func(params models.FilterParams) (int, error) {
+					return 0, nil
+				},
+			}
+
+			mockTagStore := &mocks.MockTagStore{
+				GetForRecipesFunc: func(recipeIDs []int) (map[int][]models.Tag, error) {
+					return map[int][]models.Tag{}, nil
+				},
+			}
+
+			var capturedViewMode string
+			mockRenderer := &tmocks.MockRenderer{
+				RenderFragmentFunc: func(w http.ResponseWriter, name string, data any) {
+					if d, ok := data.(struct {
+						Recipes     []models.Recipe
+						IsLoggedIn  bool
+						CurrentUser *auth.User
+						ViewMode    string
+						PaginationData
+					}); ok {
+						capturedViewMode = d.ViewMode
+					}
+					w.WriteHeader(http.StatusOK)
+				},
+			}
+
+			h := &Handler{
+				AuthStore:   mockAuthStore,
+				RecipeStore: mockRecipeStore,
+				TagStore:    mockTagStore,
+				Renderer:    mockRenderer,
+			}
+
+			form := url.Values{}
+			if tt.viewModeParam != "" {
+				form.Set("view_mode", tt.viewModeParam)
+			}
+
+			req := httptest.NewRequest(http.MethodPost, "/recipes/filter", strings.NewReader(form.Encode()))
+			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+			rec := httptest.NewRecorder()
+
+			h.FilterRecipesHTMXHandler(rec, req)
+
+			if rec.Code != http.StatusOK {
+				t.Errorf("expected status %d, got %d", http.StatusOK, rec.Code)
+			}
+
+			if capturedViewMode != models.DefaultViewMode {
+				t.Errorf("expected default view mode '%s', got '%s'", models.DefaultViewMode, capturedViewMode)
+			}
+		})
+	}
+}
+
+func TestFilterRecipesHTMXHandler_PersistsViewModeForLoggedInUser(t *testing.T) {
+	mockAuthStore := &mocks.MockAuthStore{
+		GetSessionFunc: func(sessionID string) (*store.Session, error) {
+			return &store.Session{ID: sessionID, UserID: 1}, nil
+		},
+		GetUserByIDFunc: func(userID int) (*store.AuthUser, error) {
+			return &store.AuthUser{ID: 1, Username: "testuser"}, nil
+		},
+	}
+
+	mockRecipeStore := &mocks.MockRecipeStore{
+		GetFilteredFunc: func(params models.FilterParams) ([]models.Recipe, error) {
+			return []models.Recipe{}, nil
+		},
+		CountFilteredFunc: func(params models.FilterParams) (int, error) {
+			return 0, nil
+		},
+	}
+
+	mockTagStore := &mocks.MockTagStore{
+		GetForRecipesFunc: func(recipeIDs []int) (map[int][]models.Tag, error) {
+			return map[int][]models.Tag{}, nil
+		},
+	}
+
+	mockUserTagStore := &mocks.MockUserTagStore{
+		GetForRecipesFunc: func(userID int, recipeIDs []int) (map[int][]models.UserTag, error) {
+			return map[int][]models.UserTag{}, nil
+		},
+	}
+
+	mockRenderer := &tmocks.MockRenderer{
+		RenderFragmentFunc: func(w http.ResponseWriter, name string, data any) {
+			w.WriteHeader(http.StatusOK)
+		},
+	}
+
+	var savedUserID int
+	var savedViewMode string
+	mockPrefsStore := &MockUserPreferencesStore{
+		GetFunc: func(userID int) (*models.UserPreferences, error) {
+			return &models.UserPreferences{PageSize: models.DefaultPageSize}, nil
+		},
+		SetViewModeFunc: func(userID int, viewMode string) error {
+			savedUserID = userID
+			savedViewMode = viewMode
+			return nil
+		},
+	}
+
+	h := &Handler{
+		AuthStore:            mockAuthStore,
+		RecipeStore:          mockRecipeStore,
+		TagStore:             mockTagStore,
+		UserTagStore:         mockUserTagStore,
+		Renderer:             mockRenderer,
+		UserPreferencesStore: mockPrefsStore,
+	}
+
+	form := url.Values{}
+	form.Set("view_mode", "list")
+
+	req := httptest.NewRequest(http.MethodPost, "/recipes/filter", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.AddCookie(&http.Cookie{Name: "session", Value: "test-session"})
+	rec := httptest.NewRecorder()
+
+	h.FilterRecipesHTMXHandler(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Errorf("expected status %d, got %d", http.StatusOK, rec.Code)
+	}
+
+	if savedUserID != 1 {
+		t.Errorf("expected SetViewMode called with user ID 1, got %d", savedUserID)
+	}
+
+	if savedViewMode != "list" {
+		t.Errorf("expected SetViewMode called with 'list', got '%s'", savedViewMode)
+	}
+}
+
+func TestFilterRecipesHTMXHandler_UsesStoredPreferenceWhenNoViewModeParam(t *testing.T) {
+	mockAuthStore := &mocks.MockAuthStore{
+		GetSessionFunc: func(sessionID string) (*store.Session, error) {
+			return &store.Session{ID: sessionID, UserID: 1}, nil
+		},
+		GetUserByIDFunc: func(userID int) (*store.AuthUser, error) {
+			return &store.AuthUser{ID: 1, Username: "testuser"}, nil
+		},
+	}
+
+	mockRecipeStore := &mocks.MockRecipeStore{
+		GetFilteredFunc: func(params models.FilterParams) ([]models.Recipe, error) {
+			return []models.Recipe{}, nil
+		},
+		CountFilteredFunc: func(params models.FilterParams) (int, error) {
+			return 0, nil
+		},
+	}
+
+	mockTagStore := &mocks.MockTagStore{
+		GetForRecipesFunc: func(recipeIDs []int) (map[int][]models.Tag, error) {
+			return map[int][]models.Tag{}, nil
+		},
+	}
+
+	mockUserTagStore := &mocks.MockUserTagStore{
+		GetForRecipesFunc: func(userID int, recipeIDs []int) (map[int][]models.UserTag, error) {
+			return map[int][]models.UserTag{}, nil
+		},
+	}
+
+	var capturedViewMode string
+	mockRenderer := &tmocks.MockRenderer{
+		RenderFragmentFunc: func(w http.ResponseWriter, name string, data any) {
+			if d, ok := data.(struct {
+				Recipes     []models.Recipe
+				IsLoggedIn  bool
+				CurrentUser *auth.User
+				ViewMode    string
+				PaginationData
+			}); ok {
+				capturedViewMode = d.ViewMode
+			}
+			w.WriteHeader(http.StatusOK)
+		},
+	}
+
+	mockPrefsStore := &MockUserPreferencesStore{
+		GetFunc: func(userID int) (*models.UserPreferences, error) {
+			return &models.UserPreferences{
+				PageSize: models.DefaultPageSize,
+				ViewMode: "list",
+			}, nil
+		},
+	}
+
+	h := &Handler{
+		AuthStore:            mockAuthStore,
+		RecipeStore:          mockRecipeStore,
+		TagStore:             mockTagStore,
+		UserTagStore:         mockUserTagStore,
+		Renderer:             mockRenderer,
+		UserPreferencesStore: mockPrefsStore,
+	}
+
+	form := url.Values{}
+	// No view_mode param set
+
+	req := httptest.NewRequest(http.MethodPost, "/recipes/filter", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.AddCookie(&http.Cookie{Name: "session", Value: "test-session"})
+	rec := httptest.NewRecorder()
+
+	h.FilterRecipesHTMXHandler(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Errorf("expected status %d, got %d", http.StatusOK, rec.Code)
+	}
+
+	if capturedViewMode != "list" {
+		t.Errorf("expected view mode 'list' from stored preference, got '%s'", capturedViewMode)
+	}
+}
+
+func TestSetViewModeHandler_ReturnsOKWhenValidMode(t *testing.T) {
+	tests := []struct {
+		name     string
+		viewMode string
+	}{
+		{"grid mode", "grid"},
+		{"list mode", "list"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockAuthStore := &mocks.MockAuthStore{
+				GetSessionFunc: func(sessionID string) (*store.Session, error) {
+					return &store.Session{ID: sessionID, UserID: 1}, nil
+				},
+				GetUserByIDFunc: func(userID int) (*store.AuthUser, error) {
+					return &store.AuthUser{ID: 1, Username: "testuser"}, nil
+				},
+			}
+
+			var savedViewMode string
+			mockPrefsStore := &MockUserPreferencesStore{
+				SetViewModeFunc: func(userID int, viewMode string) error {
+					savedViewMode = viewMode
+					return nil
+				},
+			}
+
+			h := &Handler{
+				AuthStore:            mockAuthStore,
+				UserPreferencesStore: mockPrefsStore,
+			}
+
+			form := url.Values{}
+			form.Set("view_mode", tt.viewMode)
+
+			req := httptest.NewRequest(http.MethodPost, "/api/preferences/view-mode", strings.NewReader(form.Encode()))
+			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+			req.AddCookie(&http.Cookie{Name: "session", Value: "test-session"})
+			rec := httptest.NewRecorder()
+
+			h.SetViewModeHandler(rec, req)
+
+			if rec.Code != http.StatusOK {
+				t.Errorf("expected status %d, got %d", http.StatusOK, rec.Code)
+			}
+
+			if savedViewMode != tt.viewMode {
+				t.Errorf("expected view mode '%s' to be saved, got '%s'", tt.viewMode, savedViewMode)
+			}
+		})
+	}
+}
+
+func TestSetViewModeHandler_ReturnsBadRequestWhenInvalidMode(t *testing.T) {
+	tests := []struct {
+		name     string
+		viewMode string
+	}{
+		{"invalid value", "invalid"},
+		{"empty value", ""},
+		{"numeric value", "123"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockAuthStore := &mocks.MockAuthStore{
+				GetSessionFunc: func(sessionID string) (*store.Session, error) {
+					return &store.Session{ID: sessionID, UserID: 1}, nil
+				},
+				GetUserByIDFunc: func(userID int) (*store.AuthUser, error) {
+					return &store.AuthUser{ID: 1, Username: "testuser"}, nil
+				},
+			}
+
+			setViewModeCalled := false
+			mockPrefsStore := &MockUserPreferencesStore{
+				SetViewModeFunc: func(userID int, viewMode string) error {
+					setViewModeCalled = true
+					return nil
+				},
+			}
+
+			h := &Handler{
+				AuthStore:            mockAuthStore,
+				UserPreferencesStore: mockPrefsStore,
+			}
+
+			form := url.Values{}
+			form.Set("view_mode", tt.viewMode)
+
+			req := httptest.NewRequest(http.MethodPost, "/api/preferences/view-mode", strings.NewReader(form.Encode()))
+			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+			req.AddCookie(&http.Cookie{Name: "session", Value: "test-session"})
+			rec := httptest.NewRecorder()
+
+			h.SetViewModeHandler(rec, req)
+
+			if rec.Code != http.StatusBadRequest {
+				t.Errorf("expected status %d, got %d", http.StatusBadRequest, rec.Code)
+			}
+
+			if setViewModeCalled {
+				t.Error("SetViewMode should not be called for invalid view mode")
+			}
+		})
+	}
+}
+
+func TestSetViewModeHandler_ReturnsUnauthorizedWhenNotLoggedIn(t *testing.T) {
+	mockAuthStore := &mocks.MockAuthStore{
+		GetSessionFunc: func(sessionID string) (*store.Session, error) {
+			return nil, errors.New("no session")
+		},
+	}
+
+	setViewModeCalled := false
+	mockPrefsStore := &MockUserPreferencesStore{
+		SetViewModeFunc: func(userID int, viewMode string) error {
+			setViewModeCalled = true
+			return nil
+		},
+	}
+
+	h := &Handler{
+		AuthStore:            mockAuthStore,
+		UserPreferencesStore: mockPrefsStore,
+	}
+
+	form := url.Values{}
+	form.Set("view_mode", "list")
+
+	req := httptest.NewRequest(http.MethodPost, "/api/preferences/view-mode", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	rec := httptest.NewRecorder()
+
+	h.SetViewModeHandler(rec, req)
+
+	if rec.Code != http.StatusUnauthorized {
+		t.Errorf("expected status %d, got %d", http.StatusUnauthorized, rec.Code)
+	}
+
+	if setViewModeCalled {
+		t.Error("SetViewMode should not be called when user is not logged in")
+	}
+}
