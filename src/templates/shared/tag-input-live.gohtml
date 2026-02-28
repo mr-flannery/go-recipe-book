@@ -16,7 +16,8 @@
         </span>
         {{end}}
         {{if .CanEdit}}
-        <div class="tag-input-container">
+        <button type="button" id="{{.ID}}-add-btn" class="tag-add-btn" title="Add tag">+</button>
+        <div id="{{.ID}}-input-container" class="tag-input-container tag-input-hidden">
             <input type="text" id="{{.ID}}-input" class="tag-input" placeholder="{{.Placeholder}}">
             <div id="{{.ID}}-suggestions" class="tag-suggestions"></div>
         </div>
@@ -58,6 +59,58 @@
         });
     });
 
+    var addBtn = document.getElementById(widgetId + '-add-btn');
+    var inputContainer = document.getElementById(widgetId + '-input-container');
+    var input = document.getElementById(widgetId + '-input');
+
+    function showInput() {
+        addBtn.classList.add('tag-input-hidden');
+        inputContainer.classList.remove('tag-input-hidden');
+        input.focus();
+    }
+
+    function hideInput(focusAddBtn) {
+        inputContainer.classList.add('tag-input-hidden');
+        addBtn.classList.remove('tag-input-hidden');
+        input.value = '';
+        if (focusAddBtn) {
+            addBtn.focus();
+        }
+    }
+
+    addBtn.addEventListener('click', showInput);
+
+    addBtn.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            showInput();
+        }
+    });
+
+    input.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            hideInput();
+        }
+    });
+
+    input.addEventListener('blur', function(e) {
+        var suggestions = document.getElementById(widgetId + '-suggestions');
+        if (suggestions && suggestions.contains(e.relatedTarget)) {
+            return;
+        }
+        setTimeout(function() {
+            if (document.activeElement !== input) {
+                hideInput();
+            }
+        }, 150);
+    });
+
+    var focusKey = 'focusTagAddBtn';
+    if (sessionStorage.getItem(focusKey) === widgetId) {
+        sessionStorage.removeItem(focusKey);
+        addBtn.focus();
+    }
+
     document.addEventListener('DOMContentLoaded', function() {
         TagInputWidget.init({
             inputId: widgetId + '-input',
@@ -67,7 +120,11 @@
             addUrl: addUrl,
             initialTags: [],
             tagClass: tagClass,
-            mode: 'ajax'
+            mode: 'ajax',
+            onTagAdded: function() {
+                sessionStorage.setItem(focusKey, widgetId);
+                location.reload();
+            }
         });
     });
 })();
