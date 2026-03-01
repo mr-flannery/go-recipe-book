@@ -19,9 +19,9 @@ var pool *sql.DB
 func getConnectionString() string {
 	cfg := config.GetConfig()
 
-	if cfg.DatabaseURL != "" {
-		slog.Info("Using DATABASE_URL for database connection")
-		return cfg.DatabaseURL
+	if cfg.DatabasePublicURL != "" {
+		slog.Info("Using DATABASE_PUBLIC_URL for database connection")
+		return cfg.DatabasePublicURL
 	}
 
 	slog.Info("Using config for database connection")
