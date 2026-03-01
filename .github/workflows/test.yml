@@ -104,3 +104,27 @@ jobs:
       - name: Stop services
         if: always()
         run: docker compose --profile ci down
+
+  deploy:
+    name: Deploy to Railway
+    runs-on: ubuntu-latest
+    needs: [browser-tests]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+
+      - name: Set Railway environment variables
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          railway variables set DB_ADMIN_USERNAME="${{ secrets.INITIAL_ADMIN_USERNAME }}" --service ${{ vars.RAILWAY_SERVICE_NAME }}
+          railway variables set DB_ADMIN_EMAIL="${{ secrets.INITIAL_ADMIN_EMAIL }}" --service ${{ vars.RAILWAY_SERVICE_NAME }}
+          railway variables set DB_ADMIN_PASSWORD="${{ secrets.INITIAL_ADMIN_PASSWORD }}" --service ${{ vars.RAILWAY_SERVICE_NAME }}
+
+      - name: Deploy to Railway
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: railway up --service ${{ vars.RAILWAY_SERVICE_NAME }}

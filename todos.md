@@ -23,7 +23,9 @@
 
 - browser tests in CI
   - fix mobile tests
-- on mobile, some elements are too large, e.g. the tags and the headings on some pages.
+
+- login should work with both username and email address
+  - which requires username to be unique
 
 - performance testing
 

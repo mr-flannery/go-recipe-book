@@ -12,7 +12,8 @@ import (
 )
 
 type Config struct {
-	DB struct {
+	DatabaseURL string
+	DB          struct {
 		Host     string `yaml:"host"`
 		Port     string `yaml:"port"`
 		User     string `yaml:"user"`
@@ -79,6 +80,9 @@ func GetConfig() Config {
 }
 
 func applyEnvOverrides(cfg *Config) {
+	if v := os.Getenv("DATABASE_URL"); v != "" {
+		cfg.DatabaseURL = v
+	}
 	if v := os.Getenv("DB_HOST"); v != "" {
 		cfg.DB.Host = v
 	}

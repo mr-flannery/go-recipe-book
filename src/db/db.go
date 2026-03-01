@@ -16,14 +16,16 @@ import (
 
 var pool *sql.DB
 
-func InitPool() (*sql.DB, error) {
-	if pool != nil {
-		return pool, nil
-	}
-
+func getConnectionString() string {
 	cfg := config.GetConfig()
 
-	connectionString := fmt.Sprintf(
+	if cfg.DatabaseURL != "" {
+		slog.Info("Using DATABASE_URL for database connection")
+		return cfg.DatabaseURL
+	}
+
+	slog.Info("Using config for database connection")
+	return fmt.Sprintf(
 		"host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
 		cfg.DB.Host,
 		cfg.DB.Port,
@@ -32,6 +34,14 @@ func InitPool() (*sql.DB, error) {
 		cfg.DB.Name,
 		cfg.DB.SSLMode,
 	)
+}
+
+func InitPool() (*sql.DB, error) {
+	if pool != nil {
+		return pool, nil
+	}
+
+	connectionString := getConnectionString()
 
 	db, err := sql.Open("postgres", connectionString)
 	if err != nil {
@@ -61,18 +71,7 @@ func ClosePool() error {
 }
 
 func GetConnection() (*sql.DB, error) {
-	cfg := config.GetConfig()
-
-	connectionString := fmt.Sprintf(
-		"host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
-		cfg.DB.Host,
-		cfg.DB.Port,
-		cfg.DB.User,
-		cfg.DB.Password,
-		cfg.DB.Name,
-		cfg.DB.SSLMode,
-	)
-	return sql.Open("postgres", connectionString)
+	return sql.Open("postgres", getConnectionString())
 }
 
 func RunMigrations() error {
