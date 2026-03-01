@@ -49,7 +49,7 @@ async function createRecipe(page: Page, title: string): Promise<string> {
   return page.url().match(/\/recipes\/(\d+)/)?.[1] || '';
 }
 
-test.describe('Comments', () => {
+test.describe.serial('Comments', () => {
   test.describe('Adding Comments', () => {
     test('any logged-in user can add a comment to any recipe', async ({ user1Page, user2Page }) => {
       const recipeId = await createRecipe(user1Page, `Comment Test Recipe ${uniqueId}`);

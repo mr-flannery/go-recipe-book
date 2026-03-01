@@ -40,7 +40,7 @@ const test = base.extend<AuthFixtures>({
   },
 });
 
-test.describe('Tagging', () => {
+test.describe.serial('Tagging', () => {
   const uniqueId = Date.now();
 
   test.describe('Author Tags', () => {

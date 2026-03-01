@@ -27,7 +27,7 @@ const test = base.extend<AuthFixtures>({
   },
 });
 
-test.describe('Tag Input UX', () => {
+test.describe.serial('Tag Input UX', () => {
   const uniqueId = Date.now();
 
   async function createRecipeAndNavigate(page: Page, title: string) {

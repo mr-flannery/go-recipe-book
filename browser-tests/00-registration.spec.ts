@@ -18,7 +18,7 @@ async function loginUser(page: Page, email: string, password: string) {
   await page.getByRole('button', { name: 'Sign in' }).click();
 }
 
-test.describe('User Registration', () => {
+test.describe.serial('User Registration', () => {
   test('approved users can login successfully', async ({ page }) => {
     await loginUser(page, TEST_USERS.approved1.email, TEST_USERS.approved1.password);
     await expect(page).toHaveURL('/');

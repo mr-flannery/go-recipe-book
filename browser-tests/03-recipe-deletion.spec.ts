@@ -34,7 +34,7 @@ const test = base.extend<AuthFixtures>({
   },
 });
 
-test.describe('Recipe Deletion', () => {
+test.describe.serial('Recipe Deletion', () => {
   const uniqueId = Date.now();
 
   test('author can delete recipe and non-author cannot', async ({ user1Page, user2Page }) => {

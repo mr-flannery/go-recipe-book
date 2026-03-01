@@ -34,7 +34,7 @@ const test = base.extend<AuthFixtures>({
   },
 });
 
-test.describe('Recipe Editing', () => {
+test.describe.serial('Recipe Editing', () => {
   const uniqueId = Date.now();
   const testRecipe = {
     title: `Edit Test Recipe ${uniqueId}`,

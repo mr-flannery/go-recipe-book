@@ -1,7 +1,7 @@
 import { test, expect } from './fixtures';
 import { fillToastEditor } from './editor-helpers';
 
-test.describe('Pagination Controls', () => {
+test.describe.serial('Pagination Controls', () => {
   const uniqueId = Date.now();
   const MIN_RECIPES_FOR_PAGINATION = 65;
 

@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-test.describe('Navigation', () => {
+test.describe.serial('Navigation', () => {
   test('navigates from landing page to recipe overview', async ({ page }) => {
     await page.goto('/');
 

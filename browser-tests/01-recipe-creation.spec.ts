@@ -1,7 +1,7 @@
 import { test, expect } from './fixtures';
 import { fillToastEditor } from './editor-helpers';
 
-test.describe('Recipe Creation', () => {
+test.describe.serial('Recipe Creation', () => {
   const testRecipe = {
     title: `Test Recipe ${Date.now()}`,
     prepTime: '15',

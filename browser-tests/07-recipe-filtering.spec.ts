@@ -40,7 +40,7 @@ const test = base.extend<AuthFixtures>({
   },
 });
 
-test.describe('Recipe Filtering', () => {
+test.describe.serial('Recipe Filtering', () => {
   const uniqueId = Date.now();
 
   const testRecipes = {
