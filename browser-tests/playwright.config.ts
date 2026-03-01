@@ -32,7 +32,7 @@ export default defineConfig({
   testMatch: '**/[0-9][0-9]-*.spec.ts',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
+  retries: 0,
   workers: "100%",
   reporter: 'html',
   use: {

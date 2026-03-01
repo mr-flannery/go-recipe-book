@@ -13,6 +13,18 @@ async function clickTagAddButton(page: Page, tagInputId: string): Promise<void> 
   await page.locator(`#${tagInputId}-input`).waitFor({ state: 'visible' });
 }
 
+async function expandFiltersOnMobile(page: Page): Promise<void> {
+  const filterToggle = page.locator('.filter-toggle');
+  if (await filterToggle.isVisible()) {
+    const filtersContainer = page.locator('.filters-collapsible');
+    const isExpanded = await filtersContainer.evaluate(el => el.classList.contains('expanded'));
+    if (!isExpanded) {
+      await filterToggle.click();
+      await page.locator('#filter-form').waitFor({ state: 'visible' });
+    }
+  }
+}
+
 const test = base.extend<AuthFixtures>({
   user1Page: async ({ browser }, use) => {
     const context = await browser.newContext();
@@ -96,10 +108,12 @@ test.describe.serial('Recipe Filtering', () => {
     return titles;
   }
 
-  async function waitForFilterResults(page: Page): Promise<void> {
-    await page.waitForResponse(response => 
+  async function triggerFilterAndWait(page: Page, action: () => Promise<void>): Promise<void> {
+    const responsePromise = page.waitForResponse(response => 
       response.url().includes('/recipes/filter') && response.status() === 200
     );
+    await action();
+    await responsePromise;
     await page.waitForFunction(() => {
       return document.querySelectorAll('.htmx-request').length === 0 &&
              document.querySelectorAll('.htmx-settling').length === 0;
@@ -151,9 +165,9 @@ test.describe.serial('Recipe Filtering', () => {
   test.describe('Text Search Filter', () => {
     test('filters recipes by title search', async ({ user1Page: page }) => {
       await page.goto('/recipes');
+      await expandFiltersOnMobile(page);
 
-      await page.locator('#search').fill(`Veggie Quick ${uniqueId}`);
-      await waitForFilterResults(page);
+      await triggerFilterAndWait(page, () => page.locator('#search').fill(`Veggie Quick ${uniqueId}`));
 
       const titles = await getVisibleRecipeTitles(page);
       expect(titles.some(t => t.includes('Veggie Quick'))).toBe(true);
@@ -162,9 +176,9 @@ test.describe.serial('Recipe Filtering', () => {
 
     test('filters recipes by ingredient search', async ({ user1Page: page }) => {
       await page.goto('/recipes');
+      await expandFiltersOnMobile(page);
 
-      await page.locator('#search').fill('beef');
-      await waitForFilterResults(page);
+      await triggerFilterAndWait(page, () => page.locator('#search').fill('beef'));
 
       const titles = await getVisibleRecipeTitles(page);
       expect(titles.some(t => t.includes(`Meat Slow ${uniqueId}`))).toBe(true);
@@ -174,10 +188,10 @@ test.describe.serial('Recipe Filtering', () => {
   test.describe('Author Tag Filter', () => {
     test('filters recipes by single author tag', async ({ user1Page: page }) => {
       await page.goto('/recipes');
+      await expandFiltersOnMobile(page);
 
       await page.locator('#filter-tags-input').fill('vegetarian');
-      await page.locator('#filter-tags-input').press('Enter');
-      await waitForFilterResults(page);
+      await triggerFilterAndWait(page, () => page.locator('#filter-tags-input').press('Enter'));
 
       const titles = await getVisibleRecipeTitles(page);
       expect(titles.some(t => t.includes(`Veggie Quick ${uniqueId}`))).toBe(true);
@@ -187,14 +201,13 @@ test.describe.serial('Recipe Filtering', () => {
 
     test('filters recipes by multiple author tags (AND logic)', async ({ user1Page: page }) => {
       await page.goto('/recipes');
+      await expandFiltersOnMobile(page);
 
       await page.locator('#filter-tags-input').fill('vegetarian');
-      await page.locator('#filter-tags-input').press('Enter');
-      await waitForFilterResults(page);
+      await triggerFilterAndWait(page, () => page.locator('#filter-tags-input').press('Enter'));
 
       await page.locator('#filter-tags-input').fill('quick');
-      await page.locator('#filter-tags-input').press('Enter');
-      await waitForFilterResults(page);
+      await triggerFilterAndWait(page, () => page.locator('#filter-tags-input').press('Enter'));
 
       const titles = await getVisibleRecipeTitles(page);
       expect(titles.some(t => t.includes(`Veggie Quick ${uniqueId}`))).toBe(true);
@@ -202,22 +215,19 @@ test.describe.serial('Recipe Filtering', () => {
 
     test('removing a tag filter updates results', async ({ user1Page: page }) => {
       await page.goto('/recipes');
+      await expandFiltersOnMobile(page);
 
       await page.locator('#filter-tags-input').fill('dessert');
-      await page.locator('#filter-tags-input').press('Enter');
-      await waitForFilterResults(page);
+      await triggerFilterAndWait(page, () => page.locator('#filter-tags-input').press('Enter'));
 
       let titles = await getVisibleRecipeTitles(page);
       expect(titles.some(t => t.includes(`Dessert LowCal ${uniqueId}`))).toBe(true);
       expect(titles.some(t => t.includes(`Veggie Quick ${uniqueId}`))).toBe(false);
 
       const dessertTag = page.locator('#filter-tags-container .tag').filter({ hasText: 'dessert' });
-      await dessertTag.locator('.tag-remove').click();
-      await waitForFilterResults(page);
+      await triggerFilterAndWait(page, () => dessertTag.locator('.tag-remove').click());
 
-      // After removing the filter, search for our specific test recipe to verify it can now be found
-      await page.locator('#search').fill(`Veggie Quick ${uniqueId}`);
-      await waitForFilterResults(page);
+      await triggerFilterAndWait(page, () => page.locator('#search').fill(`Veggie Quick ${uniqueId}`));
 
       titles = await getVisibleRecipeTitles(page);
       expect(titles.some(t => t.includes(`Veggie Quick ${uniqueId}`))).toBe(true);
@@ -227,12 +237,10 @@ test.describe.serial('Recipe Filtering', () => {
   test.describe('Numeric Filters', () => {
     test('filters by calories less than value', async ({ user1Page: page }) => {
       await page.goto('/recipes');
+      await expandFiltersOnMobile(page);
 
-      // Fill value first (triggers input with delay), then select operator (triggers change immediately)
-      // This ensures the filter request includes both values
       await page.locator('#calories_value').fill('300');
-      await page.locator('#calories_op').selectOption('lt');
-      await waitForFilterResults(page);
+      await triggerFilterAndWait(page, () => page.locator('#calories_op').selectOption('lt'));
 
       const titles = await getVisibleRecipeTitles(page);
       expect(titles.some(t => t.includes(`Veggie Quick ${uniqueId}`))).toBe(true);
@@ -242,10 +250,10 @@ test.describe.serial('Recipe Filtering', () => {
 
     test('filters by prep time greater than value', async ({ user1Page: page }) => {
       await page.goto('/recipes');
+      await expandFiltersOnMobile(page);
 
       await page.locator('#prep_time_value').fill('15');
-      await page.locator('#prep_time_op').selectOption('gte');
-      await waitForFilterResults(page);
+      await triggerFilterAndWait(page, () => page.locator('#prep_time_op').selectOption('gte'));
 
       const titles = await getVisibleRecipeTitles(page);
       expect(titles.some(t => t.includes(`Meat Slow ${uniqueId}`))).toBe(true);
@@ -255,10 +263,10 @@ test.describe.serial('Recipe Filtering', () => {
 
     test('filters by cook time equals value', async ({ user1Page: page }) => {
       await page.goto('/recipes');
+      await expandFiltersOnMobile(page);
 
       await page.locator('#cook_time_value').fill('120');
-      await page.locator('#cook_time_op').selectOption('eq');
-      await waitForFilterResults(page);
+      await triggerFilterAndWait(page, () => page.locator('#cook_time_op').selectOption('eq'));
 
       const titles = await getVisibleRecipeTitles(page);
       expect(titles.some(t => t.includes(`Meat Slow ${uniqueId}`))).toBe(true);
@@ -269,10 +277,9 @@ test.describe.serial('Recipe Filtering', () => {
   test.describe('User Tag Filter', () => {
     test('user can filter by personal tags', async ({ user1Page: page }) => {
       await page.goto('/recipes');
+      await expandFiltersOnMobile(page);
       
-      // Search for the specific test recipe since it may not be on first page
-      await page.locator('#search').fill(`Veggie Quick ${uniqueId}`);
-      await waitForFilterResults(page);
+      await triggerFilterAndWait(page, () => page.locator('#search').fill(`Veggie Quick ${uniqueId}`));
       
       const veggieCard = page.locator('.recipe-card').filter({ hasText: `Veggie Quick ${uniqueId}` }).first();
       await veggieCard.click();
@@ -281,15 +288,14 @@ test.describe.serial('Recipe Filtering', () => {
       await clickTagAddButton(page, 'user-tags');
       await page.locator('#user-tags-input').fill('my-favorite');
       await page.locator('#user-tags-input').press('Enter');
-      // Wait for the tag to be added before navigating away
       await page.locator('#user-tags-container .tag').filter({ hasText: 'my-favorite' }).waitFor();
 
       await page.goto('/recipes');
       await page.waitForLoadState('networkidle');
+      await expandFiltersOnMobile(page);
 
       await page.locator('#filter-user-tags-input').fill('my-favorite');
-      await page.locator('#filter-user-tags-input').press('Enter');
-      await waitForFilterResults(page);
+      await triggerFilterAndWait(page, () => page.locator('#filter-user-tags-input').press('Enter'));
 
       const titles = await getVisibleRecipeTitles(page);
       expect(titles.some(t => t.includes(`Veggie Quick ${uniqueId}`))).toBe(true);
@@ -301,6 +307,7 @@ test.describe.serial('Recipe Filtering', () => {
       const page = await context.newPage();
 
       await page.goto('/recipes');
+      await expandFiltersOnMobile(page);
 
       await expect(page.locator('#filter-user-tags-input')).not.toBeVisible();
       await expect(page.locator('#filter-tags-input')).toBeVisible();
@@ -310,10 +317,9 @@ test.describe.serial('Recipe Filtering', () => {
 
     test('user tags are personal and do not affect other users filter', async ({ user1Page, user2Page }) => {
       await user1Page.goto('/recipes');
+      await expandFiltersOnMobile(user1Page);
       
-      // Search for the specific test recipe since it may not be on first page
-      await user1Page.locator('#search').fill(`Meat Slow ${uniqueId}`);
-      await waitForFilterResults(user1Page);
+      await triggerFilterAndWait(user1Page, () => user1Page.locator('#search').fill(`Meat Slow ${uniqueId}`));
       
       const meatCard = user1Page.locator('.recipe-card').filter({ hasText: `Meat Slow ${uniqueId}` }).first();
       await meatCard.click();
@@ -322,15 +328,14 @@ test.describe.serial('Recipe Filtering', () => {
       await clickTagAddButton(user1Page, 'user-tags');
       await user1Page.locator('#user-tags-input').fill('user1-filter-test');
       await user1Page.locator('#user-tags-input').press('Enter');
-      // Wait for the tag to be added before continuing
       await user1Page.locator('#user-tags-container .tag').filter({ hasText: 'user1-filter-test' }).waitFor();
 
       await user2Page.goto('/recipes');
       await user2Page.waitForLoadState('networkidle');
+      await expandFiltersOnMobile(user2Page);
 
       await user2Page.locator('#filter-user-tags-input').fill('user1-filter-test');
-      await user2Page.locator('#filter-user-tags-input').press('Enter');
-      await waitForFilterResults(user2Page);
+      await triggerFilterAndWait(user2Page, () => user2Page.locator('#filter-user-tags-input').press('Enter'));
 
       const titles = await getVisibleRecipeTitles(user2Page);
       expect(titles.some(t => t.includes(`Meat Slow ${uniqueId}`))).toBe(false);
@@ -340,16 +345,15 @@ test.describe.serial('Recipe Filtering', () => {
   test.describe('Combined Filters', () => {
     test('combines text search with tag filter', async ({ user1Page: page }) => {
       await page.goto('/recipes');
+      await expandFiltersOnMobile(page);
 
-      await page.locator('#search').fill(`${uniqueId}`);
-      await waitForFilterResults(page);
+      await triggerFilterAndWait(page, () => page.locator('#search').fill(`${uniqueId}`));
 
       let titles = await getVisibleRecipeTitles(page);
       expect(titles.length).toBeGreaterThanOrEqual(3);
 
       await page.locator('#filter-tags-input').fill('healthy');
-      await page.locator('#filter-tags-input').press('Enter');
-      await waitForFilterResults(page);
+      await triggerFilterAndWait(page, () => page.locator('#filter-tags-input').press('Enter'));
 
       titles = await getVisibleRecipeTitles(page);
       expect(titles.some(t => t.includes(`Dessert LowCal ${uniqueId}`))).toBe(true);
@@ -358,14 +362,13 @@ test.describe.serial('Recipe Filtering', () => {
 
     test('combines tag filter with calorie filter', async ({ user1Page: page }) => {
       await page.goto('/recipes');
+      await expandFiltersOnMobile(page);
 
       await page.locator('#filter-tags-input').fill('vegetarian');
-      await page.locator('#filter-tags-input').press('Enter');
-      await waitForFilterResults(page);
+      await triggerFilterAndWait(page, () => page.locator('#filter-tags-input').press('Enter'));
 
-      await page.locator('#calories_op').selectOption('lte');
       await page.locator('#calories_value').fill('200');
-      await waitForFilterResults(page);
+      await triggerFilterAndWait(page, () => page.locator('#calories_op').selectOption('lte'));
 
       const titles = await getVisibleRecipeTitles(page);
       expect(titles.some(t => t.includes(`Veggie Quick ${uniqueId}`))).toBe(true);
@@ -375,12 +378,12 @@ test.describe.serial('Recipe Filtering', () => {
   test.describe('Recipe Count Indicator', () => {
     test('count updates when filtering narrows results', async ({ user1Page: page }) => {
       await page.goto('/recipes');
+      await expandFiltersOnMobile(page);
 
       const initialTotal = parseInt(await page.locator('#total-count').textContent() || '0');
 
       await page.locator('#filter-tags-input').fill('vegetarian');
-      await page.locator('#filter-tags-input').press('Enter');
-      await waitForFilterResults(page);
+      await triggerFilterAndWait(page, () => page.locator('#filter-tags-input').press('Enter'));
 
       const filteredTotal = parseInt(await page.locator('#total-count').textContent() || '0');
 
@@ -389,34 +392,28 @@ test.describe.serial('Recipe Filtering', () => {
 
     test('count shows 0-0 when no recipes match filter', async ({ user1Page: page }) => {
       await page.goto('/recipes');
+      await expandFiltersOnMobile(page);
 
-      await page.locator('#search').fill('xyznonexistent12345');
-      await waitForFilterResults(page);
+      await triggerFilterAndWait(page, () => page.locator('#search').fill('xyznonexistent12345'));
 
       const countElement = page.locator('#total-count');
       await expect(countElement).toContainText('0');
     });
 
     test('count updates when clearing filters', async ({ user1Page: page }) => {
-      // Ensure we have more recipes than just our test recipes so clearing shows more
       await ensureMinimumRecipes(page, 10);
       
       await page.goto('/recipes');
+      await expandFiltersOnMobile(page);
 
-      // Apply a filter to narrow results
-      await page.locator('#search').fill(uniqueId.toString());
-      await waitForFilterResults(page);
+      await triggerFilterAndWait(page, () => page.locator('#search').fill(uniqueId.toString()));
 
       const filteredTotal = parseInt(await page.locator('#total-count').textContent() || '0');
-      // Test recipes contain uniqueId, so we should have a small number
       expect(filteredTotal).toBeGreaterThan(0);
       expect(filteredTotal).toBeLessThanOrEqual(20);
 
-      // Clear filters
-      await page.getByRole('button', { name: 'Clear' }).click();
-      await waitForFilterResults(page);
+      await triggerFilterAndWait(page, () => page.getByRole('button', { name: 'Clear' }).click());
 
-      // After clearing, total should be higher than filtered (all recipes)
       const clearedTotal = parseInt(await page.locator('#total-count').textContent() || '0');
       expect(clearedTotal).toBeGreaterThan(filteredTotal);
     });
@@ -428,7 +425,6 @@ test.describe.serial('Recipe Filtering', () => {
     const authorFilterId = Date.now();
 
     test.beforeAll(async ({ browser }) => {
-      // User1 creates a recipe
       const context1 = await browser.newContext();
       const page1 = await context1.newPage();
       await page1.goto('/login');
@@ -448,7 +444,6 @@ test.describe.serial('Recipe Filtering', () => {
       await page1.waitForURL(/\/recipes\/\d+/);
       await context1.close();
 
-      // User2 creates a recipe
       const context2 = await browser.newContext();
       const page2 = await context2.newPage();
       await page2.goto('/login');
@@ -471,18 +466,15 @@ test.describe.serial('Recipe Filtering', () => {
 
     test('filters to show only recipes authored by current user', async ({ user1Page: page }) => {
       await page.goto('/recipes');
+      await expandFiltersOnMobile(page);
 
-      // Both recipes should be visible initially when searching by the unique ID
-      await page.locator('#search').fill(authorFilterId.toString());
-      await waitForFilterResults(page);
+      await triggerFilterAndWait(page, () => page.locator('#search').fill(authorFilterId.toString()));
 
       let titles = await getVisibleRecipeTitles(page);
       expect(titles.some(t => t.includes(`User1 Recipe ${authorFilterId}`))).toBe(true);
       expect(titles.some(t => t.includes(`User2 Recipe ${authorFilterId}`))).toBe(true);
 
-      // Check "My recipes" filter
-      await page.locator('#authored_by_me').check();
-      await waitForFilterResults(page);
+      await triggerFilterAndWait(page, () => page.locator('#authored_by_me').check());
 
       titles = await getVisibleRecipeTitles(page);
       expect(titles.some(t => t.includes(`User1 Recipe ${authorFilterId}`))).toBe(true);
@@ -491,18 +483,16 @@ test.describe.serial('Recipe Filtering', () => {
 
     test('unchecking filter shows all recipes again', async ({ user1Page: page }) => {
       await page.goto('/recipes');
+      await expandFiltersOnMobile(page);
 
-      await page.locator('#search').fill(authorFilterId.toString());
-      await waitForFilterResults(page);
+      await triggerFilterAndWait(page, () => page.locator('#search').fill(authorFilterId.toString()));
 
-      await page.locator('#authored_by_me').check();
-      await waitForFilterResults(page);
+      await triggerFilterAndWait(page, () => page.locator('#authored_by_me').check());
 
       let titles = await getVisibleRecipeTitles(page);
       expect(titles.some(t => t.includes(`User2 Recipe ${authorFilterId}`))).toBe(false);
 
-      await page.locator('#authored_by_me').uncheck();
-      await waitForFilterResults(page);
+      await triggerFilterAndWait(page, () => page.locator('#authored_by_me').uncheck());
 
       titles = await getVisibleRecipeTitles(page);
       expect(titles.some(t => t.includes(`User1 Recipe ${authorFilterId}`))).toBe(true);
@@ -511,14 +501,13 @@ test.describe.serial('Recipe Filtering', () => {
 
     test('clear button resets authored by me checkbox', async ({ user1Page: page }) => {
       await page.goto('/recipes');
+      await expandFiltersOnMobile(page);
 
-      await page.locator('#authored_by_me').check();
-      await waitForFilterResults(page);
+      await triggerFilterAndWait(page, () => page.locator('#authored_by_me').check());
 
       await expect(page.locator('#authored_by_me')).toBeChecked();
 
-      await page.getByRole('button', { name: 'Clear' }).click();
-      await waitForFilterResults(page);
+      await triggerFilterAndWait(page, () => page.getByRole('button', { name: 'Clear' }).click());
 
       await expect(page.locator('#authored_by_me')).not.toBeChecked();
     });
@@ -528,6 +517,7 @@ test.describe.serial('Recipe Filtering', () => {
       const page = await context.newPage();
 
       await page.goto('/recipes');
+      await expandFiltersOnMobile(page);
 
       await expect(page.locator('#authored_by_me')).not.toBeVisible();
 
@@ -536,12 +526,11 @@ test.describe.serial('Recipe Filtering', () => {
 
     test('user2 sees only their recipes when filtering', async ({ user2Page: page }) => {
       await page.goto('/recipes');
+      await expandFiltersOnMobile(page);
 
-      await page.locator('#search').fill(authorFilterId.toString());
-      await waitForFilterResults(page);
+      await triggerFilterAndWait(page, () => page.locator('#search').fill(authorFilterId.toString()));
 
-      await page.locator('#authored_by_me').check();
-      await waitForFilterResults(page);
+      await triggerFilterAndWait(page, () => page.locator('#authored_by_me').check());
 
       const titles = await getVisibleRecipeTitles(page);
       expect(titles.some(t => t.includes(`User2 Recipe ${authorFilterId}`))).toBe(true);
@@ -552,16 +541,17 @@ test.describe.serial('Recipe Filtering', () => {
   test.describe('Clear Filter', () => {
     test('clear button resets all filters', async ({ user1Page: page }) => {
       await page.goto('/recipes');
+      await expandFiltersOnMobile(page);
 
       await page.locator('#search').fill('test');
       await page.locator('#filter-tags-input').fill('vegetarian');
       await page.locator('#filter-tags-input').press('Enter');
       await page.locator('#calories_op').selectOption('lt');
       await page.locator('#calories_value').fill('500');
-      await waitForFilterResults(page);
+      // Wait for the last filter to complete
+      await page.waitForTimeout(500);
 
-      await page.getByRole('button', { name: 'Clear' }).click();
-      await waitForFilterResults(page);
+      await triggerFilterAndWait(page, () => page.getByRole('button', { name: 'Clear' }).click());
 
       await expect(page.locator('#search')).toHaveValue('');
       await expect(page.locator('#calories_op')).toHaveValue('');
@@ -571,17 +561,16 @@ test.describe.serial('Recipe Filtering', () => {
 
     test('clearing filter resets to paginated results (max 20 recipes)', async ({ user1Page: page }) => {
       await page.goto('/recipes');
+      await expandFiltersOnMobile(page);
 
       const initialCount = await page.locator('.recipe-card').count();
 
-      await page.locator('#search').fill(uniqueId.toString());
-      await waitForFilterResults(page);
+      await triggerFilterAndWait(page, () => page.locator('#search').fill(uniqueId.toString()));
 
       const filteredCount = await page.locator('.recipe-card').count();
       expect(filteredCount).toBeLessThan(initialCount);
 
-      await page.getByRole('button', { name: 'Clear' }).click();
-      await waitForFilterResults(page);
+      await triggerFilterAndWait(page, () => page.getByRole('button', { name: 'Clear' }).click());
 
       const clearedCount = await page.locator('.recipe-card').count();
       expect(clearedCount).toBeLessThanOrEqual(20);
