@@ -6,6 +6,12 @@ type AuthFixtures = {
   userPage: Page;
 };
 
+async function clickTagAddButton(page: Page, tagInputId: string): Promise<void> {
+  const addBtn = page.locator(`#${tagInputId}-add-btn`);
+  await addBtn.click();
+  await page.locator(`#${tagInputId}-input`).waitFor({ state: 'visible' });
+}
+
 const test = base.extend<AuthFixtures>({
   userPage: async ({ browser }, use) => {
     const context = await browser.newContext();
@@ -117,6 +123,7 @@ test.describe('Tag Input UX', () => {
     test('selected suggestion scrolls into view', async ({ userPage }) => {
       await createRecipeAndNavigate(userPage, `Scroll Test Recipe ${uniqueId}`);
       
+      await clickTagAddButton(userPage, 'author-tags');
       const input = userPage.locator('#author-tags-input');
       const suggestions = userPage.locator('#author-tags-suggestions');
       

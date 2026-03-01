@@ -1,43 +1,53 @@
 import { Page } from '@playwright/test';
 
 /**
- * Fill a TOAST UI Editor with the specified content.
- * Uses the editor's API directly via page.evaluate() since contenteditable
- * divs don't support Playwright's .fill() method.
+ * Fill an EasyMDE editor with the specified content.
+ * Uses the editor's API directly via page.evaluate().
+ * 
+ * For backwards compatibility, accepts IDs like 'ingredients-editor' 
+ * and maps them to textarea IDs like 'ingredients'.
  * 
  * @param page - Playwright page object
- * @param editorId - The ID of the editor container div (e.g., 'ingredients-editor')
+ * @param editorId - The ID of the editor (e.g., 'ingredients-editor' or 'ingredients')
  * @param content - The markdown content to fill
  */
 export async function fillToastEditor(page: Page, editorId: string, content: string): Promise<void> {
-  // Wait for the editor to be initialized
-  const editorContainer = page.locator(`#${editorId}`);
-  await editorContainer.locator('.toastui-editor-md-container').waitFor({ state: 'visible' });
+  // Map old editor container IDs to actual textarea IDs
+  const textareaId = editorId.replace(/-editor$/, '');
   
-  // Use the TOAST UI Editor API to set content directly
-  await page.evaluate(({ editorId, content }) => {
-    const editor = (window as any).RecipeEditor?.get(editorId);
+  // Wait for the EasyMDE editor to be initialized via the RecipeEditor API
+  await page.waitForFunction(
+    (id) => !!(window as any).RecipeEditor?.get(id),
+    textareaId,
+    { timeout: 10000 }
+  );
+  
+  // Use the EasyMDE API to set content directly
+  await page.evaluate(({ textareaId, content }) => {
+    const editor = (window as any).RecipeEditor?.get(textareaId);
     if (editor) {
-      editor.setMarkdown(content);
+      editor.value(content);
     } else {
-      throw new Error(`Editor not found: ${editorId}`);
+      throw new Error(`Editor not found: ${textareaId}`);
     }
-  }, { editorId, content });
+  }, { textareaId, content });
 }
 
 /**
- * Clear a TOAST UI Editor's content.
+ * Clear an EasyMDE editor's content.
  * 
  * @param page - Playwright page object
- * @param editorId - The ID of the editor container div (e.g., 'ingredients-editor')
+ * @param editorId - The ID of the editor (e.g., 'ingredients-editor' or 'ingredients')
  */
 export async function clearToastEditor(page: Page, editorId: string): Promise<void> {
-  await page.evaluate((editorId) => {
-    const editor = (window as any).RecipeEditor?.get(editorId);
+  const textareaId = editorId.replace(/-editor$/, '');
+  
+  await page.evaluate((textareaId) => {
+    const editor = (window as any).RecipeEditor?.get(textareaId);
     if (editor) {
-      editor.setMarkdown('');
+      editor.value('');
     } else {
-      throw new Error(`Editor not found: ${editorId}`);
+      throw new Error(`Editor not found: ${textareaId}`);
     }
-  }, editorId);
+  }, textareaId);
 }

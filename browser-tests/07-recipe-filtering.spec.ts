@@ -7,6 +7,12 @@ type AuthFixtures = {
   user2Page: Page;
 };
 
+async function clickTagAddButton(page: Page, tagInputId: string): Promise<void> {
+  const addBtn = page.locator(`#${tagInputId}-add-btn`);
+  await addBtn.click();
+  await page.locator(`#${tagInputId}-input`).waitFor({ state: 'visible' });
+}
+
 const test = base.extend<AuthFixtures>({
   user1Page: async ({ browser }, use) => {
     const context = await browser.newContext();
@@ -272,6 +278,7 @@ test.describe('Recipe Filtering', () => {
       await veggieCard.click();
       await page.waitForURL(/\/recipes\/\d+/);
 
+      await clickTagAddButton(page, 'user-tags');
       await page.locator('#user-tags-input').fill('my-favorite');
       await page.locator('#user-tags-input').press('Enter');
       // Wait for the tag to be added before navigating away
@@ -312,6 +319,7 @@ test.describe('Recipe Filtering', () => {
       await meatCard.click();
       await user1Page.waitForURL(/\/recipes\/\d+/);
 
+      await clickTagAddButton(user1Page, 'user-tags');
       await user1Page.locator('#user-tags-input').fill('user1-filter-test');
       await user1Page.locator('#user-tags-input').press('Enter');
       // Wait for the tag to be added before continuing

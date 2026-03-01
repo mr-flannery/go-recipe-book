@@ -7,3 +7,4 @@
 - unit test functions should follow the naming convention: "TestThingUnderTest_BehavesLikeXWhenY" (e.g., TestAuthenticate_ReturnsUserWhenCredentialsAreValid, TestHashPassword_ReturnsErrorWhenPasswordIsWeak)
 - the template that's under active development is editorial. ignore other templates for now when doing any changes.
 - this is a personal app for the author and their friends/family. avoid marketing fluff, taglines, or sales-oriented copy. keep the UX functional and focused.
+- when running browser tests (Playwright), always use `npx playwright test --reporter=list` to output results to stdout instead of opening an HTML report in the browser.

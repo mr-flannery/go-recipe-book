@@ -7,6 +7,12 @@ type AuthFixtures = {
   user2Page: Page;
 };
 
+async function clickTagAddButton(page: Page, tagInputId: string): Promise<void> {
+  const addBtn = page.locator(`#${tagInputId}-add-btn`);
+  await addBtn.click();
+  await page.locator(`#${tagInputId}-input`).waitFor({ state: 'visible' });
+}
+
 const test = base.extend<AuthFixtures>({
   user1Page: async ({ browser }, use) => {
     const context = await browser.newContext();
@@ -102,6 +108,7 @@ test.describe('Tagging', () => {
       const recipeUrl = user1Page.url();
 
       await expect(user1Page.locator('#author-tags-container .tag').getByText(testRecipe.initialTag)).toBeVisible();
+      await clickTagAddButton(user1Page, 'author-tags');
       await expect(user1Page.locator('#author-tags-input')).toBeVisible();
 
       await user1Page.locator('#author-tags-input').fill('snack');
@@ -145,6 +152,7 @@ test.describe('Tagging', () => {
       const url = user1Page.url();
       const recipeId = url.match(/\/recipes\/(\d+)/)?.[1] || '';
 
+      await clickTagAddButton(user1Page, 'author-tags');
       await expect(user1Page.locator('#author-tags-input')).toBeVisible();
       await expect(user1Page.locator('#author-tags-container .tag-remove')).toBeVisible();
 
@@ -179,6 +187,7 @@ test.describe('Tagging', () => {
 
       const recipeUrl = user1Page.url();
 
+      await clickTagAddButton(user1Page, 'user-tags');
       await expect(user1Page.locator('#user-tags-input')).toBeVisible();
 
       await user1Page.locator('#user-tags-input').fill('favorite');
@@ -187,6 +196,7 @@ test.describe('Tagging', () => {
       await user1Page.waitForURL(recipeUrl);
       await expect(user1Page.locator('#user-tags-container .tag').getByText('favorite')).toBeVisible();
 
+      await clickTagAddButton(user1Page, 'user-tags');
       await user1Page.locator('#user-tags-input').fill('try-later');
       await user1Page.locator('#user-tags-input').press('Enter');
 
@@ -224,6 +234,7 @@ test.describe('Tagging', () => {
       const url = user1Page.url();
       const recipeId = url.match(/\/recipes\/(\d+)/)?.[1] || '';
 
+      await clickTagAddButton(user1Page, 'user-tags');
       await user1Page.locator('#user-tags-input').fill('user1-personal');
       await user1Page.locator('#user-tags-input').press('Enter');
 
@@ -233,6 +244,7 @@ test.describe('Tagging', () => {
       await user2Page.goto(`/recipes/${recipeId}`);
       await expect(user2Page.locator('#user-tags-container .tag').getByText('user1-personal')).not.toBeVisible();
 
+      await clickTagAddButton(user2Page, 'user-tags');
       await user2Page.locator('#user-tags-input').fill('user2-personal');
       await user2Page.locator('#user-tags-input').press('Enter');
 
