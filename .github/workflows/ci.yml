@@ -1,4 +1,4 @@
-name: Tests
+name: CI
 
 on:
   push:
@@ -120,6 +120,8 @@ jobs:
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
         run: |
+          railway variables set MAIL_API_KEY="${{ secrets.MAIL_API_KEY }}" --service ${{ vars.RAILWAY_SERVICE_NAME }}
+          railway variables set MAIL_DOMAIN="${{ secrets.MAIL_DOMAIN }}" --service ${{ vars.RAILWAY_SERVICE_NAME }}
           railway variables set DB_ADMIN_USERNAME="${{ secrets.INITIAL_ADMIN_USERNAME }}" --service ${{ vars.RAILWAY_SERVICE_NAME }}
           railway variables set DB_ADMIN_EMAIL="${{ secrets.INITIAL_ADMIN_EMAIL }}" --service ${{ vars.RAILWAY_SERVICE_NAME }}
           railway variables set DB_ADMIN_PASSWORD="${{ secrets.INITIAL_ADMIN_PASSWORD }}" --service ${{ vars.RAILWAY_SERVICE_NAME }}
