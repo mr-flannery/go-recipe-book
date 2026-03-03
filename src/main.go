@@ -12,6 +12,7 @@ import (
 	"github.com/mr-flannery/go-recipe-book/src/db"
 	"github.com/mr-flannery/go-recipe-book/src/handlers"
 	"github.com/mr-flannery/go-recipe-book/src/mail"
+	"github.com/mr-flannery/go-recipe-book/src/middleware"
 	"github.com/mr-flannery/go-recipe-book/src/store/postgres"
 	"github.com/mr-flannery/go-recipe-book/src/templates"
 	"github.com/mr-flannery/go-recipe-book/src/utils"
@@ -269,5 +270,5 @@ func main() {
 
 	slog.Info("Ready to serve!")
 
-	slog.Error("Server failed to start", "error", http.ListenAndServe(addr, mux))
+	slog.Error("Server failed to start", "error", http.ListenAndServe(addr, middleware.Gzip(mux)))
 }

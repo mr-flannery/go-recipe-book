@@ -18,6 +18,12 @@
 
 - the vscode launch/debug setting is kinda annoying right now
 
+- observability
+  - logging
+  - metrics
+  - alerts
+  - traces?
+
 - SEO/performance testing
   - can I use gzip and shit like this?
 
@@ -27,17 +33,18 @@
 - login should work with both username and email address
   - which requires username to be unique
 
+- cmd enter doesnt' seem to work any more since reworking the action buttons
+  - the fuck. it has created the recipe 3 times.
+  - either the redirecting doesn't work, or it's a problem with not blocking the button once the request has been sent already
+  - probably I should do both: lock the button, show a loading indicator
+
+
+
 - performance testing
 
 - localization
 
 - automated depenendcy updates
-
-- observability
-  - logging
-  - metrics
-  - alerts
-  - traces?
 
 - integration tests with test container are currently serial
   - should I need more speed, I can investigate concurrency
