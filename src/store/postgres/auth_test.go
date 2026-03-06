@@ -1,6 +1,7 @@
 package postgres
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -15,7 +16,7 @@ func TestAuthStore_GetUserByEmail_ReturnsUserWhenExists(t *testing.T) {
 	testDB.SeedUser(t, "testuser", "test@example.com", "hashedpassword", false)
 	authStore := NewAuthStore(testDB.DB)
 
-	user, passwordHash, err := authStore.GetUserByEmail("test@example.com")
+	user, passwordHash, err := authStore.GetUserByEmail(context.Background(), "test@example.com")
 	if err != nil {
 		t.Fatalf("failed to get user by email: %v", err)
 	}
@@ -37,7 +38,7 @@ func TestAuthStore_GetUserByEmail_ReturnsErrorWhenNotFound(t *testing.T) {
 
 	authStore := NewAuthStore(testDB.DB)
 
-	_, _, err := authStore.GetUserByEmail("nonexistent@example.com")
+	_, _, err := authStore.GetUserByEmail(context.Background(), "nonexistent@example.com")
 	if err == nil {
 		t.Error("expected error for non-existent user")
 	}
@@ -50,7 +51,7 @@ func TestAuthStore_GetUserByID_ReturnsUserWhenExists(t *testing.T) {
 	userID := testDB.SeedUser(t, "testuser", "test@example.com", "hashedpassword", true)
 	authStore := NewAuthStore(testDB.DB)
 
-	user, err := authStore.GetUserByID(userID)
+	user, err := authStore.GetUserByID(context.Background(), userID)
 	if err != nil {
 		t.Fatalf("failed to get user by ID: %v", err)
 	}
@@ -70,7 +71,7 @@ func TestAuthStore_GetUserIDByUsername_ReturnsIDWhenExists(t *testing.T) {
 	expectedID := testDB.SeedUser(t, "testuser", "test@example.com", "hashedpassword", false)
 	authStore := NewAuthStore(testDB.DB)
 
-	userID, err := authStore.GetUserIDByUsername("testuser")
+	userID, err := authStore.GetUserIDByUsername(context.Background(), "testuser")
 	if err != nil {
 		t.Fatalf("failed to get user ID by username: %v", err)
 	}
@@ -94,12 +95,12 @@ func TestAuthStore_CreateSession_CreatesAndRetrievesSession(t *testing.T) {
 		UserAgent: "TestAgent/1.0",
 	}
 
-	err := authStore.CreateSession(session)
+	err := authStore.CreateSession(context.Background(), session)
 	if err != nil {
 		t.Fatalf("failed to create session: %v", err)
 	}
 
-	retrieved, err := authStore.GetSession("test-session-id")
+	retrieved, err := authStore.GetSession(context.Background(), "test-session-id")
 	if err != nil {
 		t.Fatalf("failed to get session: %v", err)
 	}
@@ -118,7 +119,7 @@ func TestAuthStore_GetSession_ReturnsErrorForEmptyID(t *testing.T) {
 
 	authStore := NewAuthStore(testDB.DB)
 
-	_, err := authStore.GetSession("")
+	_, err := authStore.GetSession(context.Background(), "")
 	if err == nil {
 		t.Error("expected error for empty session ID")
 	}
@@ -132,7 +133,7 @@ func TestAuthStore_GetSession_ReturnsErrorForExpiredSession(t *testing.T) {
 	testDB.SeedSession(t, "expired-session", userID, time.Now().Add(-1*time.Hour))
 	authStore := NewAuthStore(testDB.DB)
 
-	_, err := authStore.GetSession("expired-session")
+	_, err := authStore.GetSession(context.Background(), "expired-session")
 	if err == nil {
 		t.Error("expected error for expired session")
 	}
@@ -146,12 +147,12 @@ func TestAuthStore_DeleteSession_RemovesSession(t *testing.T) {
 	testDB.SeedSession(t, "to-delete", userID, time.Now().Add(24*time.Hour))
 	authStore := NewAuthStore(testDB.DB)
 
-	err := authStore.DeleteSession("to-delete")
+	err := authStore.DeleteSession(context.Background(), "to-delete")
 	if err != nil {
 		t.Fatalf("failed to delete session: %v", err)
 	}
 
-	_, err = authStore.GetSession("to-delete")
+	_, err = authStore.GetSession(context.Background(), "to-delete")
 	if err == nil {
 		t.Error("expected error after deleting session")
 	}
@@ -167,7 +168,7 @@ func TestAuthStore_DeleteExpiredSessions_RemovesOnlyExpired(t *testing.T) {
 	testDB.SeedSession(t, "valid", userID, time.Now().Add(24*time.Hour))
 	authStore := NewAuthStore(testDB.DB)
 
-	deleted, err := authStore.DeleteExpiredSessions()
+	deleted, err := authStore.DeleteExpiredSessions(context.Background())
 	if err != nil {
 		t.Fatalf("failed to delete expired sessions: %v", err)
 	}
@@ -176,7 +177,7 @@ func TestAuthStore_DeleteExpiredSessions_RemovesOnlyExpired(t *testing.T) {
 		t.Errorf("expected 2 deleted sessions, got %d", deleted)
 	}
 
-	_, err = authStore.GetSession("valid")
+	_, err = authStore.GetSession(context.Background(), "valid")
 	if err != nil {
 		t.Error("valid session should still exist")
 	}
@@ -191,12 +192,12 @@ func TestAuthStore_DeleteUserSessions_RemovesAllUserSessions(t *testing.T) {
 	testDB.SeedSession(t, "session-2", userID, time.Now().Add(24*time.Hour))
 	authStore := NewAuthStore(testDB.DB)
 
-	err := authStore.DeleteUserSessions(userID)
+	err := authStore.DeleteUserSessions(context.Background(), userID)
 	if err != nil {
 		t.Fatalf("failed to delete user sessions: %v", err)
 	}
 
-	count, _ := authStore.GetActiveSessionCount(userID)
+	count, _ := authStore.GetActiveSessionCount(context.Background(), userID)
 	if count != 0 {
 		t.Errorf("expected 0 sessions after deletion, got %d", count)
 	}
@@ -212,7 +213,7 @@ func TestAuthStore_GetActiveSessionCount_ReturnsCorrectCount(t *testing.T) {
 	testDB.SeedSession(t, "expired", userID, time.Now().Add(-1*time.Hour))
 	authStore := NewAuthStore(testDB.DB)
 
-	count, err := authStore.GetActiveSessionCount(userID)
+	count, err := authStore.GetActiveSessionCount(context.Background(), userID)
 	if err != nil {
 		t.Fatalf("failed to get session count: %v", err)
 	}
@@ -230,7 +231,7 @@ func TestAuthStore_ExtendSession_ExtendsValidSession(t *testing.T) {
 	testDB.SeedSession(t, "to-extend", userID, time.Now().Add(1*time.Hour))
 	authStore := NewAuthStore(testDB.DB)
 
-	err := authStore.ExtendSession("to-extend")
+	err := authStore.ExtendSession(context.Background(), "to-extend")
 	if err != nil {
 		t.Fatalf("failed to extend session: %v", err)
 	}
@@ -244,7 +245,7 @@ func TestAuthStore_ExtendSession_ReturnsErrorForExpiredSession(t *testing.T) {
 	testDB.SeedSession(t, "expired", userID, time.Now().Add(-1*time.Hour))
 	authStore := NewAuthStore(testDB.DB)
 
-	err := authStore.ExtendSession("expired")
+	err := authStore.ExtendSession(context.Background(), "expired")
 	if err == nil {
 		t.Error("expected error when extending expired session")
 	}
@@ -256,12 +257,12 @@ func TestAuthStore_CreateRegistrationRequest_CreatesRequest(t *testing.T) {
 
 	authStore := NewAuthStore(testDB.DB)
 
-	err := authStore.CreateRegistrationRequest("newuser", "new@example.com", "hashedpassword")
+	err := authStore.CreateRegistrationRequest(context.Background(), "newuser", "new@example.com", "hashedpassword")
 	if err != nil {
 		t.Fatalf("failed to create registration request: %v", err)
 	}
 
-	requests, _ := authStore.GetPendingRegistrations()
+	requests, _ := authStore.GetPendingRegistrations(context.Background())
 	if len(requests) != 1 {
 		t.Errorf("expected 1 pending registration, got %d", len(requests))
 	}
@@ -274,7 +275,7 @@ func TestAuthStore_CreateRegistrationRequest_RejectsExistingUser(t *testing.T) {
 	testDB.SeedUser(t, "existinguser", "existing@example.com", "hashedpassword", false)
 	authStore := NewAuthStore(testDB.DB)
 
-	err := authStore.CreateRegistrationRequest("existinguser", "new@example.com", "hashedpassword")
+	err := authStore.CreateRegistrationRequest(context.Background(), "existinguser", "new@example.com", "hashedpassword")
 	if err == nil {
 		t.Error("expected error for duplicate username")
 	}
@@ -286,12 +287,12 @@ func TestAuthStore_CreateRegistrationRequest_RejectsDuplicatePendingRequest(t *t
 
 	authStore := NewAuthStore(testDB.DB)
 
-	err := authStore.CreateRegistrationRequest("newuser", "new@example.com", "hashedpassword")
+	err := authStore.CreateRegistrationRequest(context.Background(), "newuser", "new@example.com", "hashedpassword")
 	if err != nil {
 		t.Fatalf("failed to create first registration request: %v", err)
 	}
 
-	err = authStore.CreateRegistrationRequest("newuser", "different@example.com", "hashedpassword")
+	err = authStore.CreateRegistrationRequest(context.Background(), "newuser", "different@example.com", "hashedpassword")
 	if err == nil {
 		t.Error("expected error for duplicate pending request")
 	}
@@ -304,21 +305,21 @@ func TestAuthStore_ApproveRegistration_CreatesUserAndUpdatesRequest(t *testing.T
 	adminID := testDB.SeedUser(t, "admin", "admin@example.com", "hashedpassword", true)
 	authStore := NewAuthStore(testDB.DB)
 
-	authStore.CreateRegistrationRequest("newuser", "new@example.com", "hashedpassword")
-	requests, _ := authStore.GetPendingRegistrations()
+	authStore.CreateRegistrationRequest(context.Background(), "newuser", "new@example.com", "hashedpassword")
+	requests, _ := authStore.GetPendingRegistrations(context.Background())
 	requestID := requests[0].ID
 
-	err := authStore.ApproveRegistration(requestID, adminID)
+	err := authStore.ApproveRegistration(context.Background(), requestID, adminID)
 	if err != nil {
 		t.Fatalf("failed to approve registration: %v", err)
 	}
 
-	user, _, _ := authStore.GetUserByEmail("new@example.com")
+	user, _, _ := authStore.GetUserByEmail(context.Background(), "new@example.com")
 	if user == nil {
 		t.Error("expected user to be created after approval")
 	}
 
-	pendingRequests, _ := authStore.GetPendingRegistrations()
+	pendingRequests, _ := authStore.GetPendingRegistrations(context.Background())
 	if len(pendingRequests) != 0 {
 		t.Error("expected no pending requests after approval")
 	}
@@ -331,16 +332,16 @@ func TestAuthStore_RejectRegistration_UpdatesRequestStatus(t *testing.T) {
 	adminID := testDB.SeedUser(t, "admin", "admin@example.com", "hashedpassword", true)
 	authStore := NewAuthStore(testDB.DB)
 
-	authStore.CreateRegistrationRequest("newuser", "new@example.com", "hashedpassword")
-	requests, _ := authStore.GetPendingRegistrations()
+	authStore.CreateRegistrationRequest(context.Background(), "newuser", "new@example.com", "hashedpassword")
+	requests, _ := authStore.GetPendingRegistrations(context.Background())
 	requestID := requests[0].ID
 
-	err := authStore.RejectRegistration(requestID, adminID)
+	err := authStore.RejectRegistration(context.Background(), requestID, adminID)
 	if err != nil {
 		t.Fatalf("failed to reject registration: %v", err)
 	}
 
-	pendingRequests, _ := authStore.GetPendingRegistrations()
+	pendingRequests, _ := authStore.GetPendingRegistrations(context.Background())
 	if len(pendingRequests) != 0 {
 		t.Error("expected no pending requests after rejection")
 	}
@@ -352,12 +353,12 @@ func TestAuthStore_CreateUser_CreatesNewUser(t *testing.T) {
 
 	authStore := NewAuthStore(testDB.DB)
 
-	err := authStore.CreateUser("newuser", "new@example.com", "hashedpassword", false)
+	err := authStore.CreateUser(context.Background(), "newuser", "new@example.com", "hashedpassword", false)
 	if err != nil {
 		t.Fatalf("failed to create user: %v", err)
 	}
 
-	user, _, _ := authStore.GetUserByEmail("new@example.com")
+	user, _, _ := authStore.GetUserByEmail(context.Background(), "new@example.com")
 	if user == nil {
 		t.Error("expected user to be created")
 	}
@@ -373,7 +374,7 @@ func TestAuthStore_UserExists_ReturnsTrueWhenExists(t *testing.T) {
 	testDB.SeedUser(t, "existinguser", "existing@example.com", "hashedpassword", false)
 	authStore := NewAuthStore(testDB.DB)
 
-	exists, err := authStore.UserExists("existinguser")
+	exists, err := authStore.UserExists(context.Background(), "existinguser")
 	if err != nil {
 		t.Fatalf("failed to check user exists: %v", err)
 	}
@@ -389,7 +390,7 @@ func TestAuthStore_UserExists_ReturnsFalseWhenNotExists(t *testing.T) {
 
 	authStore := NewAuthStore(testDB.DB)
 
-	exists, err := authStore.UserExists("nonexistent")
+	exists, err := authStore.UserExists(context.Background(), "nonexistent")
 	if err != nil {
 		t.Fatalf("failed to check user exists: %v", err)
 	}
@@ -406,7 +407,7 @@ func TestAuthStore_GetAllUsers_ReturnsAllUsers(t *testing.T) {
 	testDB.SeedUser(t, "user2", "user2@example.com", "hashedpassword", true)
 	authStore := NewAuthStore(testDB.DB)
 
-	users, err := authStore.GetAllUsers()
+	users, err := authStore.GetAllUsers(context.Background())
 	if err != nil {
 		t.Fatalf("failed to get all users: %v", err)
 	}
@@ -423,12 +424,12 @@ func TestAuthStore_DeleteUser_RemovesUser(t *testing.T) {
 	userID := testDB.SeedUser(t, "todelete", "todelete@example.com", "hashedpassword", false)
 	authStore := NewAuthStore(testDB.DB)
 
-	err := authStore.DeleteUser(userID)
+	err := authStore.DeleteUser(context.Background(), userID)
 	if err != nil {
 		t.Fatalf("failed to delete user: %v", err)
 	}
 
-	_, _, err = authStore.GetUserByEmail("todelete@example.com")
+	_, _, err = authStore.GetUserByEmail(context.Background(), "todelete@example.com")
 	if err == nil {
 		t.Error("expected error after deleting user")
 	}
@@ -442,12 +443,12 @@ func TestAuthStore_DeleteUser_AlsoDeletesSessions(t *testing.T) {
 	testDB.SeedSession(t, "user-session", userID, time.Now().Add(24*time.Hour))
 	authStore := NewAuthStore(testDB.DB)
 
-	err := authStore.DeleteUser(userID)
+	err := authStore.DeleteUser(context.Background(), userID)
 	if err != nil {
 		t.Fatalf("failed to delete user: %v", err)
 	}
 
-	_, err = authStore.GetSession("user-session")
+	_, err = authStore.GetSession(context.Background(), "user-session")
 	if err == nil {
 		t.Error("expected session to be deleted with user")
 	}
@@ -460,7 +461,7 @@ func TestAuthStore_UpdateLastLogin_UpdatesTimestamp(t *testing.T) {
 	userID := testDB.SeedUser(t, "testuser", "test@example.com", "hashedpassword", false)
 	authStore := NewAuthStore(testDB.DB)
 
-	err := authStore.UpdateLastLogin(userID)
+	err := authStore.UpdateLastLogin(context.Background(), userID)
 	if err != nil {
 		t.Fatalf("failed to update last login: %v", err)
 	}

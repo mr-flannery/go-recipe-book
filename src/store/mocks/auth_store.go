@@ -1,166 +1,170 @@
 package mocks
 
-import "github.com/mr-flannery/go-recipe-book/src/store"
+import (
+	"context"
+
+	"github.com/mr-flannery/go-recipe-book/src/store"
+)
 
 type MockAuthStore struct {
-	GetUserByEmailFunc            func(email string) (*store.AuthUser, string, error)
-	UpdateLastLoginFunc           func(userID int) error
-	GetUserByIDFunc               func(userID int) (*store.AuthUser, error)
-	GetFullUserByIDFunc           func(userID int) (*store.FullAuthUser, error)
-	GetUserIDByUsernameFunc       func(username string) (int, error)
-	CreateSessionFunc             func(session *store.Session) error
-	GetSessionFunc                func(sessionID string) (*store.Session, error)
-	DeleteSessionFunc             func(sessionID string) error
-	DeleteExpiredSessionsFunc     func() (int64, error)
-	DeleteUserSessionsFunc        func(userID int) error
-	GetActiveSessionCountFunc     func(userID int) (int, error)
-	ExtendSessionFunc             func(sessionID string) error
-	CreateRegistrationRequestFunc func(username, email, passwordHash string) error
-	GetPendingRegistrationsFunc   func() ([]store.RegistrationRequest, error)
-	ApproveRegistrationFunc       func(requestID, adminID int) error
-	RejectRegistrationFunc        func(requestID, adminID int) error
-	CreateUserFunc                func(username, email, passwordHash string, isAdmin bool) error
-	UserExistsFunc                func(username string) (bool, error)
-	GetAllUsersFunc               func() ([]store.AuthUser, error)
-	DeleteUserFunc                func(userID int) error
+	GetUserByEmailFunc            func(ctx context.Context, email string) (*store.AuthUser, string, error)
+	UpdateLastLoginFunc           func(ctx context.Context, userID int) error
+	GetUserByIDFunc               func(ctx context.Context, userID int) (*store.AuthUser, error)
+	GetFullUserByIDFunc           func(ctx context.Context, userID int) (*store.FullAuthUser, error)
+	GetUserIDByUsernameFunc       func(ctx context.Context, username string) (int, error)
+	CreateSessionFunc             func(ctx context.Context, session *store.Session) error
+	GetSessionFunc                func(ctx context.Context, sessionID string) (*store.Session, error)
+	DeleteSessionFunc             func(ctx context.Context, sessionID string) error
+	DeleteExpiredSessionsFunc     func(ctx context.Context) (int64, error)
+	DeleteUserSessionsFunc        func(ctx context.Context, userID int) error
+	GetActiveSessionCountFunc     func(ctx context.Context, userID int) (int, error)
+	ExtendSessionFunc             func(ctx context.Context, sessionID string) error
+	CreateRegistrationRequestFunc func(ctx context.Context, username, email, passwordHash string) error
+	GetPendingRegistrationsFunc   func(ctx context.Context) ([]store.RegistrationRequest, error)
+	ApproveRegistrationFunc       func(ctx context.Context, requestID, adminID int) error
+	RejectRegistrationFunc        func(ctx context.Context, requestID, adminID int) error
+	CreateUserFunc                func(ctx context.Context, username, email, passwordHash string, isAdmin bool) error
+	UserExistsFunc                func(ctx context.Context, username string) (bool, error)
+	GetAllUsersFunc               func(ctx context.Context) ([]store.AuthUser, error)
+	DeleteUserFunc                func(ctx context.Context, userID int) error
 }
 
-func (m *MockAuthStore) GetUserByEmail(email string) (*store.AuthUser, string, error) {
+func (m *MockAuthStore) GetUserByEmail(ctx context.Context, email string) (*store.AuthUser, string, error) {
 	if m.GetUserByEmailFunc != nil {
-		return m.GetUserByEmailFunc(email)
+		return m.GetUserByEmailFunc(ctx, email)
 	}
 	return nil, "", nil
 }
 
-func (m *MockAuthStore) UpdateLastLogin(userID int) error {
+func (m *MockAuthStore) UpdateLastLogin(ctx context.Context, userID int) error {
 	if m.UpdateLastLoginFunc != nil {
-		return m.UpdateLastLoginFunc(userID)
+		return m.UpdateLastLoginFunc(ctx, userID)
 	}
 	return nil
 }
 
-func (m *MockAuthStore) GetUserByID(userID int) (*store.AuthUser, error) {
+func (m *MockAuthStore) GetUserByID(ctx context.Context, userID int) (*store.AuthUser, error) {
 	if m.GetUserByIDFunc != nil {
-		return m.GetUserByIDFunc(userID)
+		return m.GetUserByIDFunc(ctx, userID)
 	}
 	return nil, nil
 }
 
-func (m *MockAuthStore) GetFullUserByID(userID int) (*store.FullAuthUser, error) {
+func (m *MockAuthStore) GetFullUserByID(ctx context.Context, userID int) (*store.FullAuthUser, error) {
 	if m.GetFullUserByIDFunc != nil {
-		return m.GetFullUserByIDFunc(userID)
+		return m.GetFullUserByIDFunc(ctx, userID)
 	}
 	return nil, nil
 }
 
-func (m *MockAuthStore) GetUserIDByUsername(username string) (int, error) {
+func (m *MockAuthStore) GetUserIDByUsername(ctx context.Context, username string) (int, error) {
 	if m.GetUserIDByUsernameFunc != nil {
-		return m.GetUserIDByUsernameFunc(username)
+		return m.GetUserIDByUsernameFunc(ctx, username)
 	}
 	return 0, nil
 }
 
-func (m *MockAuthStore) CreateSession(session *store.Session) error {
+func (m *MockAuthStore) CreateSession(ctx context.Context, session *store.Session) error {
 	if m.CreateSessionFunc != nil {
-		return m.CreateSessionFunc(session)
+		return m.CreateSessionFunc(ctx, session)
 	}
 	return nil
 }
 
-func (m *MockAuthStore) GetSession(sessionID string) (*store.Session, error) {
+func (m *MockAuthStore) GetSession(ctx context.Context, sessionID string) (*store.Session, error) {
 	if m.GetSessionFunc != nil {
-		return m.GetSessionFunc(sessionID)
+		return m.GetSessionFunc(ctx, sessionID)
 	}
 	return nil, nil
 }
 
-func (m *MockAuthStore) DeleteSession(sessionID string) error {
+func (m *MockAuthStore) DeleteSession(ctx context.Context, sessionID string) error {
 	if m.DeleteSessionFunc != nil {
-		return m.DeleteSessionFunc(sessionID)
+		return m.DeleteSessionFunc(ctx, sessionID)
 	}
 	return nil
 }
 
-func (m *MockAuthStore) DeleteExpiredSessions() (int64, error) {
+func (m *MockAuthStore) DeleteExpiredSessions(ctx context.Context) (int64, error) {
 	if m.DeleteExpiredSessionsFunc != nil {
-		return m.DeleteExpiredSessionsFunc()
+		return m.DeleteExpiredSessionsFunc(ctx)
 	}
 	return 0, nil
 }
 
-func (m *MockAuthStore) DeleteUserSessions(userID int) error {
+func (m *MockAuthStore) DeleteUserSessions(ctx context.Context, userID int) error {
 	if m.DeleteUserSessionsFunc != nil {
-		return m.DeleteUserSessionsFunc(userID)
+		return m.DeleteUserSessionsFunc(ctx, userID)
 	}
 	return nil
 }
 
-func (m *MockAuthStore) GetActiveSessionCount(userID int) (int, error) {
+func (m *MockAuthStore) GetActiveSessionCount(ctx context.Context, userID int) (int, error) {
 	if m.GetActiveSessionCountFunc != nil {
-		return m.GetActiveSessionCountFunc(userID)
+		return m.GetActiveSessionCountFunc(ctx, userID)
 	}
 	return 0, nil
 }
 
-func (m *MockAuthStore) ExtendSession(sessionID string) error {
+func (m *MockAuthStore) ExtendSession(ctx context.Context, sessionID string) error {
 	if m.ExtendSessionFunc != nil {
-		return m.ExtendSessionFunc(sessionID)
+		return m.ExtendSessionFunc(ctx, sessionID)
 	}
 	return nil
 }
 
-func (m *MockAuthStore) CreateRegistrationRequest(username, email, passwordHash string) error {
+func (m *MockAuthStore) CreateRegistrationRequest(ctx context.Context, username, email, passwordHash string) error {
 	if m.CreateRegistrationRequestFunc != nil {
-		return m.CreateRegistrationRequestFunc(username, email, passwordHash)
+		return m.CreateRegistrationRequestFunc(ctx, username, email, passwordHash)
 	}
 	return nil
 }
 
-func (m *MockAuthStore) GetPendingRegistrations() ([]store.RegistrationRequest, error) {
+func (m *MockAuthStore) GetPendingRegistrations(ctx context.Context) ([]store.RegistrationRequest, error) {
 	if m.GetPendingRegistrationsFunc != nil {
-		return m.GetPendingRegistrationsFunc()
+		return m.GetPendingRegistrationsFunc(ctx)
 	}
 	return nil, nil
 }
 
-func (m *MockAuthStore) ApproveRegistration(requestID, adminID int) error {
+func (m *MockAuthStore) ApproveRegistration(ctx context.Context, requestID, adminID int) error {
 	if m.ApproveRegistrationFunc != nil {
-		return m.ApproveRegistrationFunc(requestID, adminID)
+		return m.ApproveRegistrationFunc(ctx, requestID, adminID)
 	}
 	return nil
 }
 
-func (m *MockAuthStore) RejectRegistration(requestID, adminID int) error {
+func (m *MockAuthStore) RejectRegistration(ctx context.Context, requestID, adminID int) error {
 	if m.RejectRegistrationFunc != nil {
-		return m.RejectRegistrationFunc(requestID, adminID)
+		return m.RejectRegistrationFunc(ctx, requestID, adminID)
 	}
 	return nil
 }
 
-func (m *MockAuthStore) CreateUser(username, email, passwordHash string, isAdmin bool) error {
+func (m *MockAuthStore) CreateUser(ctx context.Context, username, email, passwordHash string, isAdmin bool) error {
 	if m.CreateUserFunc != nil {
-		return m.CreateUserFunc(username, email, passwordHash, isAdmin)
+		return m.CreateUserFunc(ctx, username, email, passwordHash, isAdmin)
 	}
 	return nil
 }
 
-func (m *MockAuthStore) UserExists(username string) (bool, error) {
+func (m *MockAuthStore) UserExists(ctx context.Context, username string) (bool, error) {
 	if m.UserExistsFunc != nil {
-		return m.UserExistsFunc(username)
+		return m.UserExistsFunc(ctx, username)
 	}
 	return false, nil
 }
 
-func (m *MockAuthStore) GetAllUsers() ([]store.AuthUser, error) {
+func (m *MockAuthStore) GetAllUsers(ctx context.Context) ([]store.AuthUser, error) {
 	if m.GetAllUsersFunc != nil {
-		return m.GetAllUsersFunc()
+		return m.GetAllUsersFunc(ctx)
 	}
 	return nil, nil
 }
 
-func (m *MockAuthStore) DeleteUser(userID int) error {
+func (m *MockAuthStore) DeleteUser(ctx context.Context, userID int) error {
 	if m.DeleteUserFunc != nil {
-		return m.DeleteUserFunc(userID)
+		return m.DeleteUserFunc(ctx, userID)
 	}
 	return nil
 }

@@ -1,12 +1,14 @@
 package main
 
 import (
+	"context"
 	"log/slog"
 	"net/http"
 	"os"
 	"path/filepath"
 	"time"
 
+	"github.com/honeycombio/otel-config-go/otelconfig"
 	"github.com/mr-flannery/go-recipe-book/src/auth"
 	"github.com/mr-flannery/go-recipe-book/src/config"
 	"github.com/mr-flannery/go-recipe-book/src/db"
@@ -16,11 +18,20 @@ import (
 	"github.com/mr-flannery/go-recipe-book/src/store/postgres"
 	"github.com/mr-flannery/go-recipe-book/src/templates"
 	"github.com/mr-flannery/go-recipe-book/src/utils"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 )
 
 func main() {
+	otelShutdown, err := otelconfig.ConfigureOpenTelemetry()
+	if err != nil {
+		slog.Warn("Failed to configure OpenTelemetry, continuing without tracing", "error", err)
+	} else {
+		defer otelShutdown()
+		slog.Info("OpenTelemetry configured")
+	}
+
 	addr := ":8080"
 	if port := os.Getenv("PORT"); port != "" {
 		addr = ":" + port
@@ -30,7 +41,7 @@ func main() {
 	config := config.GetConfig()
 
 	slog.Info("Running migrations...")
-	err := db.RunMigrations()
+	err = db.RunMigrations()
 	if err != nil {
 		slog.Error("Failed to run migrations", "error", err)
 		panic(err)
@@ -47,7 +58,7 @@ func main() {
 	authStore := postgres.NewAuthStore(database)
 
 	slog.Info("Creating seed admin account...")
-	err = auth.CreateSeedAdmin(authStore, config.DB.Admin.Username, config.DB.Admin.Email, config.DB.Admin.Password)
+	err = auth.CreateSeedAdmin(context.Background(), authStore, config.DB.Admin.Username, config.DB.Admin.Email, config.DB.Admin.Password)
 	if err != nil {
 		slog.Error("Failed to create seed admin", "error", err)
 		panic(err)
@@ -56,7 +67,7 @@ func main() {
 	go func() {
 		for {
 			time.Sleep(1 * time.Hour)
-			if err := auth.CleanupExpiredSessions(authStore); err != nil {
+			if err := auth.CleanupExpiredSessions(context.Background(), authStore); err != nil {
 				slog.Error("Failed to cleanup expired sessions", "error", err)
 			}
 		}
@@ -270,5 +281,6 @@ func main() {
 
 	slog.Info("Ready to serve!")
 
-	slog.Error("Server failed to start", "error", http.ListenAndServe(addr, middleware.Gzip(mux)))
+	handler := otelhttp.NewHandler(middleware.Gzip(mux), "recipe-book")
+	slog.Error("Server failed to start", "error", http.ListenAndServe(addr, handler))
 }

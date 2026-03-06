@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -17,7 +18,7 @@ import (
 func TestSearchTagsHandler_SearchesTagsByQuery(t *testing.T) {
 	t.Run("returns matching tags when query matches", func(t *testing.T) {
 		mockTagStore := &mocks.MockTagStore{
-			SearchFunc: func(query string) ([]models.Tag, error) {
+			SearchFunc: func(ctx context.Context, query string) ([]models.Tag, error) {
 				return []models.Tag{
 					{ID: 1, Name: "breakfast"},
 					{ID: 2, Name: "brunch"},
@@ -48,7 +49,7 @@ func TestSearchTagsHandler_SearchesTagsByQuery(t *testing.T) {
 
 	t.Run("returns empty list when no tags match query", func(t *testing.T) {
 		mockTagStore := &mocks.MockTagStore{
-			SearchFunc: func(query string) ([]models.Tag, error) {
+			SearchFunc: func(ctx context.Context, query string) ([]models.Tag, error) {
 				return []models.Tag{}, nil
 			},
 		}
@@ -73,7 +74,7 @@ func TestSearchTagsHandler_SearchesTagsByQuery(t *testing.T) {
 
 	t.Run("returns error when store fails", func(t *testing.T) {
 		mockTagStore := &mocks.MockTagStore{
-			SearchFunc: func(query string) ([]models.Tag, error) {
+			SearchFunc: func(ctx context.Context, query string) ([]models.Tag, error) {
 				return nil, errors.New("database error")
 			},
 		}
@@ -100,7 +101,7 @@ func TestSearchTagsHandler_SearchesTagsByQuery(t *testing.T) {
 func TestSearchUserTagsHandler_SearchesUserSpecificTags(t *testing.T) {
 	t.Run("returns unauthorized when session is invalid", func(t *testing.T) {
 		mockAuthStore := &mocks.MockAuthStore{
-			GetSessionFunc: func(sessionID string) (*store.Session, error) {
+			GetSessionFunc: func(ctx context.Context, sessionID string) (*store.Session, error) {
 				return nil, errors.New("session not found")
 			},
 		}
@@ -118,15 +119,15 @@ func TestSearchUserTagsHandler_SearchesUserSpecificTags(t *testing.T) {
 
 	t.Run("returns matching user tags when authenticated", func(t *testing.T) {
 		mockAuthStore := &mocks.MockAuthStore{
-			GetSessionFunc: func(sessionID string) (*store.Session, error) {
+			GetSessionFunc: func(ctx context.Context, sessionID string) (*store.Session, error) {
 				return &store.Session{ID: sessionID, UserID: 1}, nil
 			},
-			GetUserByIDFunc: func(userID int) (*store.AuthUser, error) {
+			GetUserByIDFunc: func(ctx context.Context, userID int) (*store.AuthUser, error) {
 				return &store.AuthUser{ID: userID, Username: "testuser"}, nil
 			},
 		}
 		mockUserTagStore := &mocks.MockUserTagStore{
-			SearchFunc: func(userID int, query string) ([]string, error) {
+			SearchFunc: func(ctx context.Context, userID int, query string) ([]string, error) {
 				return []string{"favorite", "family"}, nil
 			},
 		}
@@ -180,7 +181,7 @@ func TestAddTagToRecipeHandler_AddsTagToRecipe(t *testing.T) {
 
 	t.Run("returns unauthorized when session is invalid", func(t *testing.T) {
 		mockAuthStore := &mocks.MockAuthStore{
-			GetSessionFunc: func(sessionID string) (*store.Session, error) {
+			GetSessionFunc: func(ctx context.Context, sessionID string) (*store.Session, error) {
 				return nil, errors.New("session not found")
 			},
 		}
@@ -199,15 +200,15 @@ func TestAddTagToRecipeHandler_AddsTagToRecipe(t *testing.T) {
 
 	t.Run("returns not found when recipe does not exist", func(t *testing.T) {
 		mockAuthStore := &mocks.MockAuthStore{
-			GetSessionFunc: func(sessionID string) (*store.Session, error) {
+			GetSessionFunc: func(ctx context.Context, sessionID string) (*store.Session, error) {
 				return &store.Session{ID: sessionID, UserID: 1}, nil
 			},
-			GetUserByIDFunc: func(userID int) (*store.AuthUser, error) {
+			GetUserByIDFunc: func(ctx context.Context, userID int) (*store.AuthUser, error) {
 				return &store.AuthUser{ID: userID, Username: "testuser"}, nil
 			},
 		}
 		mockRecipeStore := &mocks.MockRecipeStore{
-			GetByIDFunc: func(id string) (models.Recipe, error) {
+			GetByIDFunc: func(ctx context.Context, id string) (models.Recipe, error) {
 				return models.Recipe{}, errors.New("not found")
 			},
 		}
@@ -227,15 +228,15 @@ func TestAddTagToRecipeHandler_AddsTagToRecipe(t *testing.T) {
 
 	t.Run("returns forbidden when user is not the recipe author", func(t *testing.T) {
 		mockAuthStore := &mocks.MockAuthStore{
-			GetSessionFunc: func(sessionID string) (*store.Session, error) {
+			GetSessionFunc: func(ctx context.Context, sessionID string) (*store.Session, error) {
 				return &store.Session{ID: sessionID, UserID: 2}, nil
 			},
-			GetUserByIDFunc: func(userID int) (*store.AuthUser, error) {
+			GetUserByIDFunc: func(ctx context.Context, userID int) (*store.AuthUser, error) {
 				return &store.AuthUser{ID: userID, Username: "testuser"}, nil
 			},
 		}
 		mockRecipeStore := &mocks.MockRecipeStore{
-			GetByIDFunc: func(id string) (models.Recipe, error) {
+			GetByIDFunc: func(ctx context.Context, id string) (models.Recipe, error) {
 				return models.Recipe{ID: 1, AuthorID: 1}, nil
 			},
 		}
@@ -255,15 +256,15 @@ func TestAddTagToRecipeHandler_AddsTagToRecipe(t *testing.T) {
 
 	t.Run("returns error when tag name is empty", func(t *testing.T) {
 		mockAuthStore := &mocks.MockAuthStore{
-			GetSessionFunc: func(sessionID string) (*store.Session, error) {
+			GetSessionFunc: func(ctx context.Context, sessionID string) (*store.Session, error) {
 				return &store.Session{ID: sessionID, UserID: 1}, nil
 			},
-			GetUserByIDFunc: func(userID int) (*store.AuthUser, error) {
+			GetUserByIDFunc: func(ctx context.Context, userID int) (*store.AuthUser, error) {
 				return &store.AuthUser{ID: userID, Username: "testuser"}, nil
 			},
 		}
 		mockRecipeStore := &mocks.MockRecipeStore{
-			GetByIDFunc: func(id string) (models.Recipe, error) {
+			GetByIDFunc: func(ctx context.Context, id string) (models.Recipe, error) {
 				return models.Recipe{ID: 1, AuthorID: 1}, nil
 			},
 		}
@@ -286,23 +287,23 @@ func TestAddTagToRecipeHandler_AddsTagToRecipe(t *testing.T) {
 
 	t.Run("adds tag and returns success when all checks pass", func(t *testing.T) {
 		mockAuthStore := &mocks.MockAuthStore{
-			GetSessionFunc: func(sessionID string) (*store.Session, error) {
+			GetSessionFunc: func(ctx context.Context, sessionID string) (*store.Session, error) {
 				return &store.Session{ID: sessionID, UserID: 1}, nil
 			},
-			GetUserByIDFunc: func(userID int) (*store.AuthUser, error) {
+			GetUserByIDFunc: func(ctx context.Context, userID int) (*store.AuthUser, error) {
 				return &store.AuthUser{ID: userID, Username: "testuser"}, nil
 			},
 		}
 		mockRecipeStore := &mocks.MockRecipeStore{
-			GetByIDFunc: func(id string) (models.Recipe, error) {
+			GetByIDFunc: func(ctx context.Context, id string) (models.Recipe, error) {
 				return models.Recipe{ID: 1, AuthorID: 1}, nil
 			},
 		}
 		mockTagStore := &mocks.MockTagStore{
-			GetOrCreateFunc: func(name string) (models.Tag, error) {
+			GetOrCreateFunc: func(ctx context.Context, name string) (models.Tag, error) {
 				return models.Tag{ID: 5, Name: name}, nil
 			},
-			AddToRecipeFunc: func(recipeID, tagID int) error {
+			AddToRecipeFunc: func(ctx context.Context, recipeID, tagID int) error {
 				return nil
 			},
 		}
@@ -351,20 +352,20 @@ func TestRemoveTagFromRecipeHandler_RemovesTagFromRecipe(t *testing.T) {
 
 	t.Run("removes tag and returns success when authorized", func(t *testing.T) {
 		mockAuthStore := &mocks.MockAuthStore{
-			GetSessionFunc: func(sessionID string) (*store.Session, error) {
+			GetSessionFunc: func(ctx context.Context, sessionID string) (*store.Session, error) {
 				return &store.Session{ID: sessionID, UserID: 1}, nil
 			},
-			GetUserByIDFunc: func(userID int) (*store.AuthUser, error) {
+			GetUserByIDFunc: func(ctx context.Context, userID int) (*store.AuthUser, error) {
 				return &store.AuthUser{ID: userID, Username: "testuser"}, nil
 			},
 		}
 		mockRecipeStore := &mocks.MockRecipeStore{
-			GetByIDFunc: func(id string) (models.Recipe, error) {
+			GetByIDFunc: func(ctx context.Context, id string) (models.Recipe, error) {
 				return models.Recipe{ID: 1, AuthorID: 1}, nil
 			},
 		}
 		mockTagStore := &mocks.MockTagStore{
-			RemoveFromRecipeFunc: func(recipeID, tagID int) error {
+			RemoveFromRecipeFunc: func(ctx context.Context, recipeID, tagID int) error {
 				return nil
 			},
 		}
@@ -397,20 +398,20 @@ func TestRemoveTagFromRecipeHandler_RemovesTagFromRecipe(t *testing.T) {
 func TestAddUserTagToRecipeHandler_AddsPersonalTagToRecipe(t *testing.T) {
 	t.Run("adds user tag and returns success when authenticated", func(t *testing.T) {
 		mockAuthStore := &mocks.MockAuthStore{
-			GetSessionFunc: func(sessionID string) (*store.Session, error) {
+			GetSessionFunc: func(ctx context.Context, sessionID string) (*store.Session, error) {
 				return &store.Session{ID: sessionID, UserID: 1}, nil
 			},
-			GetUserByIDFunc: func(userID int) (*store.AuthUser, error) {
+			GetUserByIDFunc: func(ctx context.Context, userID int) (*store.AuthUser, error) {
 				return &store.AuthUser{ID: userID, Username: "testuser"}, nil
 			},
 		}
 		mockRecipeStore := &mocks.MockRecipeStore{
-			GetByIDFunc: func(id string) (models.Recipe, error) {
+			GetByIDFunc: func(ctx context.Context, id string) (models.Recipe, error) {
 				return models.Recipe{ID: 1, AuthorID: 2}, nil
 			},
 		}
 		mockUserTagStore := &mocks.MockUserTagStore{
-			GetOrCreateFunc: func(userID, recipeID int, name string) (models.UserTag, error) {
+			GetOrCreateFunc: func(ctx context.Context, userID, recipeID int, name string) (models.UserTag, error) {
 				return models.UserTag{ID: 10, UserID: userID, RecipeID: recipeID, Name: name}, nil
 			},
 		}
@@ -452,16 +453,16 @@ func TestRemoveUserTagHandler_RemovesPersonalTagFromRecipe(t *testing.T) {
 
 	t.Run("removes user tag and returns success when authenticated", func(t *testing.T) {
 		mockAuthStore := &mocks.MockAuthStore{
-			GetSessionFunc: func(sessionID string) (*store.Session, error) {
+			GetSessionFunc: func(ctx context.Context, sessionID string) (*store.Session, error) {
 				return &store.Session{ID: sessionID, UserID: 1}, nil
 			},
-			GetUserByIDFunc: func(userID int) (*store.AuthUser, error) {
+			GetUserByIDFunc: func(ctx context.Context, userID int) (*store.AuthUser, error) {
 				return &store.AuthUser{ID: userID, Username: "testuser"}, nil
 			},
 		}
 		var removedUserID, removedTagID int
 		mockUserTagStore := &mocks.MockUserTagStore{
-			RemoveFunc: func(userID, tagID int) error {
+			RemoveFunc: func(ctx context.Context, userID, tagID int) error {
 				removedUserID = userID
 				removedTagID = tagID
 				return nil

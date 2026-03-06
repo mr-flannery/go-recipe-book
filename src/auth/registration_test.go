@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"context"
 	"errors"
 	"testing"
 
@@ -11,7 +12,7 @@ import (
 func TestCreateRegistrationRequest_CreatesRequestWhenPasswordIsStrong(t *testing.T) {
 	var capturedUsername, capturedEmail, capturedHash string
 	mockStore := &mocks.MockAuthStore{
-		CreateRegistrationRequestFunc: func(username, email, passwordHash string) error {
+		CreateRegistrationRequestFunc: func(ctx context.Context, username, email, passwordHash string) error {
 			capturedUsername = username
 			capturedEmail = email
 			capturedHash = passwordHash
@@ -19,7 +20,7 @@ func TestCreateRegistrationRequest_CreatesRequestWhenPasswordIsStrong(t *testing
 		},
 	}
 
-	err := CreateRegistrationRequest(mockStore, "newuser", "new@example.com", "ValidPassword123!")
+	err := CreateRegistrationRequest(context.Background(), mockStore, "newuser", "new@example.com", "ValidPassword123!")
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -37,7 +38,7 @@ func TestCreateRegistrationRequest_CreatesRequestWhenPasswordIsStrong(t *testing
 func TestCreateRegistrationRequest_ReturnsErrorWhenPasswordIsWeak(t *testing.T) {
 	mockStore := &mocks.MockAuthStore{}
 
-	err := CreateRegistrationRequest(mockStore, "user", "user@example.com", "weak")
+	err := CreateRegistrationRequest(context.Background(), mockStore, "user", "user@example.com", "weak")
 	if err == nil {
 		t.Fatal("expected error for weak password, got nil")
 	}
@@ -45,12 +46,12 @@ func TestCreateRegistrationRequest_ReturnsErrorWhenPasswordIsWeak(t *testing.T) 
 
 func TestCreateRegistrationRequest_ReturnsErrorWhenStoreFails(t *testing.T) {
 	mockStore := &mocks.MockAuthStore{
-		CreateRegistrationRequestFunc: func(username, email, passwordHash string) error {
+		CreateRegistrationRequestFunc: func(ctx context.Context, username, email, passwordHash string) error {
 			return errors.New("duplicate email")
 		},
 	}
 
-	err := CreateRegistrationRequest(mockStore, "user", "existing@example.com", "StrongPassword123!")
+	err := CreateRegistrationRequest(context.Background(), mockStore, "user", "existing@example.com", "StrongPassword123!")
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
@@ -58,7 +59,7 @@ func TestCreateRegistrationRequest_ReturnsErrorWhenStoreFails(t *testing.T) {
 
 func TestGetPendingRegistrations_ReturnsListOfPendingRequests(t *testing.T) {
 	mockStore := &mocks.MockAuthStore{
-		GetPendingRegistrationsFunc: func() ([]store.RegistrationRequest, error) {
+		GetPendingRegistrationsFunc: func(ctx context.Context) ([]store.RegistrationRequest, error) {
 			return []store.RegistrationRequest{
 				{ID: 1, Username: "user1", Email: "user1@example.com", Status: "pending"},
 				{ID: 2, Username: "user2", Email: "user2@example.com", Status: "pending"},
@@ -66,7 +67,7 @@ func TestGetPendingRegistrations_ReturnsListOfPendingRequests(t *testing.T) {
 		},
 	}
 
-	reqs, err := GetPendingRegistrations(mockStore)
+	reqs, err := GetPendingRegistrations(context.Background(), mockStore)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -83,12 +84,12 @@ func TestGetPendingRegistrations_ReturnsListOfPendingRequests(t *testing.T) {
 
 func TestGetPendingRegistrations_ReturnsEmptyListWhenNoPendingRequests(t *testing.T) {
 	mockStore := &mocks.MockAuthStore{
-		GetPendingRegistrationsFunc: func() ([]store.RegistrationRequest, error) {
+		GetPendingRegistrationsFunc: func(ctx context.Context) ([]store.RegistrationRequest, error) {
 			return []store.RegistrationRequest{}, nil
 		},
 	}
 
-	reqs, err := GetPendingRegistrations(mockStore)
+	reqs, err := GetPendingRegistrations(context.Background(), mockStore)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -99,12 +100,12 @@ func TestGetPendingRegistrations_ReturnsEmptyListWhenNoPendingRequests(t *testin
 
 func TestGetPendingRegistrations_ReturnsErrorWhenStoreFails(t *testing.T) {
 	mockStore := &mocks.MockAuthStore{
-		GetPendingRegistrationsFunc: func() ([]store.RegistrationRequest, error) {
+		GetPendingRegistrationsFunc: func(ctx context.Context) ([]store.RegistrationRequest, error) {
 			return nil, errors.New("database error")
 		},
 	}
 
-	reqs, err := GetPendingRegistrations(mockStore)
+	reqs, err := GetPendingRegistrations(context.Background(), mockStore)
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
@@ -116,14 +117,14 @@ func TestGetPendingRegistrations_ReturnsErrorWhenStoreFails(t *testing.T) {
 func TestApproveRegistration_ApprovesRequestAndRecordsAdminID(t *testing.T) {
 	var approvedID, adminID int
 	mockStore := &mocks.MockAuthStore{
-		ApproveRegistrationFunc: func(requestID, aID int) error {
+		ApproveRegistrationFunc: func(ctx context.Context, requestID, aID int) error {
 			approvedID = requestID
 			adminID = aID
 			return nil
 		},
 	}
 
-	err := ApproveRegistration(mockStore, 5, 1)
+	err := ApproveRegistration(context.Background(), mockStore, 5, 1)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -138,14 +139,14 @@ func TestApproveRegistration_ApprovesRequestAndRecordsAdminID(t *testing.T) {
 func TestRejectRegistration_RejectsRequestWithReasonAndAdminID(t *testing.T) {
 	var rejectedID, adminID int
 	mockStore := &mocks.MockAuthStore{
-		RejectRegistrationFunc: func(requestID, aID int) error {
+		RejectRegistrationFunc: func(ctx context.Context, requestID, aID int) error {
 			rejectedID = requestID
 			adminID = aID
 			return nil
 		},
 	}
 
-	err := RejectRegistration(mockStore, 10, 2)
+	err := RejectRegistration(context.Background(), mockStore, 10, 2)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -159,7 +160,7 @@ func TestRejectRegistration_RejectsRequestWithReasonAndAdminID(t *testing.T) {
 
 func TestGetRegistrationRequestByID_ReturnsRequestWhenItExists(t *testing.T) {
 	mockStore := &mocks.MockAuthStore{
-		GetPendingRegistrationsFunc: func() ([]store.RegistrationRequest, error) {
+		GetPendingRegistrationsFunc: func(ctx context.Context) ([]store.RegistrationRequest, error) {
 			return []store.RegistrationRequest{
 				{ID: 1, Username: "user1", Email: "user1@example.com", Status: "pending"},
 				{ID: 5, Username: "target", Email: "target@example.com", Status: "pending"},
@@ -168,7 +169,7 @@ func TestGetRegistrationRequestByID_ReturnsRequestWhenItExists(t *testing.T) {
 		},
 	}
 
-	req, err := GetRegistrationRequestByID(mockStore, 5)
+	req, err := GetRegistrationRequestByID(context.Background(), mockStore, 5)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -185,14 +186,14 @@ func TestGetRegistrationRequestByID_ReturnsRequestWhenItExists(t *testing.T) {
 
 func TestGetRegistrationRequestByID_ReturnsErrorWhenRequestNotFound(t *testing.T) {
 	mockStore := &mocks.MockAuthStore{
-		GetPendingRegistrationsFunc: func() ([]store.RegistrationRequest, error) {
+		GetPendingRegistrationsFunc: func(ctx context.Context) ([]store.RegistrationRequest, error) {
 			return []store.RegistrationRequest{
 				{ID: 1, Username: "user1", Email: "user1@example.com", Status: "pending"},
 			}, nil
 		},
 	}
 
-	req, err := GetRegistrationRequestByID(mockStore, 999)
+	req, err := GetRegistrationRequestByID(context.Background(), mockStore, 999)
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
@@ -208,10 +209,10 @@ func TestCreateSeedAdmin_CreatesAdminUserWhenNotExists(t *testing.T) {
 	var createdUsername, createdEmail string
 	var createdAsAdmin bool
 	mockStore := &mocks.MockAuthStore{
-		UserExistsFunc: func(username string) (bool, error) {
+		UserExistsFunc: func(ctx context.Context, username string) (bool, error) {
 			return false, nil
 		},
-		CreateUserFunc: func(username, email, passwordHash string, isAdmin bool) error {
+		CreateUserFunc: func(ctx context.Context, username, email, passwordHash string, isAdmin bool) error {
 			createdUsername = username
 			createdEmail = email
 			createdAsAdmin = isAdmin
@@ -219,7 +220,7 @@ func TestCreateSeedAdmin_CreatesAdminUserWhenNotExists(t *testing.T) {
 		},
 	}
 
-	err := CreateSeedAdmin(mockStore, "admin", "admin@example.com", "AdminPass123!")
+	err := CreateSeedAdmin(context.Background(), mockStore, "admin", "admin@example.com", "AdminPass123!")
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -237,16 +238,16 @@ func TestCreateSeedAdmin_CreatesAdminUserWhenNotExists(t *testing.T) {
 func TestCreateSeedAdmin_SkipsCreationWhenUserAlreadyExists(t *testing.T) {
 	createUserCalled := false
 	mockStore := &mocks.MockAuthStore{
-		UserExistsFunc: func(username string) (bool, error) {
+		UserExistsFunc: func(ctx context.Context, username string) (bool, error) {
 			return true, nil
 		},
-		CreateUserFunc: func(username, email, passwordHash string, isAdmin bool) error {
+		CreateUserFunc: func(ctx context.Context, username, email, passwordHash string, isAdmin bool) error {
 			createUserCalled = true
 			return nil
 		},
 	}
 
-	err := CreateSeedAdmin(mockStore, "admin", "admin@example.com", "AdminPass123!")
+	err := CreateSeedAdmin(context.Background(), mockStore, "admin", "admin@example.com", "AdminPass123!")
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -257,12 +258,12 @@ func TestCreateSeedAdmin_SkipsCreationWhenUserAlreadyExists(t *testing.T) {
 
 func TestCreateSeedAdmin_ReturnsErrorWhenUserExistsCheckFails(t *testing.T) {
 	mockStore := &mocks.MockAuthStore{
-		UserExistsFunc: func(username string) (bool, error) {
+		UserExistsFunc: func(ctx context.Context, username string) (bool, error) {
 			return false, errors.New("database error")
 		},
 	}
 
-	err := CreateSeedAdmin(mockStore, "admin", "admin@example.com", "AdminPass123!")
+	err := CreateSeedAdmin(context.Background(), mockStore, "admin", "admin@example.com", "AdminPass123!")
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
@@ -270,15 +271,15 @@ func TestCreateSeedAdmin_ReturnsErrorWhenUserExistsCheckFails(t *testing.T) {
 
 func TestCreateSeedAdmin_ReturnsErrorWhenCreateUserFails(t *testing.T) {
 	mockStore := &mocks.MockAuthStore{
-		UserExistsFunc: func(username string) (bool, error) {
+		UserExistsFunc: func(ctx context.Context, username string) (bool, error) {
 			return false, nil
 		},
-		CreateUserFunc: func(username, email, passwordHash string, isAdmin bool) error {
+		CreateUserFunc: func(ctx context.Context, username, email, passwordHash string, isAdmin bool) error {
 			return errors.New("failed to create user")
 		},
 	}
 
-	err := CreateSeedAdmin(mockStore, "admin", "admin@example.com", "AdminPass123!")
+	err := CreateSeedAdmin(context.Background(), mockStore, "admin", "admin@example.com", "AdminPass123!")
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}

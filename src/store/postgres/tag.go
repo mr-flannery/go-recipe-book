@@ -1,6 +1,7 @@
 package postgres
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"strings"
@@ -16,14 +17,14 @@ func NewTagStore(db *sql.DB) *TagStore {
 	return &TagStore{db: db}
 }
 
-func (s *TagStore) GetOrCreate(name string) (models.Tag, error) {
+func (s *TagStore) GetOrCreate(ctx context.Context, name string) (models.Tag, error) {
 	normalizedName := strings.ToLower(strings.TrimSpace(name))
 	if normalizedName == "" {
 		return models.Tag{}, fmt.Errorf("tag name cannot be empty")
 	}
 
 	var tag models.Tag
-	err := s.db.QueryRow("SELECT id, name FROM tags WHERE name = $1", normalizedName).Scan(&tag.ID, &tag.Name)
+	err := s.db.QueryRowContext(ctx, "SELECT id, name FROM tags WHERE name = $1", normalizedName).Scan(&tag.ID, &tag.Name)
 	if err == nil {
 		return tag, nil
 	}
@@ -31,7 +32,7 @@ func (s *TagStore) GetOrCreate(name string) (models.Tag, error) {
 		return models.Tag{}, fmt.Errorf("failed to query tag: %v", err)
 	}
 
-	err = s.db.QueryRow("INSERT INTO tags (name) VALUES ($1) RETURNING id, name", normalizedName).Scan(&tag.ID, &tag.Name)
+	err = s.db.QueryRowContext(ctx, "INSERT INTO tags (name) VALUES ($1) RETURNING id, name", normalizedName).Scan(&tag.ID, &tag.Name)
 	if err != nil {
 		return models.Tag{}, fmt.Errorf("failed to create tag: %v", err)
 	}
@@ -39,9 +40,9 @@ func (s *TagStore) GetOrCreate(name string) (models.Tag, error) {
 	return tag, nil
 }
 
-func (s *TagStore) Search(query string) ([]models.Tag, error) {
+func (s *TagStore) Search(ctx context.Context, query string) ([]models.Tag, error) {
 	searchPattern := "%" + strings.ToLower(strings.TrimSpace(query)) + "%"
-	rows, err := s.db.Query("SELECT id, name FROM tags WHERE name LIKE $1 ORDER BY name LIMIT 20", searchPattern)
+	rows, err := s.db.QueryContext(ctx, "SELECT id, name FROM tags WHERE name LIKE $1 ORDER BY name LIMIT 20", searchPattern)
 	if err != nil {
 		return nil, fmt.Errorf("failed to search tags: %v", err)
 	}
@@ -59,8 +60,8 @@ func (s *TagStore) Search(query string) ([]models.Tag, error) {
 	return tags, nil
 }
 
-func (s *TagStore) GetByRecipeID(recipeID int) ([]models.Tag, error) {
-	rows, err := s.db.Query(`
+func (s *TagStore) GetByRecipeID(ctx context.Context, recipeID int) ([]models.Tag, error) {
+	rows, err := s.db.QueryContext(ctx, `
 		SELECT t.id, t.name 
 		FROM tags t 
 		INNER JOIN recipe_tags rt ON t.id = rt.tag_id 
@@ -83,7 +84,7 @@ func (s *TagStore) GetByRecipeID(recipeID int) ([]models.Tag, error) {
 	return tags, nil
 }
 
-func (s *TagStore) GetForRecipes(recipeIDs []int) (map[int][]models.Tag, error) {
+func (s *TagStore) GetForRecipes(ctx context.Context, recipeIDs []int) (map[int][]models.Tag, error) {
 	result := make(map[int][]models.Tag)
 	if len(recipeIDs) == 0 {
 		return result, nil
@@ -103,7 +104,7 @@ func (s *TagStore) GetForRecipes(recipeIDs []int) (map[int][]models.Tag, error) 
 		WHERE rt.recipe_id IN (%s) 
 		ORDER BY rt.recipe_id, t.name`, strings.Join(placeholders, ","))
 
-	rows, err := s.db.Query(query, args...)
+	rows, err := s.db.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get tags: %v", err)
 	}
@@ -121,8 +122,8 @@ func (s *TagStore) GetForRecipes(recipeIDs []int) (map[int][]models.Tag, error) 
 	return result, nil
 }
 
-func (s *TagStore) AddToRecipe(recipeID int, tagID int) error {
-	_, err := s.db.Exec("INSERT INTO recipe_tags (recipe_id, tag_id) VALUES ($1, $2) ON CONFLICT DO NOTHING", recipeID, tagID)
+func (s *TagStore) AddToRecipe(ctx context.Context, recipeID int, tagID int) error {
+	_, err := s.db.ExecContext(ctx, "INSERT INTO recipe_tags (recipe_id, tag_id) VALUES ($1, $2) ON CONFLICT DO NOTHING", recipeID, tagID)
 	if err != nil {
 		return fmt.Errorf("failed to add tag to recipe: %v", err)
 	}
@@ -130,8 +131,8 @@ func (s *TagStore) AddToRecipe(recipeID int, tagID int) error {
 	return nil
 }
 
-func (s *TagStore) RemoveFromRecipe(recipeID int, tagID int) error {
-	_, err := s.db.Exec("DELETE FROM recipe_tags WHERE recipe_id = $1 AND tag_id = $2", recipeID, tagID)
+func (s *TagStore) RemoveFromRecipe(ctx context.Context, recipeID int, tagID int) error {
+	_, err := s.db.ExecContext(ctx, "DELETE FROM recipe_tags WHERE recipe_id = $1 AND tag_id = $2", recipeID, tagID)
 	if err != nil {
 		return fmt.Errorf("failed to remove tag from recipe: %v", err)
 	}
@@ -139,13 +140,13 @@ func (s *TagStore) RemoveFromRecipe(recipeID int, tagID int) error {
 	return nil
 }
 
-func (s *TagStore) SetRecipeTags(recipeID int, tagNames []string) error {
-	tx, err := s.db.Begin()
+func (s *TagStore) SetRecipeTags(ctx context.Context, recipeID int, tagNames []string) error {
+	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %v", err)
 	}
 
-	_, err = tx.Exec("DELETE FROM recipe_tags WHERE recipe_id = $1", recipeID)
+	_, err = tx.ExecContext(ctx, "DELETE FROM recipe_tags WHERE recipe_id = $1", recipeID)
 	if err != nil {
 		tx.Rollback()
 		return fmt.Errorf("failed to clear existing tags: %v", err)
@@ -158,16 +159,16 @@ func (s *TagStore) SetRecipeTags(recipeID int, tagNames []string) error {
 		}
 
 		var tagID int
-		err = tx.QueryRow("SELECT id FROM tags WHERE name = $1", normalizedName).Scan(&tagID)
+		err = tx.QueryRowContext(ctx, "SELECT id FROM tags WHERE name = $1", normalizedName).Scan(&tagID)
 		if err != nil {
-			err = tx.QueryRow("INSERT INTO tags (name) VALUES ($1) RETURNING id", normalizedName).Scan(&tagID)
+			err = tx.QueryRowContext(ctx, "INSERT INTO tags (name) VALUES ($1) RETURNING id", normalizedName).Scan(&tagID)
 			if err != nil {
 				tx.Rollback()
 				return fmt.Errorf("failed to create tag: %v", err)
 			}
 		}
 
-		_, err = tx.Exec("INSERT INTO recipe_tags (recipe_id, tag_id) VALUES ($1, $2) ON CONFLICT DO NOTHING", recipeID, tagID)
+		_, err = tx.ExecContext(ctx, "INSERT INTO recipe_tags (recipe_id, tag_id) VALUES ($1, $2) ON CONFLICT DO NOTHING", recipeID, tagID)
 		if err != nil {
 			tx.Rollback()
 			return fmt.Errorf("failed to add tag to recipe: %v", err)

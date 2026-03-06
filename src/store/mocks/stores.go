@@ -1,277 +1,308 @@
 package mocks
 
-import "github.com/mr-flannery/go-recipe-book/src/models"
+import (
+	"context"
+
+	"github.com/mr-flannery/go-recipe-book/src/models"
+)
 
 type MockRecipeStore struct {
-	SaveFunc          func(recipe models.Recipe) (int, error)
-	GetByIDFunc       func(id string) (models.Recipe, error)
-	UpdateFunc        func(recipe models.Recipe) error
-	DeleteFunc        func(id string) error
-	GetAllFunc        func() ([]models.Recipe, error)
-	GetFilteredFunc   func(params models.FilterParams) ([]models.Recipe, error)
-	CountFilteredFunc func(params models.FilterParams) (int, error)
-	GetRandomIDFunc   func() (int, error)
-	SearchByTitleFunc func(query string, limit int) ([]models.RecipeSearchResult, error)
+	SaveFunc          func(ctx context.Context, recipe models.Recipe) (int, error)
+	GetByIDFunc       func(ctx context.Context, id string) (models.Recipe, error)
+	UpdateFunc        func(ctx context.Context, recipe models.Recipe) error
+	DeleteFunc        func(ctx context.Context, id string) error
+	GetAllFunc        func(ctx context.Context) ([]models.Recipe, error)
+	GetFilteredFunc   func(ctx context.Context, params models.FilterParams) ([]models.Recipe, error)
+	CountFilteredFunc func(ctx context.Context, params models.FilterParams) (int, error)
+	GetRandomIDFunc   func(ctx context.Context) (int, error)
+	SearchByTitleFunc func(ctx context.Context, query string, limit int) ([]models.RecipeSearchResult, error)
 }
 
-func (m *MockRecipeStore) Save(recipe models.Recipe) (int, error) {
+func (m *MockRecipeStore) Save(ctx context.Context, recipe models.Recipe) (int, error) {
 	if m.SaveFunc != nil {
-		return m.SaveFunc(recipe)
+		return m.SaveFunc(ctx, recipe)
 	}
 	return 0, nil
 }
 
-func (m *MockRecipeStore) GetByID(id string) (models.Recipe, error) {
+func (m *MockRecipeStore) GetByID(ctx context.Context, id string) (models.Recipe, error) {
 	if m.GetByIDFunc != nil {
-		return m.GetByIDFunc(id)
+		return m.GetByIDFunc(ctx, id)
 	}
 	return models.Recipe{}, nil
 }
 
-func (m *MockRecipeStore) Update(recipe models.Recipe) error {
+func (m *MockRecipeStore) Update(ctx context.Context, recipe models.Recipe) error {
 	if m.UpdateFunc != nil {
-		return m.UpdateFunc(recipe)
+		return m.UpdateFunc(ctx, recipe)
 	}
 	return nil
 }
 
-func (m *MockRecipeStore) Delete(id string) error {
+func (m *MockRecipeStore) Delete(ctx context.Context, id string) error {
 	if m.DeleteFunc != nil {
-		return m.DeleteFunc(id)
+		return m.DeleteFunc(ctx, id)
 	}
 	return nil
 }
 
-func (m *MockRecipeStore) GetAll() ([]models.Recipe, error) {
+func (m *MockRecipeStore) GetAll(ctx context.Context) ([]models.Recipe, error) {
 	if m.GetAllFunc != nil {
-		return m.GetAllFunc()
+		return m.GetAllFunc(ctx)
 	}
 	return nil, nil
 }
 
-func (m *MockRecipeStore) GetFiltered(params models.FilterParams) ([]models.Recipe, error) {
+func (m *MockRecipeStore) GetFiltered(ctx context.Context, params models.FilterParams) ([]models.Recipe, error) {
 	if m.GetFilteredFunc != nil {
-		return m.GetFilteredFunc(params)
+		return m.GetFilteredFunc(ctx, params)
 	}
 	return nil, nil
 }
 
-func (m *MockRecipeStore) CountFiltered(params models.FilterParams) (int, error) {
+func (m *MockRecipeStore) CountFiltered(ctx context.Context, params models.FilterParams) (int, error) {
 	if m.CountFilteredFunc != nil {
-		return m.CountFilteredFunc(params)
+		return m.CountFilteredFunc(ctx, params)
 	}
 	return 0, nil
 }
 
-func (m *MockRecipeStore) GetRandomID() (int, error) {
+func (m *MockRecipeStore) GetRandomID(ctx context.Context) (int, error) {
 	if m.GetRandomIDFunc != nil {
-		return m.GetRandomIDFunc()
+		return m.GetRandomIDFunc(ctx)
 	}
 	return 0, nil
 }
 
-func (m *MockRecipeStore) SearchByTitle(query string, limit int) ([]models.RecipeSearchResult, error) {
+func (m *MockRecipeStore) SearchByTitle(ctx context.Context, query string, limit int) ([]models.RecipeSearchResult, error) {
 	if m.SearchByTitleFunc != nil {
-		return m.SearchByTitleFunc(query, limit)
+		return m.SearchByTitleFunc(ctx, query, limit)
 	}
 	return nil, nil
 }
 
 type MockTagStore struct {
-	GetOrCreateFunc      func(name string) (models.Tag, error)
-	SearchFunc           func(query string) ([]models.Tag, error)
-	GetByRecipeIDFunc    func(recipeID int) ([]models.Tag, error)
-	GetForRecipesFunc    func(recipeIDs []int) (map[int][]models.Tag, error)
-	AddToRecipeFunc      func(recipeID, tagID int) error
-	RemoveFromRecipeFunc func(recipeID, tagID int) error
-	SetRecipeTagsFunc    func(recipeID int, tagNames []string) error
+	GetOrCreateFunc      func(ctx context.Context, name string) (models.Tag, error)
+	SearchFunc           func(ctx context.Context, query string) ([]models.Tag, error)
+	GetByRecipeIDFunc    func(ctx context.Context, recipeID int) ([]models.Tag, error)
+	GetForRecipesFunc    func(ctx context.Context, recipeIDs []int) (map[int][]models.Tag, error)
+	AddToRecipeFunc      func(ctx context.Context, recipeID, tagID int) error
+	RemoveFromRecipeFunc func(ctx context.Context, recipeID, tagID int) error
+	SetRecipeTagsFunc    func(ctx context.Context, recipeID int, tagNames []string) error
 }
 
-func (m *MockTagStore) GetOrCreate(name string) (models.Tag, error) {
+func (m *MockTagStore) GetOrCreate(ctx context.Context, name string) (models.Tag, error) {
 	if m.GetOrCreateFunc != nil {
-		return m.GetOrCreateFunc(name)
+		return m.GetOrCreateFunc(ctx, name)
 	}
 	return models.Tag{}, nil
 }
 
-func (m *MockTagStore) Search(query string) ([]models.Tag, error) {
+func (m *MockTagStore) Search(ctx context.Context, query string) ([]models.Tag, error) {
 	if m.SearchFunc != nil {
-		return m.SearchFunc(query)
+		return m.SearchFunc(ctx, query)
 	}
 	return nil, nil
 }
 
-func (m *MockTagStore) GetByRecipeID(recipeID int) ([]models.Tag, error) {
+func (m *MockTagStore) GetByRecipeID(ctx context.Context, recipeID int) ([]models.Tag, error) {
 	if m.GetByRecipeIDFunc != nil {
-		return m.GetByRecipeIDFunc(recipeID)
+		return m.GetByRecipeIDFunc(ctx, recipeID)
 	}
 	return nil, nil
 }
 
-func (m *MockTagStore) GetForRecipes(recipeIDs []int) (map[int][]models.Tag, error) {
+func (m *MockTagStore) GetForRecipes(ctx context.Context, recipeIDs []int) (map[int][]models.Tag, error) {
 	if m.GetForRecipesFunc != nil {
-		return m.GetForRecipesFunc(recipeIDs)
+		return m.GetForRecipesFunc(ctx, recipeIDs)
 	}
 	return nil, nil
 }
 
-func (m *MockTagStore) AddToRecipe(recipeID, tagID int) error {
+func (m *MockTagStore) AddToRecipe(ctx context.Context, recipeID, tagID int) error {
 	if m.AddToRecipeFunc != nil {
-		return m.AddToRecipeFunc(recipeID, tagID)
+		return m.AddToRecipeFunc(ctx, recipeID, tagID)
 	}
 	return nil
 }
 
-func (m *MockTagStore) RemoveFromRecipe(recipeID, tagID int) error {
+func (m *MockTagStore) RemoveFromRecipe(ctx context.Context, recipeID, tagID int) error {
 	if m.RemoveFromRecipeFunc != nil {
-		return m.RemoveFromRecipeFunc(recipeID, tagID)
+		return m.RemoveFromRecipeFunc(ctx, recipeID, tagID)
 	}
 	return nil
 }
 
-func (m *MockTagStore) SetRecipeTags(recipeID int, tagNames []string) error {
+func (m *MockTagStore) SetRecipeTags(ctx context.Context, recipeID int, tagNames []string) error {
 	if m.SetRecipeTagsFunc != nil {
-		return m.SetRecipeTagsFunc(recipeID, tagNames)
+		return m.SetRecipeTagsFunc(ctx, recipeID, tagNames)
 	}
 	return nil
 }
 
 type MockUserTagStore struct {
-	GetOrCreateFunc   func(userID, recipeID int, name string) (models.UserTag, error)
-	SearchFunc        func(userID int, query string) ([]string, error)
-	GetByRecipeIDFunc func(userID, recipeID int) ([]models.UserTag, error)
-	GetByUserIDFunc   func(userID int) ([]models.UserTag, error)
-	GetForRecipesFunc func(userID int, recipeIDs []int) (map[int][]models.UserTag, error)
-	RemoveFunc        func(userID, tagID int) error
+	GetOrCreateFunc   func(ctx context.Context, userID, recipeID int, name string) (models.UserTag, error)
+	SearchFunc        func(ctx context.Context, userID int, query string) ([]string, error)
+	GetByRecipeIDFunc func(ctx context.Context, userID, recipeID int) ([]models.UserTag, error)
+	GetByUserIDFunc   func(ctx context.Context, userID int) ([]models.UserTag, error)
+	GetForRecipesFunc func(ctx context.Context, userID int, recipeIDs []int) (map[int][]models.UserTag, error)
+	RemoveFunc        func(ctx context.Context, userID, tagID int) error
 }
 
-func (m *MockUserTagStore) GetOrCreate(userID, recipeID int, name string) (models.UserTag, error) {
+func (m *MockUserTagStore) GetOrCreate(ctx context.Context, userID, recipeID int, name string) (models.UserTag, error) {
 	if m.GetOrCreateFunc != nil {
-		return m.GetOrCreateFunc(userID, recipeID, name)
+		return m.GetOrCreateFunc(ctx, userID, recipeID, name)
 	}
 	return models.UserTag{}, nil
 }
 
-func (m *MockUserTagStore) Search(userID int, query string) ([]string, error) {
+func (m *MockUserTagStore) Search(ctx context.Context, userID int, query string) ([]string, error) {
 	if m.SearchFunc != nil {
-		return m.SearchFunc(userID, query)
+		return m.SearchFunc(ctx, userID, query)
 	}
 	return nil, nil
 }
 
-func (m *MockUserTagStore) GetByRecipeID(userID, recipeID int) ([]models.UserTag, error) {
+func (m *MockUserTagStore) GetByRecipeID(ctx context.Context, userID, recipeID int) ([]models.UserTag, error) {
 	if m.GetByRecipeIDFunc != nil {
-		return m.GetByRecipeIDFunc(userID, recipeID)
+		return m.GetByRecipeIDFunc(ctx, userID, recipeID)
 	}
 	return nil, nil
 }
 
-func (m *MockUserTagStore) GetByUserID(userID int) ([]models.UserTag, error) {
+func (m *MockUserTagStore) GetByUserID(ctx context.Context, userID int) ([]models.UserTag, error) {
 	if m.GetByUserIDFunc != nil {
-		return m.GetByUserIDFunc(userID)
+		return m.GetByUserIDFunc(ctx, userID)
 	}
 	return nil, nil
 }
 
-func (m *MockUserTagStore) GetForRecipes(userID int, recipeIDs []int) (map[int][]models.UserTag, error) {
+func (m *MockUserTagStore) GetForRecipes(ctx context.Context, userID int, recipeIDs []int) (map[int][]models.UserTag, error) {
 	if m.GetForRecipesFunc != nil {
-		return m.GetForRecipesFunc(userID, recipeIDs)
+		return m.GetForRecipesFunc(ctx, userID, recipeIDs)
 	}
 	return nil, nil
 }
 
-func (m *MockUserTagStore) Remove(userID, tagID int) error {
+func (m *MockUserTagStore) Remove(ctx context.Context, userID, tagID int) error {
 	if m.RemoveFunc != nil {
-		return m.RemoveFunc(userID, tagID)
+		return m.RemoveFunc(ctx, userID, tagID)
 	}
 	return nil
 }
 
 type MockCommentStore struct {
-	GetByRecipeIDFunc            func(recipeID string) ([]models.Comment, error)
-	GetByIDFunc                  func(commentID int) (models.Comment, error)
-	GetByUserIDFunc              func(userID int) ([]models.Comment, error)
-	SaveFunc                     func(comment models.Comment) error
-	UpdateFunc                   func(commentID int, content string) error
-	DeleteFunc                   func(commentID int) error
-	GetLatestByUserAndRecipeFunc func(userID, recipeID int) (models.Comment, error)
+	GetByRecipeIDFunc            func(ctx context.Context, recipeID string) ([]models.Comment, error)
+	GetByIDFunc                  func(ctx context.Context, commentID int) (models.Comment, error)
+	GetByUserIDFunc              func(ctx context.Context, userID int) ([]models.Comment, error)
+	SaveFunc                     func(ctx context.Context, comment models.Comment) error
+	UpdateFunc                   func(ctx context.Context, commentID int, content string) error
+	DeleteFunc                   func(ctx context.Context, commentID int) error
+	GetLatestByUserAndRecipeFunc func(ctx context.Context, userID, recipeID int) (models.Comment, error)
 }
 
-func (m *MockCommentStore) GetByRecipeID(recipeID string) ([]models.Comment, error) {
+func (m *MockCommentStore) GetByRecipeID(ctx context.Context, recipeID string) ([]models.Comment, error) {
 	if m.GetByRecipeIDFunc != nil {
-		return m.GetByRecipeIDFunc(recipeID)
+		return m.GetByRecipeIDFunc(ctx, recipeID)
 	}
 	return nil, nil
 }
 
-func (m *MockCommentStore) GetByID(commentID int) (models.Comment, error) {
+func (m *MockCommentStore) GetByID(ctx context.Context, commentID int) (models.Comment, error) {
 	if m.GetByIDFunc != nil {
-		return m.GetByIDFunc(commentID)
+		return m.GetByIDFunc(ctx, commentID)
 	}
 	return models.Comment{}, nil
 }
 
-func (m *MockCommentStore) GetByUserID(userID int) ([]models.Comment, error) {
+func (m *MockCommentStore) GetByUserID(ctx context.Context, userID int) ([]models.Comment, error) {
 	if m.GetByUserIDFunc != nil {
-		return m.GetByUserIDFunc(userID)
+		return m.GetByUserIDFunc(ctx, userID)
 	}
 	return nil, nil
 }
 
-func (m *MockCommentStore) Save(comment models.Comment) error {
+func (m *MockCommentStore) Save(ctx context.Context, comment models.Comment) error {
 	if m.SaveFunc != nil {
-		return m.SaveFunc(comment)
+		return m.SaveFunc(ctx, comment)
 	}
 	return nil
 }
 
-func (m *MockCommentStore) Update(commentID int, content string) error {
+func (m *MockCommentStore) Update(ctx context.Context, commentID int, content string) error {
 	if m.UpdateFunc != nil {
-		return m.UpdateFunc(commentID, content)
+		return m.UpdateFunc(ctx, commentID, content)
 	}
 	return nil
 }
 
-func (m *MockCommentStore) Delete(commentID int) error {
+func (m *MockCommentStore) Delete(ctx context.Context, commentID int) error {
 	if m.DeleteFunc != nil {
-		return m.DeleteFunc(commentID)
+		return m.DeleteFunc(ctx, commentID)
 	}
 	return nil
 }
 
-func (m *MockCommentStore) GetLatestByUserAndRecipe(userID, recipeID int) (models.Comment, error) {
+func (m *MockCommentStore) GetLatestByUserAndRecipe(ctx context.Context, userID, recipeID int) (models.Comment, error) {
 	if m.GetLatestByUserAndRecipeFunc != nil {
-		return m.GetLatestByUserAndRecipeFunc(userID, recipeID)
+		return m.GetLatestByUserAndRecipeFunc(ctx, userID, recipeID)
 	}
 	return models.Comment{}, nil
 }
 
 type MockUserStore struct {
-	GetUsernameByIDFunc func(userID int) (string, error)
+	GetUsernameByIDFunc func(ctx context.Context, userID int) (string, error)
 }
 
-func (m *MockUserStore) GetUsernameByID(userID int) (string, error) {
+func (m *MockUserStore) GetUsernameByID(ctx context.Context, userID int) (string, error) {
 	if m.GetUsernameByIDFunc != nil {
-		return m.GetUsernameByIDFunc(userID)
+		return m.GetUsernameByIDFunc(ctx, userID)
 	}
 	return "", nil
 }
 
 type MockIngredientStore struct {
-	SearchFunc      func(query string, limit int) ([]string, error)
-	GetOrCreateFunc func(name string) (int, error)
+	SearchFunc      func(ctx context.Context, query string, limit int) ([]string, error)
+	GetOrCreateFunc func(ctx context.Context, name string) (int, error)
 }
 
-func (m *MockIngredientStore) Search(query string, limit int) ([]string, error) {
+func (m *MockIngredientStore) Search(ctx context.Context, query string, limit int) ([]string, error) {
 	if m.SearchFunc != nil {
-		return m.SearchFunc(query, limit)
+		return m.SearchFunc(ctx, query, limit)
 	}
 	return nil, nil
 }
 
-func (m *MockIngredientStore) GetOrCreate(name string) (int, error) {
+func (m *MockIngredientStore) GetOrCreate(ctx context.Context, name string) (int, error) {
 	if m.GetOrCreateFunc != nil {
-		return m.GetOrCreateFunc(name)
+		return m.GetOrCreateFunc(ctx, name)
 	}
 	return 0, nil
+}
+
+type MockUserPreferencesStore struct {
+	GetFunc         func(ctx context.Context, userID int) (*models.UserPreferences, error)
+	SetPageSizeFunc func(ctx context.Context, userID, pageSize int) error
+	SetViewModeFunc func(ctx context.Context, userID int, viewMode string) error
+}
+
+func (m *MockUserPreferencesStore) Get(ctx context.Context, userID int) (*models.UserPreferences, error) {
+	if m.GetFunc != nil {
+		return m.GetFunc(ctx, userID)
+	}
+	return nil, nil
+}
+
+func (m *MockUserPreferencesStore) SetPageSize(ctx context.Context, userID, pageSize int) error {
+	if m.SetPageSizeFunc != nil {
+		return m.SetPageSizeFunc(ctx, userID, pageSize)
+	}
+	return nil
+}
+
+func (m *MockUserPreferencesStore) SetViewMode(ctx context.Context, userID int, viewMode string) error {
+	if m.SetViewModeFunc != nil {
+		return m.SetViewModeFunc(ctx, userID, viewMode)
+	}
+	return nil
 }

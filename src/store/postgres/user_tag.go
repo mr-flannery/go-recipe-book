@@ -1,6 +1,7 @@
 package postgres
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"strings"
@@ -16,14 +17,14 @@ func NewUserTagStore(db *sql.DB) *UserTagStore {
 	return &UserTagStore{db: db}
 }
 
-func (s *UserTagStore) GetOrCreate(userID int, recipeID int, name string) (models.UserTag, error) {
+func (s *UserTagStore) GetOrCreate(ctx context.Context, userID int, recipeID int, name string) (models.UserTag, error) {
 	normalizedName := strings.ToLower(strings.TrimSpace(name))
 	if normalizedName == "" {
 		return models.UserTag{}, fmt.Errorf("tag name cannot be empty")
 	}
 
 	var userTag models.UserTag
-	err := s.db.QueryRow(
+	err := s.db.QueryRowContext(ctx,
 		"SELECT id, user_id, recipe_id, name FROM user_tags WHERE user_id = $1 AND recipe_id = $2 AND name = $3",
 		userID, recipeID, normalizedName,
 	).Scan(&userTag.ID, &userTag.UserID, &userTag.RecipeID, &userTag.Name)
@@ -31,7 +32,7 @@ func (s *UserTagStore) GetOrCreate(userID int, recipeID int, name string) (model
 		return userTag, nil
 	}
 
-	err = s.db.QueryRow(
+	err = s.db.QueryRowContext(ctx,
 		"INSERT INTO user_tags (user_id, recipe_id, name) VALUES ($1, $2, $3) RETURNING id, user_id, recipe_id, name",
 		userID, recipeID, normalizedName,
 	).Scan(&userTag.ID, &userTag.UserID, &userTag.RecipeID, &userTag.Name)
@@ -42,9 +43,9 @@ func (s *UserTagStore) GetOrCreate(userID int, recipeID int, name string) (model
 	return userTag, nil
 }
 
-func (s *UserTagStore) Search(userID int, query string) ([]string, error) {
+func (s *UserTagStore) Search(ctx context.Context, userID int, query string) ([]string, error) {
 	searchPattern := "%" + strings.ToLower(strings.TrimSpace(query)) + "%"
-	rows, err := s.db.Query(
+	rows, err := s.db.QueryContext(ctx,
 		"SELECT DISTINCT name FROM user_tags WHERE user_id = $1 AND name LIKE $2 ORDER BY name LIMIT 20",
 		userID, searchPattern,
 	)
@@ -65,8 +66,8 @@ func (s *UserTagStore) Search(userID int, query string) ([]string, error) {
 	return tags, nil
 }
 
-func (s *UserTagStore) GetByRecipeID(userID int, recipeID int) ([]models.UserTag, error) {
-	rows, err := s.db.Query(
+func (s *UserTagStore) GetByRecipeID(ctx context.Context, userID int, recipeID int) ([]models.UserTag, error) {
+	rows, err := s.db.QueryContext(ctx,
 		"SELECT id, user_id, recipe_id, name FROM user_tags WHERE user_id = $1 AND recipe_id = $2 ORDER BY name",
 		userID, recipeID,
 	)
@@ -87,8 +88,8 @@ func (s *UserTagStore) GetByRecipeID(userID int, recipeID int) ([]models.UserTag
 	return tags, nil
 }
 
-func (s *UserTagStore) GetByUserID(userID int) ([]models.UserTag, error) {
-	rows, err := s.db.Query(
+func (s *UserTagStore) GetByUserID(ctx context.Context, userID int) ([]models.UserTag, error) {
+	rows, err := s.db.QueryContext(ctx,
 		"SELECT id, user_id, recipe_id, name FROM user_tags WHERE user_id = $1 ORDER BY recipe_id, name",
 		userID,
 	)
@@ -109,7 +110,7 @@ func (s *UserTagStore) GetByUserID(userID int) ([]models.UserTag, error) {
 	return tags, nil
 }
 
-func (s *UserTagStore) GetForRecipes(userID int, recipeIDs []int) (map[int][]models.UserTag, error) {
+func (s *UserTagStore) GetForRecipes(ctx context.Context, userID int, recipeIDs []int) (map[int][]models.UserTag, error) {
 	result := make(map[int][]models.UserTag)
 	if len(recipeIDs) == 0 {
 		return result, nil
@@ -129,7 +130,7 @@ func (s *UserTagStore) GetForRecipes(userID int, recipeIDs []int) (map[int][]mod
 		WHERE user_id = $1 AND recipe_id IN (%s) 
 		ORDER BY recipe_id, name`, strings.Join(placeholders, ","))
 
-	rows, err := s.db.Query(query, args...)
+	rows, err := s.db.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get user tags: %v", err)
 	}
@@ -146,8 +147,8 @@ func (s *UserTagStore) GetForRecipes(userID int, recipeIDs []int) (map[int][]mod
 	return result, nil
 }
 
-func (s *UserTagStore) Remove(userID int, tagID int) error {
-	_, err := s.db.Exec("DELETE FROM user_tags WHERE id = $1 AND user_id = $2", tagID, userID)
+func (s *UserTagStore) Remove(ctx context.Context, userID int, tagID int) error {
+	_, err := s.db.ExecContext(ctx, "DELETE FROM user_tags WHERE id = $1 AND user_id = $2", tagID, userID)
 	if err != nil {
 		return fmt.Errorf("failed to remove user tag: %v", err)
 	}

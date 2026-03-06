@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"mime/multipart"
 	"net/http"
@@ -19,19 +20,19 @@ import (
 
 func TestListRecipesHandler_ReturnsRecipesWithTags(t *testing.T) {
 	mockRecipeStore := &mocks.MockRecipeStore{
-		GetFilteredFunc: func(params models.FilterParams) ([]models.Recipe, error) {
+		GetFilteredFunc: func(ctx context.Context, params models.FilterParams) ([]models.Recipe, error) {
 			return []models.Recipe{
 				{ID: 1, Title: "Test Recipe 1", AuthorID: 1},
 				{ID: 2, Title: "Test Recipe 2", AuthorID: 1},
 			}, nil
 		},
-		CountFilteredFunc: func(params models.FilterParams) (int, error) {
+		CountFilteredFunc: func(ctx context.Context, params models.FilterParams) (int, error) {
 			return 2, nil
 		},
 	}
 
 	mockTagStore := &mocks.MockTagStore{
-		GetForRecipesFunc: func(recipeIDs []int) (map[int][]models.Tag, error) {
+		GetForRecipesFunc: func(ctx context.Context, recipeIDs []int) (map[int][]models.Tag, error) {
 			return map[int][]models.Tag{
 				1: {{ID: 1, Name: "dinner"}},
 				2: {{ID: 2, Name: "lunch"}},
@@ -71,7 +72,7 @@ func TestListRecipesHandler_ReturnsRecipesWithTags(t *testing.T) {
 
 func TestListRecipesHandler_ReturnsErrorWhenStoreFails(t *testing.T) {
 	mockRecipeStore := &mocks.MockRecipeStore{
-		GetFilteredFunc: func(params models.FilterParams) ([]models.Recipe, error) {
+		GetFilteredFunc: func(ctx context.Context, params models.FilterParams) ([]models.Recipe, error) {
 			return nil, errors.New("database error")
 		},
 	}
@@ -99,7 +100,7 @@ func TestListRecipesHandler_ReturnsErrorWhenStoreFails(t *testing.T) {
 
 func TestViewRecipeHandler_ReturnsRecipeWhenFound(t *testing.T) {
 	mockRecipeStore := &mocks.MockRecipeStore{
-		GetByIDFunc: func(id string) (models.Recipe, error) {
+		GetByIDFunc: func(ctx context.Context, id string) (models.Recipe, error) {
 			return models.Recipe{
 				ID:             1,
 				Title:          "Test Recipe",
@@ -111,19 +112,19 @@ func TestViewRecipeHandler_ReturnsRecipeWhenFound(t *testing.T) {
 	}
 
 	mockTagStore := &mocks.MockTagStore{
-		GetByRecipeIDFunc: func(recipeID int) ([]models.Tag, error) {
+		GetByRecipeIDFunc: func(ctx context.Context, recipeID int) ([]models.Tag, error) {
 			return []models.Tag{{ID: 1, Name: "dinner"}}, nil
 		},
 	}
 
 	mockCommentStore := &mocks.MockCommentStore{
-		GetByRecipeIDFunc: func(recipeID string) ([]models.Comment, error) {
+		GetByRecipeIDFunc: func(ctx context.Context, recipeID string) ([]models.Comment, error) {
 			return []models.Comment{}, nil
 		},
 	}
 
 	mockAuthStore := &mocks.MockAuthStore{
-		GetSessionFunc: func(sessionID string) (*store.Session, error) {
+		GetSessionFunc: func(ctx context.Context, sessionID string) (*store.Session, error) {
 			return nil, errors.New("no session")
 		},
 	}
@@ -163,7 +164,7 @@ func TestViewRecipeHandler_ReturnsRecipeWhenFound(t *testing.T) {
 
 func TestViewRecipeHandler_ReturnsNotFoundWhenRecipeDoesNotExist(t *testing.T) {
 	mockRecipeStore := &mocks.MockRecipeStore{
-		GetByIDFunc: func(id string) (models.Recipe, error) {
+		GetByIDFunc: func(ctx context.Context, id string) (models.Recipe, error) {
 			return models.Recipe{}, errors.New("not found")
 		},
 	}
@@ -213,7 +214,7 @@ func TestViewRecipeHandler_ReturnsBadRequestWhenIDMissing(t *testing.T) {
 
 func TestPostCreateRecipeHandler_RedirectsToLoginWhenNotAuthenticated(t *testing.T) {
 	mockAuthStore := &mocks.MockAuthStore{
-		GetSessionFunc: func(sessionID string) (*store.Session, error) {
+		GetSessionFunc: func(ctx context.Context, sessionID string) (*store.Session, error) {
 			return nil, errors.New("no session")
 		},
 	}
@@ -247,24 +248,24 @@ func TestPostCreateRecipeHandler_RedirectsToLoginWhenNotAuthenticated(t *testing
 
 func TestPostCreateRecipeHandler_CreatesRecipeWhenAuthenticated(t *testing.T) {
 	mockAuthStore := &mocks.MockAuthStore{
-		GetSessionFunc: func(sessionID string) (*store.Session, error) {
+		GetSessionFunc: func(ctx context.Context, sessionID string) (*store.Session, error) {
 			return &store.Session{ID: sessionID, UserID: 1}, nil
 		},
-		GetUserByIDFunc: func(userID int) (*store.AuthUser, error) {
+		GetUserByIDFunc: func(ctx context.Context, userID int) (*store.AuthUser, error) {
 			return &store.AuthUser{ID: 1, Username: "testuser", Email: "test@test.com"}, nil
 		},
 	}
 
 	var capturedRecipe models.Recipe
 	mockRecipeStore := &mocks.MockRecipeStore{
-		SaveFunc: func(recipe models.Recipe) (int, error) {
+		SaveFunc: func(ctx context.Context, recipe models.Recipe) (int, error) {
 			capturedRecipe = recipe
 			return 123, nil
 		},
 	}
 
 	mockTagStore := &mocks.MockTagStore{
-		SetRecipeTagsFunc: func(recipeID int, tagNames []string) error {
+		SetRecipeTagsFunc: func(ctx context.Context, recipeID int, tagNames []string) error {
 			return nil
 		},
 	}
@@ -331,10 +332,10 @@ func TestPostCreateRecipeHandler_ReturnsBadRequestWhenFormInvalid(t *testing.T) 
 
 func TestPostCreateRecipeHandler_ReturnsBadRequestWhenPrepTimeInvalid(t *testing.T) {
 	mockAuthStore := &mocks.MockAuthStore{
-		GetSessionFunc: func(sessionID string) (*store.Session, error) {
+		GetSessionFunc: func(ctx context.Context, sessionID string) (*store.Session, error) {
 			return &store.Session{ID: sessionID, UserID: 1}, nil
 		},
-		GetUserByIDFunc: func(userID int) (*store.AuthUser, error) {
+		GetUserByIDFunc: func(ctx context.Context, userID int) (*store.AuthUser, error) {
 			return &store.AuthUser{ID: 1, Username: "testuser"}, nil
 		},
 	}
@@ -365,25 +366,25 @@ func TestPostCreateRecipeHandler_ReturnsBadRequestWhenPrepTimeInvalid(t *testing
 
 func TestPostUpdateRecipeHandler_UpdatesRecipeWhenUserIsAuthor(t *testing.T) {
 	mockAuthStore := &mocks.MockAuthStore{
-		GetSessionFunc: func(sessionID string) (*store.Session, error) {
+		GetSessionFunc: func(ctx context.Context, sessionID string) (*store.Session, error) {
 			return &store.Session{ID: sessionID, UserID: 1}, nil
 		},
-		GetUserByIDFunc: func(userID int) (*store.AuthUser, error) {
+		GetUserByIDFunc: func(ctx context.Context, userID int) (*store.AuthUser, error) {
 			return &store.AuthUser{ID: 1, Username: "testuser"}, nil
 		},
 	}
 
 	mockRecipeStore := &mocks.MockRecipeStore{
-		GetByIDFunc: func(id string) (models.Recipe, error) {
+		GetByIDFunc: func(ctx context.Context, id string) (models.Recipe, error) {
 			return models.Recipe{ID: 1, AuthorID: 1, Title: "Original"}, nil
 		},
-		UpdateFunc: func(recipe models.Recipe) error {
+		UpdateFunc: func(ctx context.Context, recipe models.Recipe) error {
 			return nil
 		},
 	}
 
 	mockTagStore := &mocks.MockTagStore{
-		SetRecipeTagsFunc: func(recipeID int, tagNames []string) error {
+		SetRecipeTagsFunc: func(ctx context.Context, recipeID int, tagNames []string) error {
 			return nil
 		},
 	}
@@ -424,16 +425,16 @@ func TestPostUpdateRecipeHandler_UpdatesRecipeWhenUserIsAuthor(t *testing.T) {
 
 func TestPostUpdateRecipeHandler_ReturnsForbiddenWhenUserIsNotAuthor(t *testing.T) {
 	mockAuthStore := &mocks.MockAuthStore{
-		GetSessionFunc: func(sessionID string) (*store.Session, error) {
+		GetSessionFunc: func(ctx context.Context, sessionID string) (*store.Session, error) {
 			return &store.Session{ID: sessionID, UserID: 2}, nil
 		},
-		GetUserByIDFunc: func(userID int) (*store.AuthUser, error) {
+		GetUserByIDFunc: func(ctx context.Context, userID int) (*store.AuthUser, error) {
 			return &store.AuthUser{ID: 2, Username: "otheruser"}, nil
 		},
 	}
 
 	mockRecipeStore := &mocks.MockRecipeStore{
-		GetByIDFunc: func(id string) (models.Recipe, error) {
+		GetByIDFunc: func(ctx context.Context, id string) (models.Recipe, error) {
 			return models.Recipe{ID: 1, AuthorID: 1, Title: "Original"}, nil
 		},
 	}
@@ -463,20 +464,20 @@ func TestPostUpdateRecipeHandler_ReturnsForbiddenWhenUserIsNotAuthor(t *testing.
 
 func TestDeleteRecipeHandler_DeletesRecipeWhenUserIsAuthor(t *testing.T) {
 	mockAuthStore := &mocks.MockAuthStore{
-		GetSessionFunc: func(sessionID string) (*store.Session, error) {
+		GetSessionFunc: func(ctx context.Context, sessionID string) (*store.Session, error) {
 			return &store.Session{ID: sessionID, UserID: 1}, nil
 		},
-		GetUserByIDFunc: func(userID int) (*store.AuthUser, error) {
+		GetUserByIDFunc: func(ctx context.Context, userID int) (*store.AuthUser, error) {
 			return &store.AuthUser{ID: 1, Username: "testuser"}, nil
 		},
 	}
 
 	deleteCalled := false
 	mockRecipeStore := &mocks.MockRecipeStore{
-		GetByIDFunc: func(id string) (models.Recipe, error) {
+		GetByIDFunc: func(ctx context.Context, id string) (models.Recipe, error) {
 			return models.Recipe{ID: 1, AuthorID: 1}, nil
 		},
-		DeleteFunc: func(id string) error {
+		DeleteFunc: func(ctx context.Context, id string) error {
 			deleteCalled = true
 			return nil
 		},
@@ -505,16 +506,16 @@ func TestDeleteRecipeHandler_DeletesRecipeWhenUserIsAuthor(t *testing.T) {
 
 func TestDeleteRecipeHandler_ReturnsForbiddenWhenUserIsNotAuthor(t *testing.T) {
 	mockAuthStore := &mocks.MockAuthStore{
-		GetSessionFunc: func(sessionID string) (*store.Session, error) {
+		GetSessionFunc: func(ctx context.Context, sessionID string) (*store.Session, error) {
 			return &store.Session{ID: sessionID, UserID: 2}, nil
 		},
-		GetUserByIDFunc: func(userID int) (*store.AuthUser, error) {
+		GetUserByIDFunc: func(ctx context.Context, userID int) (*store.AuthUser, error) {
 			return &store.AuthUser{ID: 2, Username: "otheruser"}, nil
 		},
 	}
 
 	mockRecipeStore := &mocks.MockRecipeStore{
-		GetByIDFunc: func(id string) (models.Recipe, error) {
+		GetByIDFunc: func(ctx context.Context, id string) (models.Recipe, error) {
 			return models.Recipe{ID: 1, AuthorID: 1}, nil
 		},
 	}
@@ -538,7 +539,7 @@ func TestDeleteRecipeHandler_ReturnsForbiddenWhenUserIsNotAuthor(t *testing.T) {
 
 func TestDeleteRecipeHandler_ReturnsUnauthorizedWhenNotLoggedIn(t *testing.T) {
 	mockAuthStore := &mocks.MockAuthStore{
-		GetSessionFunc: func(sessionID string) (*store.Session, error) {
+		GetSessionFunc: func(ctx context.Context, sessionID string) (*store.Session, error) {
 			return nil, errors.New("no session")
 		},
 	}
@@ -560,21 +561,21 @@ func TestDeleteRecipeHandler_ReturnsUnauthorizedWhenNotLoggedIn(t *testing.T) {
 
 func TestCommentHTMXHandler_AddsCommentWhenAuthenticated(t *testing.T) {
 	mockAuthStore := &mocks.MockAuthStore{
-		GetSessionFunc: func(sessionID string) (*store.Session, error) {
+		GetSessionFunc: func(ctx context.Context, sessionID string) (*store.Session, error) {
 			return &store.Session{ID: sessionID, UserID: 1}, nil
 		},
-		GetUserByIDFunc: func(userID int) (*store.AuthUser, error) {
+		GetUserByIDFunc: func(ctx context.Context, userID int) (*store.AuthUser, error) {
 			return &store.AuthUser{ID: 1, Username: "testuser"}, nil
 		},
 	}
 
 	var capturedComment models.Comment
 	mockCommentStore := &mocks.MockCommentStore{
-		SaveFunc: func(comment models.Comment) error {
+		SaveFunc: func(ctx context.Context, comment models.Comment) error {
 			capturedComment = comment
 			return nil
 		},
-		GetLatestByUserAndRecipeFunc: func(userID, recipeID int) (models.Comment, error) {
+		GetLatestByUserAndRecipeFunc: func(ctx context.Context, userID, recipeID int) (models.Comment, error) {
 			return models.Comment{ID: 1, RecipeID: recipeID, AuthorID: userID, ContentMD: "Test comment"}, nil
 		},
 	}
@@ -617,7 +618,7 @@ func TestCommentHTMXHandler_AddsCommentWhenAuthenticated(t *testing.T) {
 
 func TestCommentHTMXHandler_ReturnsUnauthorizedWhenNotLoggedIn(t *testing.T) {
 	mockAuthStore := &mocks.MockAuthStore{
-		GetSessionFunc: func(sessionID string) (*store.Session, error) {
+		GetSessionFunc: func(ctx context.Context, sessionID string) (*store.Session, error) {
 			return nil, errors.New("no session")
 		},
 	}
@@ -643,10 +644,10 @@ func TestCommentHTMXHandler_ReturnsUnauthorizedWhenNotLoggedIn(t *testing.T) {
 
 func TestCommentHTMXHandler_ReturnsBadRequestWhenCommentEmpty(t *testing.T) {
 	mockAuthStore := &mocks.MockAuthStore{
-		GetSessionFunc: func(sessionID string) (*store.Session, error) {
+		GetSessionFunc: func(ctx context.Context, sessionID string) (*store.Session, error) {
 			return &store.Session{ID: sessionID, UserID: 1}, nil
 		},
-		GetUserByIDFunc: func(userID int) (*store.AuthUser, error) {
+		GetUserByIDFunc: func(ctx context.Context, userID int) (*store.AuthUser, error) {
 			return &store.AuthUser{ID: 1, Username: "testuser"}, nil
 		},
 	}
@@ -673,19 +674,19 @@ func TestCommentHTMXHandler_ReturnsBadRequestWhenCommentEmpty(t *testing.T) {
 
 func TestUpdateCommentHandler_UpdatesCommentWhenUserIsAuthor(t *testing.T) {
 	mockAuthStore := &mocks.MockAuthStore{
-		GetSessionFunc: func(sessionID string) (*store.Session, error) {
+		GetSessionFunc: func(ctx context.Context, sessionID string) (*store.Session, error) {
 			return &store.Session{ID: sessionID, UserID: 1}, nil
 		},
-		GetUserByIDFunc: func(userID int) (*store.AuthUser, error) {
+		GetUserByIDFunc: func(ctx context.Context, userID int) (*store.AuthUser, error) {
 			return &store.AuthUser{ID: 1, Username: "testuser"}, nil
 		},
 	}
 
 	mockCommentStore := &mocks.MockCommentStore{
-		GetByIDFunc: func(commentID int) (models.Comment, error) {
+		GetByIDFunc: func(ctx context.Context, commentID int) (models.Comment, error) {
 			return models.Comment{ID: commentID, AuthorID: 1, ContentMD: "Original"}, nil
 		},
-		UpdateFunc: func(commentID int, content string) error {
+		UpdateFunc: func(ctx context.Context, commentID int, content string) error {
 			return nil
 		},
 	}
@@ -720,16 +721,16 @@ func TestUpdateCommentHandler_UpdatesCommentWhenUserIsAuthor(t *testing.T) {
 
 func TestUpdateCommentHandler_ReturnsForbiddenWhenUserIsNotAuthor(t *testing.T) {
 	mockAuthStore := &mocks.MockAuthStore{
-		GetSessionFunc: func(sessionID string) (*store.Session, error) {
+		GetSessionFunc: func(ctx context.Context, sessionID string) (*store.Session, error) {
 			return &store.Session{ID: sessionID, UserID: 2}, nil
 		},
-		GetUserByIDFunc: func(userID int) (*store.AuthUser, error) {
+		GetUserByIDFunc: func(ctx context.Context, userID int) (*store.AuthUser, error) {
 			return &store.AuthUser{ID: 2, Username: "otheruser"}, nil
 		},
 	}
 
 	mockCommentStore := &mocks.MockCommentStore{
-		GetByIDFunc: func(commentID int) (models.Comment, error) {
+		GetByIDFunc: func(ctx context.Context, commentID int) (models.Comment, error) {
 			return models.Comment{ID: commentID, AuthorID: 1, ContentMD: "Original"}, nil
 		},
 	}
@@ -757,20 +758,20 @@ func TestUpdateCommentHandler_ReturnsForbiddenWhenUserIsNotAuthor(t *testing.T) 
 
 func TestDeleteCommentHandler_DeletesCommentWhenUserIsAuthor(t *testing.T) {
 	mockAuthStore := &mocks.MockAuthStore{
-		GetSessionFunc: func(sessionID string) (*store.Session, error) {
+		GetSessionFunc: func(ctx context.Context, sessionID string) (*store.Session, error) {
 			return &store.Session{ID: sessionID, UserID: 1}, nil
 		},
-		GetUserByIDFunc: func(userID int) (*store.AuthUser, error) {
+		GetUserByIDFunc: func(ctx context.Context, userID int) (*store.AuthUser, error) {
 			return &store.AuthUser{ID: 1, Username: "testuser"}, nil
 		},
 	}
 
 	deleteCalled := false
 	mockCommentStore := &mocks.MockCommentStore{
-		GetByIDFunc: func(commentID int) (models.Comment, error) {
+		GetByIDFunc: func(ctx context.Context, commentID int) (models.Comment, error) {
 			return models.Comment{ID: commentID, AuthorID: 1}, nil
 		},
-		DeleteFunc: func(commentID int) error {
+		DeleteFunc: func(ctx context.Context, commentID int) error {
 			deleteCalled = true
 			return nil
 		},
@@ -799,16 +800,16 @@ func TestDeleteCommentHandler_DeletesCommentWhenUserIsAuthor(t *testing.T) {
 
 func TestDeleteCommentHandler_ReturnsForbiddenWhenUserIsNotAuthor(t *testing.T) {
 	mockAuthStore := &mocks.MockAuthStore{
-		GetSessionFunc: func(sessionID string) (*store.Session, error) {
+		GetSessionFunc: func(ctx context.Context, sessionID string) (*store.Session, error) {
 			return &store.Session{ID: sessionID, UserID: 2}, nil
 		},
-		GetUserByIDFunc: func(userID int) (*store.AuthUser, error) {
+		GetUserByIDFunc: func(ctx context.Context, userID int) (*store.AuthUser, error) {
 			return &store.AuthUser{ID: 2, Username: "otheruser"}, nil
 		},
 	}
 
 	mockCommentStore := &mocks.MockCommentStore{
-		GetByIDFunc: func(commentID int) (models.Comment, error) {
+		GetByIDFunc: func(ctx context.Context, commentID int) (models.Comment, error) {
 			return models.Comment{ID: commentID, AuthorID: 1}, nil
 		},
 	}
@@ -832,7 +833,7 @@ func TestDeleteCommentHandler_ReturnsForbiddenWhenUserIsNotAuthor(t *testing.T) 
 
 func TestRandomRecipeHandler_RedirectsToRandomRecipe(t *testing.T) {
 	mockRecipeStore := &mocks.MockRecipeStore{
-		GetRandomIDFunc: func() (int, error) {
+		GetRandomIDFunc: func(ctx context.Context) (int, error) {
 			return 42, nil
 		},
 	}
@@ -858,22 +859,22 @@ func TestRandomRecipeHandler_RedirectsToRandomRecipe(t *testing.T) {
 
 func TestGetUpdateRecipeHandler_RendersPageWhenUserIsAuthor(t *testing.T) {
 	mockAuthStore := &mocks.MockAuthStore{
-		GetSessionFunc: func(sessionID string) (*store.Session, error) {
+		GetSessionFunc: func(ctx context.Context, sessionID string) (*store.Session, error) {
 			return &store.Session{ID: sessionID, UserID: 1}, nil
 		},
-		GetUserByIDFunc: func(userID int) (*store.AuthUser, error) {
+		GetUserByIDFunc: func(ctx context.Context, userID int) (*store.AuthUser, error) {
 			return &store.AuthUser{ID: 1, Username: "testuser"}, nil
 		},
 	}
 
 	mockRecipeStore := &mocks.MockRecipeStore{
-		GetByIDFunc: func(id string) (models.Recipe, error) {
+		GetByIDFunc: func(ctx context.Context, id string) (models.Recipe, error) {
 			return models.Recipe{ID: 1, AuthorID: 1, Title: "My Recipe"}, nil
 		},
 	}
 
 	mockTagStore := &mocks.MockTagStore{
-		GetByRecipeIDFunc: func(recipeID int) ([]models.Tag, error) {
+		GetByRecipeIDFunc: func(ctx context.Context, recipeID int) ([]models.Tag, error) {
 			return []models.Tag{}, nil
 		},
 	}
@@ -913,16 +914,16 @@ func TestGetUpdateRecipeHandler_RendersPageWhenUserIsAuthor(t *testing.T) {
 
 func TestGetUpdateRecipeHandler_ReturnsForbiddenWhenUserIsNotAuthor(t *testing.T) {
 	mockAuthStore := &mocks.MockAuthStore{
-		GetSessionFunc: func(sessionID string) (*store.Session, error) {
+		GetSessionFunc: func(ctx context.Context, sessionID string) (*store.Session, error) {
 			return &store.Session{ID: sessionID, UserID: 2}, nil
 		},
-		GetUserByIDFunc: func(userID int) (*store.AuthUser, error) {
+		GetUserByIDFunc: func(ctx context.Context, userID int) (*store.AuthUser, error) {
 			return &store.AuthUser{ID: 2, Username: "otheruser"}, nil
 		},
 	}
 
 	mockRecipeStore := &mocks.MockRecipeStore{
-		GetByIDFunc: func(id string) (models.Recipe, error) {
+		GetByIDFunc: func(ctx context.Context, id string) (models.Recipe, error) {
 			return models.Recipe{ID: 1, AuthorID: 1, Title: "Someone Else's Recipe"}, nil
 		},
 	}
@@ -955,7 +956,7 @@ func TestGetUpdateRecipeHandler_ReturnsForbiddenWhenUserIsNotAuthor(t *testing.T
 
 func TestRandomRecipeHandler_RedirectsToListWhenNoRecipes(t *testing.T) {
 	mockRecipeStore := &mocks.MockRecipeStore{
-		GetRandomIDFunc: func() (int, error) {
+		GetRandomIDFunc: func(ctx context.Context) (int, error) {
 			return 0, errors.New("no recipes")
 		},
 	}
@@ -981,24 +982,24 @@ func TestRandomRecipeHandler_RedirectsToListWhenNoRecipes(t *testing.T) {
 
 func TestFilterRecipesHTMXHandler_FiltersRecipesBySearchQuery(t *testing.T) {
 	mockAuthStore := &mocks.MockAuthStore{
-		GetSessionFunc: func(sessionID string) (*store.Session, error) {
+		GetSessionFunc: func(ctx context.Context, sessionID string) (*store.Session, error) {
 			return nil, errors.New("no session")
 		},
 	}
 
 	var capturedParams models.FilterParams
 	mockRecipeStore := &mocks.MockRecipeStore{
-		GetFilteredFunc: func(params models.FilterParams) ([]models.Recipe, error) {
+		GetFilteredFunc: func(ctx context.Context, params models.FilterParams) ([]models.Recipe, error) {
 			capturedParams = params
 			return []models.Recipe{{ID: 1, Title: "Pasta"}}, nil
 		},
-		CountFilteredFunc: func(params models.FilterParams) (int, error) {
+		CountFilteredFunc: func(ctx context.Context, params models.FilterParams) (int, error) {
 			return 1, nil
 		},
 	}
 
 	mockTagStore := &mocks.MockTagStore{
-		GetForRecipesFunc: func(recipeIDs []int) (map[int][]models.Tag, error) {
+		GetForRecipesFunc: func(ctx context.Context, recipeIDs []int) (map[int][]models.Tag, error) {
 			return map[int][]models.Tag{}, nil
 		},
 	}
@@ -1036,24 +1037,24 @@ func TestFilterRecipesHTMXHandler_FiltersRecipesBySearchQuery(t *testing.T) {
 
 func TestFilterRecipesHTMXHandler_FiltersRecipesByTags(t *testing.T) {
 	mockAuthStore := &mocks.MockAuthStore{
-		GetSessionFunc: func(sessionID string) (*store.Session, error) {
+		GetSessionFunc: func(ctx context.Context, sessionID string) (*store.Session, error) {
 			return nil, errors.New("no session")
 		},
 	}
 
 	var capturedParams models.FilterParams
 	mockRecipeStore := &mocks.MockRecipeStore{
-		GetFilteredFunc: func(params models.FilterParams) ([]models.Recipe, error) {
+		GetFilteredFunc: func(ctx context.Context, params models.FilterParams) ([]models.Recipe, error) {
 			capturedParams = params
 			return []models.Recipe{}, nil
 		},
-		CountFilteredFunc: func(params models.FilterParams) (int, error) {
+		CountFilteredFunc: func(ctx context.Context, params models.FilterParams) (int, error) {
 			return 0, nil
 		},
 	}
 
 	mockTagStore := &mocks.MockTagStore{
-		GetForRecipesFunc: func(recipeIDs []int) (map[int][]models.Tag, error) {
+		GetForRecipesFunc: func(ctx context.Context, recipeIDs []int) (map[int][]models.Tag, error) {
 			return map[int][]models.Tag{}, nil
 		},
 	}
@@ -1091,24 +1092,24 @@ func TestFilterRecipesHTMXHandler_FiltersRecipesByTags(t *testing.T) {
 
 func TestFilterRecipesHTMXHandler_FiltersRecipesByNumericValues(t *testing.T) {
 	mockAuthStore := &mocks.MockAuthStore{
-		GetSessionFunc: func(sessionID string) (*store.Session, error) {
+		GetSessionFunc: func(ctx context.Context, sessionID string) (*store.Session, error) {
 			return nil, errors.New("no session")
 		},
 	}
 
 	var capturedParams models.FilterParams
 	mockRecipeStore := &mocks.MockRecipeStore{
-		GetFilteredFunc: func(params models.FilterParams) ([]models.Recipe, error) {
+		GetFilteredFunc: func(ctx context.Context, params models.FilterParams) ([]models.Recipe, error) {
 			capturedParams = params
 			return []models.Recipe{}, nil
 		},
-		CountFilteredFunc: func(params models.FilterParams) (int, error) {
+		CountFilteredFunc: func(ctx context.Context, params models.FilterParams) (int, error) {
 			return 0, nil
 		},
 	}
 
 	mockTagStore := &mocks.MockTagStore{
-		GetForRecipesFunc: func(recipeIDs []int) (map[int][]models.Tag, error) {
+		GetForRecipesFunc: func(ctx context.Context, recipeIDs []int) (map[int][]models.Tag, error) {
 			return map[int][]models.Tag{}, nil
 		},
 	}
@@ -1157,24 +1158,24 @@ func TestFilterRecipesHTMXHandler_FiltersRecipesByNumericValues(t *testing.T) {
 
 func TestFilterRecipesHTMXHandler_HandlesPagination(t *testing.T) {
 	mockAuthStore := &mocks.MockAuthStore{
-		GetSessionFunc: func(sessionID string) (*store.Session, error) {
+		GetSessionFunc: func(ctx context.Context, sessionID string) (*store.Session, error) {
 			return nil, errors.New("no session")
 		},
 	}
 
 	var capturedParams models.FilterParams
 	mockRecipeStore := &mocks.MockRecipeStore{
-		GetFilteredFunc: func(params models.FilterParams) ([]models.Recipe, error) {
+		GetFilteredFunc: func(ctx context.Context, params models.FilterParams) ([]models.Recipe, error) {
 			capturedParams = params
 			return []models.Recipe{}, nil
 		},
-		CountFilteredFunc: func(params models.FilterParams) (int, error) {
+		CountFilteredFunc: func(ctx context.Context, params models.FilterParams) (int, error) {
 			return 100, nil
 		},
 	}
 
 	mockTagStore := &mocks.MockTagStore{
-		GetForRecipesFunc: func(recipeIDs []int) (map[int][]models.Tag, error) {
+		GetForRecipesFunc: func(ctx context.Context, recipeIDs []int) (map[int][]models.Tag, error) {
 			return map[int][]models.Tag{}, nil
 		},
 	}
@@ -1228,22 +1229,22 @@ func TestFilterRecipesHTMXHandler_SetsViewModeWhenValidParamProvided(t *testing.
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			mockAuthStore := &mocks.MockAuthStore{
-				GetSessionFunc: func(sessionID string) (*store.Session, error) {
+				GetSessionFunc: func(ctx context.Context, sessionID string) (*store.Session, error) {
 					return nil, errors.New("no session")
 				},
 			}
 
 			mockRecipeStore := &mocks.MockRecipeStore{
-				GetFilteredFunc: func(params models.FilterParams) ([]models.Recipe, error) {
+				GetFilteredFunc: func(ctx context.Context, params models.FilterParams) ([]models.Recipe, error) {
 					return []models.Recipe{}, nil
 				},
-				CountFilteredFunc: func(params models.FilterParams) (int, error) {
+				CountFilteredFunc: func(ctx context.Context, params models.FilterParams) (int, error) {
 					return 0, nil
 				},
 			}
 
 			mockTagStore := &mocks.MockTagStore{
-				GetForRecipesFunc: func(recipeIDs []int) (map[int][]models.Tag, error) {
+				GetForRecipesFunc: func(ctx context.Context, recipeIDs []int) (map[int][]models.Tag, error) {
 					return map[int][]models.Tag{}, nil
 				},
 			}
@@ -1304,22 +1305,22 @@ func TestFilterRecipesHTMXHandler_UsesDefaultViewModeWhenInvalidParamProvided(t 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			mockAuthStore := &mocks.MockAuthStore{
-				GetSessionFunc: func(sessionID string) (*store.Session, error) {
+				GetSessionFunc: func(ctx context.Context, sessionID string) (*store.Session, error) {
 					return nil, errors.New("no session")
 				},
 			}
 
 			mockRecipeStore := &mocks.MockRecipeStore{
-				GetFilteredFunc: func(params models.FilterParams) ([]models.Recipe, error) {
+				GetFilteredFunc: func(ctx context.Context, params models.FilterParams) ([]models.Recipe, error) {
 					return []models.Recipe{}, nil
 				},
-				CountFilteredFunc: func(params models.FilterParams) (int, error) {
+				CountFilteredFunc: func(ctx context.Context, params models.FilterParams) (int, error) {
 					return 0, nil
 				},
 			}
 
 			mockTagStore := &mocks.MockTagStore{
-				GetForRecipesFunc: func(recipeIDs []int) (map[int][]models.Tag, error) {
+				GetForRecipesFunc: func(ctx context.Context, recipeIDs []int) (map[int][]models.Tag, error) {
 					return map[int][]models.Tag{}, nil
 				},
 			}
@@ -1371,31 +1372,31 @@ func TestFilterRecipesHTMXHandler_UsesDefaultViewModeWhenInvalidParamProvided(t 
 
 func TestFilterRecipesHTMXHandler_PersistsViewModeForLoggedInUser(t *testing.T) {
 	mockAuthStore := &mocks.MockAuthStore{
-		GetSessionFunc: func(sessionID string) (*store.Session, error) {
+		GetSessionFunc: func(ctx context.Context, sessionID string) (*store.Session, error) {
 			return &store.Session{ID: sessionID, UserID: 1}, nil
 		},
-		GetUserByIDFunc: func(userID int) (*store.AuthUser, error) {
+		GetUserByIDFunc: func(ctx context.Context, userID int) (*store.AuthUser, error) {
 			return &store.AuthUser{ID: 1, Username: "testuser"}, nil
 		},
 	}
 
 	mockRecipeStore := &mocks.MockRecipeStore{
-		GetFilteredFunc: func(params models.FilterParams) ([]models.Recipe, error) {
+		GetFilteredFunc: func(ctx context.Context, params models.FilterParams) ([]models.Recipe, error) {
 			return []models.Recipe{}, nil
 		},
-		CountFilteredFunc: func(params models.FilterParams) (int, error) {
+		CountFilteredFunc: func(ctx context.Context, params models.FilterParams) (int, error) {
 			return 0, nil
 		},
 	}
 
 	mockTagStore := &mocks.MockTagStore{
-		GetForRecipesFunc: func(recipeIDs []int) (map[int][]models.Tag, error) {
+		GetForRecipesFunc: func(ctx context.Context, recipeIDs []int) (map[int][]models.Tag, error) {
 			return map[int][]models.Tag{}, nil
 		},
 	}
 
 	mockUserTagStore := &mocks.MockUserTagStore{
-		GetForRecipesFunc: func(userID int, recipeIDs []int) (map[int][]models.UserTag, error) {
+		GetForRecipesFunc: func(ctx context.Context, userID int, recipeIDs []int) (map[int][]models.UserTag, error) {
 			return map[int][]models.UserTag{}, nil
 		},
 	}
@@ -1409,10 +1410,10 @@ func TestFilterRecipesHTMXHandler_PersistsViewModeForLoggedInUser(t *testing.T) 
 	var savedUserID int
 	var savedViewMode string
 	mockPrefsStore := &MockUserPreferencesStore{
-		GetFunc: func(userID int) (*models.UserPreferences, error) {
+		GetFunc: func(ctx context.Context, userID int) (*models.UserPreferences, error) {
 			return &models.UserPreferences{PageSize: models.DefaultPageSize}, nil
 		},
-		SetViewModeFunc: func(userID int, viewMode string) error {
+		SetViewModeFunc: func(ctx context.Context, userID int, viewMode string) error {
 			savedUserID = userID
 			savedViewMode = viewMode
 			return nil
@@ -1453,31 +1454,31 @@ func TestFilterRecipesHTMXHandler_PersistsViewModeForLoggedInUser(t *testing.T) 
 
 func TestFilterRecipesHTMXHandler_UsesStoredPreferenceWhenNoViewModeParam(t *testing.T) {
 	mockAuthStore := &mocks.MockAuthStore{
-		GetSessionFunc: func(sessionID string) (*store.Session, error) {
+		GetSessionFunc: func(ctx context.Context, sessionID string) (*store.Session, error) {
 			return &store.Session{ID: sessionID, UserID: 1}, nil
 		},
-		GetUserByIDFunc: func(userID int) (*store.AuthUser, error) {
+		GetUserByIDFunc: func(ctx context.Context, userID int) (*store.AuthUser, error) {
 			return &store.AuthUser{ID: 1, Username: "testuser"}, nil
 		},
 	}
 
 	mockRecipeStore := &mocks.MockRecipeStore{
-		GetFilteredFunc: func(params models.FilterParams) ([]models.Recipe, error) {
+		GetFilteredFunc: func(ctx context.Context, params models.FilterParams) ([]models.Recipe, error) {
 			return []models.Recipe{}, nil
 		},
-		CountFilteredFunc: func(params models.FilterParams) (int, error) {
+		CountFilteredFunc: func(ctx context.Context, params models.FilterParams) (int, error) {
 			return 0, nil
 		},
 	}
 
 	mockTagStore := &mocks.MockTagStore{
-		GetForRecipesFunc: func(recipeIDs []int) (map[int][]models.Tag, error) {
+		GetForRecipesFunc: func(ctx context.Context, recipeIDs []int) (map[int][]models.Tag, error) {
 			return map[int][]models.Tag{}, nil
 		},
 	}
 
 	mockUserTagStore := &mocks.MockUserTagStore{
-		GetForRecipesFunc: func(userID int, recipeIDs []int) (map[int][]models.UserTag, error) {
+		GetForRecipesFunc: func(ctx context.Context, userID int, recipeIDs []int) (map[int][]models.UserTag, error) {
 			return map[int][]models.UserTag{}, nil
 		},
 	}
@@ -1499,7 +1500,7 @@ func TestFilterRecipesHTMXHandler_UsesStoredPreferenceWhenNoViewModeParam(t *tes
 	}
 
 	mockPrefsStore := &MockUserPreferencesStore{
-		GetFunc: func(userID int) (*models.UserPreferences, error) {
+		GetFunc: func(ctx context.Context, userID int) (*models.UserPreferences, error) {
 			return &models.UserPreferences{
 				PageSize: models.DefaultPageSize,
 				ViewMode: "list",
@@ -1547,17 +1548,17 @@ func TestSetViewModeHandler_ReturnsOKWhenValidMode(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			mockAuthStore := &mocks.MockAuthStore{
-				GetSessionFunc: func(sessionID string) (*store.Session, error) {
+				GetSessionFunc: func(ctx context.Context, sessionID string) (*store.Session, error) {
 					return &store.Session{ID: sessionID, UserID: 1}, nil
 				},
-				GetUserByIDFunc: func(userID int) (*store.AuthUser, error) {
+				GetUserByIDFunc: func(ctx context.Context, userID int) (*store.AuthUser, error) {
 					return &store.AuthUser{ID: 1, Username: "testuser"}, nil
 				},
 			}
 
 			var savedViewMode string
 			mockPrefsStore := &MockUserPreferencesStore{
-				SetViewModeFunc: func(userID int, viewMode string) error {
+				SetViewModeFunc: func(ctx context.Context, userID int, viewMode string) error {
 					savedViewMode = viewMode
 					return nil
 				},
@@ -1602,17 +1603,17 @@ func TestSetViewModeHandler_ReturnsBadRequestWhenInvalidMode(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			mockAuthStore := &mocks.MockAuthStore{
-				GetSessionFunc: func(sessionID string) (*store.Session, error) {
+				GetSessionFunc: func(ctx context.Context, sessionID string) (*store.Session, error) {
 					return &store.Session{ID: sessionID, UserID: 1}, nil
 				},
-				GetUserByIDFunc: func(userID int) (*store.AuthUser, error) {
+				GetUserByIDFunc: func(ctx context.Context, userID int) (*store.AuthUser, error) {
 					return &store.AuthUser{ID: 1, Username: "testuser"}, nil
 				},
 			}
 
 			setViewModeCalled := false
 			mockPrefsStore := &MockUserPreferencesStore{
-				SetViewModeFunc: func(userID int, viewMode string) error {
+				SetViewModeFunc: func(ctx context.Context, userID int, viewMode string) error {
 					setViewModeCalled = true
 					return nil
 				},
@@ -1646,14 +1647,14 @@ func TestSetViewModeHandler_ReturnsBadRequestWhenInvalidMode(t *testing.T) {
 
 func TestSetViewModeHandler_ReturnsUnauthorizedWhenNotLoggedIn(t *testing.T) {
 	mockAuthStore := &mocks.MockAuthStore{
-		GetSessionFunc: func(sessionID string) (*store.Session, error) {
+		GetSessionFunc: func(ctx context.Context, sessionID string) (*store.Session, error) {
 			return nil, errors.New("no session")
 		},
 	}
 
 	setViewModeCalled := false
 	mockPrefsStore := &MockUserPreferencesStore{
-		SetViewModeFunc: func(userID int, viewMode string) error {
+		SetViewModeFunc: func(ctx context.Context, userID int, viewMode string) error {
 			setViewModeCalled = true
 			return nil
 		},

@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"time"
@@ -30,8 +31,8 @@ func userFromAuthUser(au *store.AuthUser) *User {
 	}
 }
 
-func Authenticate(authStore store.AuthStore, email string, password string) (*User, error) {
-	authUser, passwordHash, err := authStore.GetUserByEmail(email)
+func Authenticate(ctx context.Context, authStore store.AuthStore, email string, password string) (*User, error) {
+	authUser, passwordHash, err := authStore.GetUserByEmail(ctx, email)
 	if err != nil {
 		return nil, fmt.Errorf("invalid email or password")
 	}
@@ -40,25 +41,25 @@ func Authenticate(authStore store.AuthStore, email string, password string) (*Us
 		return nil, fmt.Errorf("invalid email or password")
 	}
 
-	if err := authStore.UpdateLastLogin(authUser.ID); err != nil {
+	if err := authStore.UpdateLastLogin(ctx, authUser.ID); err != nil {
 		fmt.Printf("Warning: failed to update last login for user %d: %v\n", authUser.ID, err)
 	}
 
 	return userFromAuthUser(authUser), nil
 }
 
-func GetUserBySession(authStore store.AuthStore, r *http.Request) (*User, error) {
+func GetUserBySession(ctx context.Context, authStore store.AuthStore, r *http.Request) (*User, error) {
 	sessionID, err := GetSessionFromRequest(r)
 	if err != nil {
 		return nil, fmt.Errorf("no valid session: %w", err)
 	}
 
-	session, err := authStore.GetSession(sessionID)
+	session, err := authStore.GetSession(ctx, sessionID)
 	if err != nil {
 		return nil, fmt.Errorf("invalid session: %w", err)
 	}
 
-	authUser, err := authStore.GetUserByID(session.UserID)
+	authUser, err := authStore.GetUserByID(ctx, session.UserID)
 	if err != nil {
 		return nil, fmt.Errorf("user not found: %w", err)
 	}
@@ -66,8 +67,8 @@ func GetUserBySession(authStore store.AuthStore, r *http.Request) (*User, error)
 	return userFromAuthUser(authUser), nil
 }
 
-func IsSessionValid(authStore store.AuthStore, r *http.Request) bool {
-	_, err := GetUserBySession(authStore, r)
+func IsSessionValid(ctx context.Context, authStore store.AuthStore, r *http.Request) bool {
+	_, err := GetUserBySession(ctx, authStore, r)
 	return err == nil
 }
 
@@ -89,12 +90,12 @@ func RequireAuth() func(http.Handler) http.Handler {
 	}
 }
 
-func GetUserIDByUsername(authStore store.AuthStore, username string) (int, error) {
-	return authStore.GetUserIDByUsername(username)
+func GetUserIDByUsername(ctx context.Context, authStore store.AuthStore, username string) (int, error) {
+	return authStore.GetUserIDByUsername(ctx, username)
 }
 
-func GetAllUsers(authStore store.AuthStore) ([]User, error) {
-	authUsers, err := authStore.GetAllUsers()
+func GetAllUsers(ctx context.Context, authStore store.AuthStore) ([]User, error) {
+	authUsers, err := authStore.GetAllUsers(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -112,6 +113,6 @@ func GetAllUsers(authStore store.AuthStore) ([]User, error) {
 	return users, nil
 }
 
-func DeleteUser(authStore store.AuthStore, userID int) error {
-	return authStore.DeleteUser(userID)
+func DeleteUser(ctx context.Context, authStore store.AuthStore, userID int) error {
+	return authStore.DeleteUser(ctx, userID)
 }

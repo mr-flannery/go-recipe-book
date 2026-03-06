@@ -12,10 +12,10 @@ import (
 
 func TestUserContextMiddleware_PopulatesContextWhenSessionIsValid(t *testing.T) {
 	mockStore := &mocks.MockAuthStore{
-		GetSessionFunc: func(sessionID string) (*store.Session, error) {
+		GetSessionFunc: func(ctx context.Context, sessionID string) (*store.Session, error) {
 			return &store.Session{ID: sessionID, UserID: 1}, nil
 		},
-		GetUserByIDFunc: func(userID int) (*store.AuthUser, error) {
+		GetUserByIDFunc: func(ctx context.Context, userID int) (*store.AuthUser, error) {
 			return &store.AuthUser{
 				ID:       userID,
 				Username: "testuser",

@@ -1,6 +1,7 @@
 package postgres
 
 import (
+	"context"
 	"strconv"
 	"testing"
 
@@ -25,7 +26,7 @@ func TestRecipeStore_Save_ReturnsIDWhenRecipeIsSaved(t *testing.T) {
 		AuthorID:       userID,
 	}
 
-	id, err := store.Save(recipe)
+	id, err := store.Save(context.Background(), recipe)
 	if err != nil {
 		t.Fatalf("failed to save recipe: %v", err)
 	}
@@ -43,7 +44,7 @@ func TestRecipeStore_GetByID_ReturnsRecipeWhenExists(t *testing.T) {
 	recipeID := testDB.SeedRecipe(t, "Test Recipe", "- flour", "Mix it", userID)
 	store := NewRecipeStore(testDB.DB)
 
-	recipe, err := store.GetByID(itoa(recipeID))
+	recipe, err := store.GetByID(context.Background(), itoa(recipeID))
 	if err != nil {
 		t.Fatalf("failed to get recipe: %v", err)
 	}
@@ -63,7 +64,7 @@ func TestRecipeStore_GetByID_ReturnsErrorWhenNotFound(t *testing.T) {
 
 	store := NewRecipeStore(testDB.DB)
 
-	_, err := store.GetByID("99999")
+	_, err := store.GetByID(context.Background(), "99999")
 	if err == nil {
 		t.Error("expected error for non-existent recipe")
 	}
@@ -77,16 +78,16 @@ func TestRecipeStore_Update_ModifiesExistingRecipe(t *testing.T) {
 	recipeID := testDB.SeedRecipe(t, "Original Title", "- flour", "Mix it", userID)
 	store := NewRecipeStore(testDB.DB)
 
-	recipe, _ := store.GetByID(itoa(recipeID))
+	recipe, _ := store.GetByID(context.Background(), itoa(recipeID))
 	recipe.Title = "Updated Title"
 	recipe.Calories = 500
 
-	err := store.Update(recipe)
+	err := store.Update(context.Background(), recipe)
 	if err != nil {
 		t.Fatalf("failed to update recipe: %v", err)
 	}
 
-	updated, _ := store.GetByID(itoa(recipeID))
+	updated, _ := store.GetByID(context.Background(), itoa(recipeID))
 	if updated.Title != "Updated Title" {
 		t.Errorf("expected title 'Updated Title', got '%s'", updated.Title)
 	}
@@ -103,12 +104,12 @@ func TestRecipeStore_Delete_RemovesRecipe(t *testing.T) {
 	recipeID := testDB.SeedRecipe(t, "To Delete", "- flour", "Mix it", userID)
 	store := NewRecipeStore(testDB.DB)
 
-	err := store.Delete(itoa(recipeID))
+	err := store.Delete(context.Background(), itoa(recipeID))
 	if err != nil {
 		t.Fatalf("failed to delete recipe: %v", err)
 	}
 
-	_, err = store.GetByID(itoa(recipeID))
+	_, err = store.GetByID(context.Background(), itoa(recipeID))
 	if err == nil {
 		t.Error("expected error after deleting recipe")
 	}
@@ -123,7 +124,7 @@ func TestRecipeStore_GetAll_ReturnsAllRecipes(t *testing.T) {
 	testDB.SeedRecipe(t, "Recipe 2", "- sugar", "Stir it", userID)
 	store := NewRecipeStore(testDB.DB)
 
-	recipes, err := store.GetAll()
+	recipes, err := store.GetAll(context.Background())
 	if err != nil {
 		t.Fatalf("failed to get all recipes: %v", err)
 	}
@@ -143,7 +144,7 @@ func TestRecipeStore_GetFiltered_FiltersBySearch(t *testing.T) {
 	store := NewRecipeStore(testDB.DB)
 
 	params := models.FilterParams{Search: "chocolate"}
-	recipes, err := store.GetFiltered(params)
+	recipes, err := store.GetFiltered(context.Background(), params)
 	if err != nil {
 		t.Fatalf("failed to filter recipes: %v", err)
 	}
@@ -186,7 +187,7 @@ func TestRecipeStore_GetFiltered_FiltersByCalories(t *testing.T) {
 	store := NewRecipeStore(testDB.DB)
 
 	params := models.FilterParams{CaloriesOp: "lt", CaloriesValue: 500}
-	recipes, err := store.GetFiltered(params)
+	recipes, err := store.GetFiltered(context.Background(), params)
 	if err != nil {
 		t.Fatalf("failed to filter recipes: %v", err)
 	}
@@ -208,7 +209,7 @@ func TestRecipeStore_GetFiltered_FiltersByTags(t *testing.T) {
 	store := NewRecipeStore(testDB.DB)
 
 	params := models.FilterParams{Tags: []string{"dessert"}}
-	recipes, err := store.GetFiltered(params)
+	recipes, err := store.GetFiltered(context.Background(), params)
 	if err != nil {
 		t.Fatalf("failed to filter recipes: %v", err)
 	}
@@ -233,7 +234,7 @@ func TestRecipeStore_GetFiltered_AppliesPagination(t *testing.T) {
 	store := NewRecipeStore(testDB.DB)
 
 	params := models.FilterParams{Limit: 2, Offset: 2}
-	recipes, err := store.GetFiltered(params)
+	recipes, err := store.GetFiltered(context.Background(), params)
 	if err != nil {
 		t.Fatalf("failed to filter recipes: %v", err)
 	}
@@ -253,7 +254,7 @@ func TestRecipeStore_CountFiltered_ReturnsTotalCount(t *testing.T) {
 	testDB.SeedRecipe(t, "Recipe 3", "- eggs", "Beat it", userID)
 	store := NewRecipeStore(testDB.DB)
 
-	count, err := store.CountFiltered(models.FilterParams{})
+	count, err := store.CountFiltered(context.Background(), models.FilterParams{})
 	if err != nil {
 		t.Fatalf("failed to count recipes: %v", err)
 	}
@@ -271,7 +272,7 @@ func TestRecipeStore_GetRandomID_ReturnsValidID(t *testing.T) {
 	testDB.SeedRecipe(t, "Recipe 1", "- flour", "Mix it", userID)
 	store := NewRecipeStore(testDB.DB)
 
-	id, err := store.GetRandomID()
+	id, err := store.GetRandomID(context.Background())
 	if err != nil {
 		t.Fatalf("failed to get random ID: %v", err)
 	}
@@ -287,7 +288,7 @@ func TestRecipeStore_GetRandomID_ReturnsErrorWhenNoRecipes(t *testing.T) {
 
 	store := NewRecipeStore(testDB.DB)
 
-	_, err := store.GetRandomID()
+	_, err := store.GetRandomID(context.Background())
 	if err == nil {
 		t.Error("expected error when no recipes exist")
 	}
@@ -304,7 +305,7 @@ func TestRecipeStore_SearchByTitle_ReturnsMatchingRecipes(t *testing.T) {
 	store := NewRecipeStore(testDB.DB)
 
 	t.Run("finds recipes matching query", func(t *testing.T) {
-		results, err := store.SearchByTitle("cake", 10)
+		results, err := store.SearchByTitle(context.Background(), "cake", 10)
 		if err != nil {
 			t.Fatalf("failed to search recipes: %v", err)
 		}
@@ -315,7 +316,7 @@ func TestRecipeStore_SearchByTitle_ReturnsMatchingRecipes(t *testing.T) {
 	})
 
 	t.Run("search is case-insensitive", func(t *testing.T) {
-		results, err := store.SearchByTitle("CHOCOLATE", 10)
+		results, err := store.SearchByTitle(context.Background(), "CHOCOLATE", 10)
 		if err != nil {
 			t.Fatalf("failed to search recipes: %v", err)
 		}
@@ -329,7 +330,7 @@ func TestRecipeStore_SearchByTitle_ReturnsMatchingRecipes(t *testing.T) {
 	})
 
 	t.Run("respects limit parameter", func(t *testing.T) {
-		results, err := store.SearchByTitle("cake", 1)
+		results, err := store.SearchByTitle(context.Background(), "cake", 1)
 		if err != nil {
 			t.Fatalf("failed to search recipes: %v", err)
 		}
@@ -340,7 +341,7 @@ func TestRecipeStore_SearchByTitle_ReturnsMatchingRecipes(t *testing.T) {
 	})
 
 	t.Run("returns empty slice when no matches", func(t *testing.T) {
-		results, err := store.SearchByTitle("pizza", 10)
+		results, err := store.SearchByTitle(context.Background(), "pizza", 10)
 		if err != nil {
 			t.Fatalf("failed to search recipes: %v", err)
 		}

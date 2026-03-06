@@ -6,6 +6,8 @@ import (
 	"net/http"
 
 	"github.com/mr-flannery/go-recipe-book/src/store"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type contextKey string
@@ -22,7 +24,8 @@ type UserInfo struct {
 func UserContextMiddleware(authStore store.AuthStore) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			user, err := GetUserBySession(authStore, r)
+			ctx := r.Context()
+			user, err := GetUserBySession(ctx, authStore, r)
 			if err != nil {
 				userInfo := &UserInfo{
 					IsLoggedIn: false,
@@ -30,7 +33,7 @@ func UserContextMiddleware(authStore store.AuthStore) func(http.Handler) http.Ha
 					Username:   "",
 					UserID:     0,
 				}
-				ctx := context.WithValue(r.Context(), userInfoKey, userInfo)
+				ctx = context.WithValue(ctx, userInfoKey, userInfo)
 				r = r.WithContext(ctx)
 			} else {
 				slog.Debug("User context middleware found valid session", "username", user.Username, "userID", user.ID)
@@ -40,8 +43,15 @@ func UserContextMiddleware(authStore store.AuthStore) func(http.Handler) http.Ha
 					Username:   user.Username,
 					UserID:     user.ID,
 				}
-				ctx := context.WithValue(r.Context(), userInfoKey, userInfo)
+				ctx = context.WithValue(ctx, userInfoKey, userInfo)
 				r = r.WithContext(ctx)
+
+				span := trace.SpanFromContext(ctx)
+				span.SetAttributes(
+					attribute.Int("user.id", user.ID),
+					attribute.String("user.username", user.Username),
+					attribute.Bool("user.is_admin", user.IsAdmin),
+				)
 			}
 			next.ServeHTTP(w, r)
 		})

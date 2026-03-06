@@ -26,17 +26,18 @@ func (h *Handler) GetLoginHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) PostLoginHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	r.ParseForm()
 	email := r.FormValue("email")
 	password := r.FormValue("password")
 	redirectURL := r.FormValue("redirect")
 
-	user, err := auth.Authenticate(h.AuthStore, email, password)
+	user, err := auth.Authenticate(ctx, h.AuthStore, email, password)
 	if err != nil {
 		data := LoginData{
 			RedirectURL: redirectURL,
 			Error:       "Invalid username or password. Please try again.",
-			UserInfo:    auth.GetUserInfoFromContext(r.Context()),
+			UserInfo:    auth.GetUserInfoFromContext(ctx),
 		}
 		h.Renderer.RenderPage(w, "login.gohtml", data)
 		return
@@ -45,7 +46,7 @@ func (h *Handler) PostLoginHandler(w http.ResponseWriter, r *http.Request) {
 	clientIP := auth.GetClientIP(r)
 	userAgent := r.UserAgent()
 
-	session, err := auth.CreateSession(h.AuthStore, user.ID, clientIP, userAgent)
+	session, err := auth.CreateSession(ctx, h.AuthStore, user.ID, clientIP, userAgent)
 	if err != nil {
 		h.Renderer.RenderError(w, r, http.StatusInternalServerError, "Failed to create session. Please try again.")
 		return
@@ -62,9 +63,10 @@ func (h *Handler) PostLoginHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) LogoutHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	sessionID, err := auth.GetSessionFromRequest(r)
 	if err == nil {
-		auth.InvalidateSession(h.AuthStore, sessionID)
+		auth.InvalidateSession(ctx, h.AuthStore, sessionID)
 	}
 
 	auth.ClearSessionCookie(w)
@@ -87,6 +89,7 @@ func (h *Handler) GetRegisterHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) PostRegisterHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	r.ParseForm()
 	username := r.FormValue("username")
 	email := r.FormValue("email")
@@ -96,7 +99,7 @@ func (h *Handler) PostRegisterHandler(w http.ResponseWriter, r *http.Request) {
 	data := RegisterData{
 		Username: username,
 		Email:    email,
-		UserInfo: auth.GetUserInfoFromContext(r.Context()),
+		UserInfo: auth.GetUserInfoFromContext(ctx),
 	}
 
 	if password != confirmPassword {
@@ -105,7 +108,7 @@ func (h *Handler) PostRegisterHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := auth.CreateRegistrationRequest(h.AuthStore, username, email, password)
+	err := auth.CreateRegistrationRequest(ctx, h.AuthStore, username, email, password)
 	if err != nil {
 		slog.Error("Failed to create registration request", "error", err)
 		data.Error = err.Error()
@@ -143,7 +146,8 @@ type PendingRegistrationsData struct {
 }
 
 func (h *Handler) GetPendingRegistrationsHandler(w http.ResponseWriter, r *http.Request) {
-	registrations, err := auth.GetPendingRegistrations(h.AuthStore)
+	ctx := r.Context()
+	registrations, err := auth.GetPendingRegistrations(ctx, h.AuthStore)
 	if err != nil {
 		slog.Error("Failed to get pending registrations", "error", err)
 		h.Renderer.RenderError(w, r, http.StatusInternalServerError, "Failed to load pending registrations. Please try again later.")
@@ -152,12 +156,13 @@ func (h *Handler) GetPendingRegistrationsHandler(w http.ResponseWriter, r *http.
 
 	data := PendingRegistrationsData{
 		Registrations: registrations,
-		UserInfo:      auth.GetUserInfoFromContext(r.Context()),
+		UserInfo:      auth.GetUserInfoFromContext(ctx),
 	}
 	h.Renderer.RenderPage(w, "pending-registrations.gohtml", data)
 }
 
 func (h *Handler) ApproveRegistrationHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	idStr := r.PathValue("id")
 	if idStr == "" {
 		h.Renderer.RenderError(w, r, http.StatusBadRequest, "Missing registration ID.")
@@ -170,20 +175,20 @@ func (h *Handler) ApproveRegistrationHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	user, err := auth.GetUserBySession(h.AuthStore, r)
+	user, err := auth.GetUserBySession(ctx, h.AuthStore, r)
 	if err != nil {
 		h.Renderer.RenderError(w, r, http.StatusUnauthorized, "You must be logged in to perform this action.")
 		return
 	}
 
-	regRequest, err := auth.GetRegistrationRequestByID(h.AuthStore, registrationID)
+	regRequest, err := auth.GetRegistrationRequestByID(ctx, h.AuthStore, registrationID)
 	if err != nil {
 		slog.Error("Failed to get registration request", "error", err)
 		h.Renderer.RenderError(w, r, http.StatusNotFound, "Registration request not found.")
 		return
 	}
 
-	err = auth.ApproveRegistration(h.AuthStore, registrationID, user.ID)
+	err = auth.ApproveRegistration(ctx, h.AuthStore, registrationID, user.ID)
 	if err != nil {
 		slog.Error("Failed to approve registration", "error", err)
 		h.Renderer.RenderError(w, r, http.StatusInternalServerError, "Failed to approve registration. Please try again.")
@@ -201,6 +206,7 @@ func (h *Handler) ApproveRegistrationHandler(w http.ResponseWriter, r *http.Requ
 }
 
 func (h *Handler) DenyRegistrationHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	idStr := r.PathValue("id")
 	if idStr == "" {
 		h.Renderer.RenderError(w, r, http.StatusBadRequest, "Missing registration ID.")
@@ -213,20 +219,20 @@ func (h *Handler) DenyRegistrationHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	user, err := auth.GetUserBySession(h.AuthStore, r)
+	user, err := auth.GetUserBySession(ctx, h.AuthStore, r)
 	if err != nil {
 		h.Renderer.RenderError(w, r, http.StatusUnauthorized, "You must be logged in to perform this action.")
 		return
 	}
 
-	regRequest, err := auth.GetRegistrationRequestByID(h.AuthStore, registrationID)
+	regRequest, err := auth.GetRegistrationRequestByID(ctx, h.AuthStore, registrationID)
 	if err != nil {
 		slog.Error("Failed to get registration request", "error", err)
 		h.Renderer.RenderError(w, r, http.StatusNotFound, "Registration request not found.")
 		return
 	}
 
-	err = auth.RejectRegistration(h.AuthStore, registrationID, user.ID)
+	err = auth.RejectRegistration(ctx, h.AuthStore, registrationID, user.ID)
 	if err != nil {
 		slog.Error("Failed to deny registration", "error", err)
 		h.Renderer.RenderError(w, r, http.StatusInternalServerError, "Failed to deny registration. Please try again.")
@@ -246,7 +252,8 @@ type UsersData struct {
 }
 
 func (h *Handler) GetUsersHandler(w http.ResponseWriter, r *http.Request) {
-	users, err := auth.GetAllUsers(h.AuthStore)
+	ctx := r.Context()
+	users, err := auth.GetAllUsers(ctx, h.AuthStore)
 	if err != nil {
 		slog.Error("Failed to get users", "error", err)
 		h.Renderer.RenderError(w, r, http.StatusInternalServerError, "Failed to load users. Please try again later.")
@@ -256,12 +263,13 @@ func (h *Handler) GetUsersHandler(w http.ResponseWriter, r *http.Request) {
 	data := UsersData{
 		Users:    users,
 		Success:  r.URL.Query().Get("success"),
-		UserInfo: auth.GetUserInfoFromContext(r.Context()),
+		UserInfo: auth.GetUserInfoFromContext(ctx),
 	}
 	h.Renderer.RenderPage(w, "users.gohtml", data)
 }
 
 func (h *Handler) DeleteUserHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	idStr := r.PathValue("id")
 	if idStr == "" {
 		http.Error(w, "Missing user ID", http.StatusBadRequest)
@@ -274,13 +282,13 @@ func (h *Handler) DeleteUserHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	currentUser := auth.GetUserInfoFromContext(r.Context())
+	currentUser := auth.GetUserInfoFromContext(ctx)
 	if currentUser.UserID == userID {
 		http.Error(w, "Cannot delete your own account", http.StatusForbidden)
 		return
 	}
 
-	targetUser, err := h.AuthStore.GetUserByID(userID)
+	targetUser, err := h.AuthStore.GetUserByID(ctx, userID)
 	if err != nil {
 		http.Error(w, "User not found", http.StatusNotFound)
 		return
@@ -291,7 +299,7 @@ func (h *Handler) DeleteUserHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = auth.DeleteUser(h.AuthStore, userID)
+	err = auth.DeleteUser(ctx, h.AuthStore, userID)
 	if err != nil {
 		slog.Error("Failed to delete user", "error", err, "user_id", userID)
 		http.Error(w, "Failed to delete user", http.StatusInternalServerError)

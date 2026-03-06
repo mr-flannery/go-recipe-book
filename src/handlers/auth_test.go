@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"net/http/httptest"
@@ -62,17 +63,17 @@ func TestPostLoginHandler_RedirectsToHomeOnSuccessfulLogin(t *testing.T) {
 		t.Fatalf("failed to hash password: %v", err)
 	}
 	mockAuthStore := &mocks.MockAuthStore{
-		GetUserByEmailFunc: func(email string) (*store.AuthUser, string, error) {
+		GetUserByEmailFunc: func(ctx context.Context, email string) (*store.AuthUser, string, error) {
 			return &store.AuthUser{
 				ID:       1,
 				Username: "testuser",
 				Email:    email,
 			}, hashedPassword, nil
 		},
-		CreateSessionFunc: func(session *store.Session) error {
+		CreateSessionFunc: func(ctx context.Context, session *store.Session) error {
 			return nil
 		},
-		UpdateLastLoginFunc: func(userID int) error {
+		UpdateLastLoginFunc: func(ctx context.Context, userID int) error {
 			return nil
 		},
 	}
@@ -128,17 +129,17 @@ func TestPostLoginHandler_RedirectsToCustomURLAfterLogin(t *testing.T) {
 		t.Fatalf("failed to hash password: %v", err)
 	}
 	mockAuthStore := &mocks.MockAuthStore{
-		GetUserByEmailFunc: func(email string) (*store.AuthUser, string, error) {
+		GetUserByEmailFunc: func(ctx context.Context, email string) (*store.AuthUser, string, error) {
 			return &store.AuthUser{
 				ID:       1,
 				Username: "testuser",
 				Email:    email,
 			}, hashedPassword, nil
 		},
-		CreateSessionFunc: func(session *store.Session) error {
+		CreateSessionFunc: func(ctx context.Context, session *store.Session) error {
 			return nil
 		},
-		UpdateLastLoginFunc: func(userID int) error {
+		UpdateLastLoginFunc: func(ctx context.Context, userID int) error {
 			return nil
 		},
 	}
@@ -179,7 +180,7 @@ func TestPostLoginHandler_RedirectsToCustomURLAfterLogin(t *testing.T) {
 
 func TestPostLoginHandler_ShowsErrorOnInvalidCredentials(t *testing.T) {
 	mockAuthStore := &mocks.MockAuthStore{
-		GetUserByEmailFunc: func(email string) (*store.AuthUser, string, error) {
+		GetUserByEmailFunc: func(ctx context.Context, email string) (*store.AuthUser, string, error) {
 			return nil, "", errors.New("user not found")
 		},
 	}
@@ -222,10 +223,10 @@ func TestPostLoginHandler_ShowsErrorOnInvalidCredentials(t *testing.T) {
 func TestLogoutHandler_ClearsSessionAndRedirects(t *testing.T) {
 	invalidateCalled := false
 	mockAuthStore := &mocks.MockAuthStore{
-		GetSessionFunc: func(sessionID string) (*store.Session, error) {
+		GetSessionFunc: func(ctx context.Context, sessionID string) (*store.Session, error) {
 			return &store.Session{ID: sessionID, UserID: 1}, nil
 		},
-		DeleteSessionFunc: func(sessionID string) error {
+		DeleteSessionFunc: func(ctx context.Context, sessionID string) error {
 			invalidateCalled = true
 			return nil
 		},
@@ -331,7 +332,7 @@ func TestPostRegisterHandler_ShowsErrorWhenPasswordsDontMatch(t *testing.T) {
 
 func TestGetPendingRegistrationsHandler_ListsRegistrations(t *testing.T) {
 	mockAuthStore := &mocks.MockAuthStore{
-		GetPendingRegistrationsFunc: func() ([]store.RegistrationRequest, error) {
+		GetPendingRegistrationsFunc: func(ctx context.Context) ([]store.RegistrationRequest, error) {
 			return []store.RegistrationRequest{
 				{ID: 1, Username: "user1", Email: "user1@example.com", Status: "pending"},
 				{ID: 2, Username: "user2", Email: "user2@example.com", Status: "pending"},
@@ -375,7 +376,7 @@ func TestGetPendingRegistrationsHandler_ListsRegistrations(t *testing.T) {
 
 func TestGetPendingRegistrationsHandler_ReturnsErrorWhenStoreFails(t *testing.T) {
 	mockAuthStore := &mocks.MockAuthStore{
-		GetPendingRegistrationsFunc: func() ([]store.RegistrationRequest, error) {
+		GetPendingRegistrationsFunc: func(ctx context.Context) ([]store.RegistrationRequest, error) {
 			return nil, errors.New("database error")
 		},
 	}
@@ -447,7 +448,7 @@ func TestApproveRegistrationHandler_ReturnsBadRequestWhenIDInvalid(t *testing.T)
 
 func TestApproveRegistrationHandler_ReturnsUnauthorizedWhenNotLoggedIn(t *testing.T) {
 	mockAuthStore := &mocks.MockAuthStore{
-		GetSessionFunc: func(sessionID string) (*store.Session, error) {
+		GetSessionFunc: func(ctx context.Context, sessionID string) (*store.Session, error) {
 			return nil, errors.New("no session")
 		},
 	}
@@ -498,7 +499,7 @@ func TestDenyRegistrationHandler_ReturnsBadRequestWhenIDMissing(t *testing.T) {
 
 func TestDenyRegistrationHandler_ReturnsUnauthorizedWhenNotLoggedIn(t *testing.T) {
 	mockAuthStore := &mocks.MockAuthStore{
-		GetSessionFunc: func(sessionID string) (*store.Session, error) {
+		GetSessionFunc: func(ctx context.Context, sessionID string) (*store.Session, error) {
 			return nil, errors.New("no session")
 		},
 	}
@@ -527,7 +528,7 @@ func TestDenyRegistrationHandler_ReturnsUnauthorizedWhenNotLoggedIn(t *testing.T
 
 func TestGetUsersHandler_ListsUsers(t *testing.T) {
 	mockAuthStore := &mocks.MockAuthStore{
-		GetAllUsersFunc: func() ([]store.AuthUser, error) {
+		GetAllUsersFunc: func(ctx context.Context) ([]store.AuthUser, error) {
 			return []store.AuthUser{
 				{ID: 1, Username: "admin", Email: "admin@example.com", IsAdmin: true},
 				{ID: 2, Username: "user", Email: "user@example.com", IsAdmin: false},
@@ -571,7 +572,7 @@ func TestGetUsersHandler_ListsUsers(t *testing.T) {
 
 func TestGetUsersHandler_ReturnsErrorWhenStoreFails(t *testing.T) {
 	mockAuthStore := &mocks.MockAuthStore{
-		GetAllUsersFunc: func() ([]store.AuthUser, error) {
+		GetAllUsersFunc: func(ctx context.Context) ([]store.AuthUser, error) {
 			return nil, errors.New("database error")
 		},
 	}
@@ -643,7 +644,7 @@ func TestDeleteUserHandler_ReturnsForbiddenWhenDeletingOwnAccount(t *testing.T) 
 
 func TestDeleteUserHandler_ReturnsNotFoundWhenUserDoesNotExist(t *testing.T) {
 	mockAuthStore := &mocks.MockAuthStore{
-		GetUserByIDFunc: func(userID int) (*store.AuthUser, error) {
+		GetUserByIDFunc: func(ctx context.Context, userID int) (*store.AuthUser, error) {
 			return nil, errors.New("user not found")
 		},
 	}
@@ -667,7 +668,7 @@ func TestDeleteUserHandler_ReturnsNotFoundWhenUserDoesNotExist(t *testing.T) {
 
 func TestDeleteUserHandler_ReturnsForbiddenWhenDeletingAdmin(t *testing.T) {
 	mockAuthStore := &mocks.MockAuthStore{
-		GetUserByIDFunc: func(userID int) (*store.AuthUser, error) {
+		GetUserByIDFunc: func(ctx context.Context, userID int) (*store.AuthUser, error) {
 			return &store.AuthUser{ID: 2, Username: "otheradmin", IsAdmin: true}, nil
 		},
 	}
@@ -692,10 +693,10 @@ func TestDeleteUserHandler_ReturnsForbiddenWhenDeletingAdmin(t *testing.T) {
 func TestDeleteUserHandler_DeletesUserSuccessfully(t *testing.T) {
 	deleteCalled := false
 	mockAuthStore := &mocks.MockAuthStore{
-		GetUserByIDFunc: func(userID int) (*store.AuthUser, error) {
+		GetUserByIDFunc: func(ctx context.Context, userID int) (*store.AuthUser, error) {
 			return &store.AuthUser{ID: 2, Username: "regularuser", IsAdmin: false}, nil
 		},
-		DeleteUserFunc: func(userID int) error {
+		DeleteUserFunc: func(ctx context.Context, userID int) error {
 			deleteCalled = true
 			return nil
 		},
@@ -734,7 +735,7 @@ func TestPostRegisterHandler_SendsNotificationEmailOnSuccess(t *testing.T) {
 	}
 
 	mockAuthStore := &mocks.MockAuthStore{
-		CreateRegistrationRequestFunc: func(username, email, passwordHash string) error {
+		CreateRegistrationRequestFunc: func(ctx context.Context, username, email, passwordHash string) error {
 			return nil
 		},
 	}
@@ -793,7 +794,7 @@ func TestPostRegisterHandler_SucceedsEvenWhenEmailFails(t *testing.T) {
 	}
 
 	mockAuthStore := &mocks.MockAuthStore{
-		CreateRegistrationRequestFunc: func(username, email, passwordHash string) error {
+		CreateRegistrationRequestFunc: func(ctx context.Context, username, email, passwordHash string) error {
 			return nil
 		},
 	}
@@ -848,18 +849,18 @@ func TestApproveRegistrationHandler_SendsApprovalEmailOnSuccess(t *testing.T) {
 	}
 
 	mockAuthStore := &mocks.MockAuthStore{
-		GetSessionFunc: func(sessionID string) (*store.Session, error) {
+		GetSessionFunc: func(ctx context.Context, sessionID string) (*store.Session, error) {
 			return &store.Session{ID: sessionID, UserID: 1}, nil
 		},
-		GetUserByIDFunc: func(userID int) (*store.AuthUser, error) {
+		GetUserByIDFunc: func(ctx context.Context, userID int) (*store.AuthUser, error) {
 			return &store.AuthUser{ID: 1, Username: "admin", IsAdmin: true}, nil
 		},
-		GetPendingRegistrationsFunc: func() ([]store.RegistrationRequest, error) {
+		GetPendingRegistrationsFunc: func(ctx context.Context) ([]store.RegistrationRequest, error) {
 			return []store.RegistrationRequest{
 				{ID: 1, Username: "newuser", Email: "new@example.com", Status: "pending"},
 			}, nil
 		},
-		ApproveRegistrationFunc: func(requestID, adminID int) error {
+		ApproveRegistrationFunc: func(ctx context.Context, requestID, adminID int) error {
 			return nil
 		},
 	}
@@ -902,18 +903,18 @@ func TestApproveRegistrationHandler_SucceedsEvenWhenEmailFails(t *testing.T) {
 	}
 
 	mockAuthStore := &mocks.MockAuthStore{
-		GetSessionFunc: func(sessionID string) (*store.Session, error) {
+		GetSessionFunc: func(ctx context.Context, sessionID string) (*store.Session, error) {
 			return &store.Session{ID: sessionID, UserID: 1}, nil
 		},
-		GetUserByIDFunc: func(userID int) (*store.AuthUser, error) {
+		GetUserByIDFunc: func(ctx context.Context, userID int) (*store.AuthUser, error) {
 			return &store.AuthUser{ID: 1, Username: "admin", IsAdmin: true}, nil
 		},
-		GetPendingRegistrationsFunc: func() ([]store.RegistrationRequest, error) {
+		GetPendingRegistrationsFunc: func(ctx context.Context) ([]store.RegistrationRequest, error) {
 			return []store.RegistrationRequest{
 				{ID: 1, Username: "newuser", Email: "new@example.com", Status: "pending"},
 			}, nil
 		},
-		ApproveRegistrationFunc: func(requestID, adminID int) error {
+		ApproveRegistrationFunc: func(ctx context.Context, requestID, adminID int) error {
 			return nil
 		},
 	}

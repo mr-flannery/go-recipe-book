@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -10,11 +11,9 @@ import (
 	"github.com/mr-flannery/go-recipe-book/src/store"
 )
 
-// RequireAPIKey creates middleware to enforce API key authentication
 func RequireAPIKey() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// Get the Authorization header
 			authHeader := r.Header.Get("Authorization")
 			if authHeader == "" {
 				slog.Warn("API request missing Authorization header", "path", r.URL.Path, "method", r.Method)
@@ -22,14 +21,12 @@ func RequireAPIKey() func(http.Handler) http.Handler {
 				return
 			}
 
-			// Check if it's a Bearer token
 			if !strings.HasPrefix(authHeader, "Bearer ") {
 				slog.Warn("API request with invalid Authorization header format", "path", r.URL.Path, "method", r.Method)
 				http.Error(w, "Authorization header must be in Bearer token format", http.StatusUnauthorized)
 				return
 			}
 
-			// Extract the token
 			token := strings.TrimPrefix(authHeader, "Bearer ")
 			if token == "" {
 				slog.Warn("API request with empty Bearer token", "path", r.URL.Path, "method", r.Method)
@@ -37,10 +34,8 @@ func RequireAPIKey() func(http.Handler) http.Handler {
 				return
 			}
 
-			// Get configuration to check valid API keys
 			cfg := config.GetConfig()
 
-			// Validate the token against configured API keys
 			validToken := false
 			for _, validKey := range cfg.Api.Keys {
 				if token == validKey {
@@ -61,10 +56,10 @@ func RequireAPIKey() func(http.Handler) http.Handler {
 	}
 }
 
-func GetAdminUserID(authStore store.AuthStore) (int, error) {
+func GetAdminUserID(ctx context.Context, authStore store.AuthStore) (int, error) {
 	cfg := config.GetConfig()
 
-	adminID, err := authStore.GetUserIDByUsername(cfg.DB.Admin.Username)
+	adminID, err := authStore.GetUserIDByUsername(ctx, cfg.DB.Admin.Username)
 	if err != nil {
 		return 0, fmt.Errorf("failed to get admin user ID: %w", err)
 	}

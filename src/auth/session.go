@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
@@ -36,7 +37,7 @@ type Session struct {
 	UserAgent string
 }
 
-func CreateSession(authStore store.AuthStore, userID int, ipAddress, userAgent string) (*Session, error) {
+func CreateSession(ctx context.Context, authStore store.AuthStore, userID int, ipAddress, userAgent string) (*Session, error) {
 	sessionID, err := generateSecureSessionID()
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate session ID: %w", err)
@@ -61,7 +62,7 @@ func CreateSession(authStore store.AuthStore, userID int, ipAddress, userAgent s
 		UserAgent: userAgent,
 	}
 
-	err = authStore.CreateSession(storeSession)
+	err = authStore.CreateSession(ctx, storeSession)
 	if err != nil {
 		return nil, err
 	}
@@ -69,8 +70,8 @@ func CreateSession(authStore store.AuthStore, userID int, ipAddress, userAgent s
 	return session, nil
 }
 
-func ValidateSession(authStore store.AuthStore, sessionID string) (*Session, error) {
-	storeSession, err := authStore.GetSession(sessionID)
+func ValidateSession(ctx context.Context, authStore store.AuthStore, sessionID string) (*Session, error) {
+	storeSession, err := authStore.GetSession(ctx, sessionID)
 	if err != nil {
 		return nil, err
 	}
@@ -83,16 +84,16 @@ func ValidateSession(authStore store.AuthStore, sessionID string) (*Session, err
 	}, nil
 }
 
-func InvalidateSession(authStore store.AuthStore, sessionID string) error {
-	return authStore.DeleteSession(sessionID)
+func InvalidateSession(ctx context.Context, authStore store.AuthStore, sessionID string) error {
+	return authStore.DeleteSession(ctx, sessionID)
 }
 
-func InvalidateAllUserSessions(authStore store.AuthStore, userID int) error {
-	return authStore.DeleteUserSessions(userID)
+func InvalidateAllUserSessions(ctx context.Context, authStore store.AuthStore, userID int) error {
+	return authStore.DeleteUserSessions(ctx, userID)
 }
 
-func CleanupExpiredSessions(authStore store.AuthStore) error {
-	rowsAffected, err := authStore.DeleteExpiredSessions()
+func CleanupExpiredSessions(ctx context.Context, authStore store.AuthStore) error {
+	rowsAffected, err := authStore.DeleteExpiredSessions(ctx)
 	if err != nil {
 		return err
 	}
@@ -166,8 +167,8 @@ func GetClientIP(r *http.Request) string {
 	return host
 }
 
-func ValidateSessionWithContext(authStore store.AuthStore, sessionID, currentIP, currentUserAgent string) (*Session, error) {
-	session, err := ValidateSession(authStore, sessionID)
+func ValidateSessionWithContext(ctx context.Context, authStore store.AuthStore, sessionID, currentIP, currentUserAgent string) (*Session, error) {
+	session, err := ValidateSession(ctx, authStore, sessionID)
 	if err != nil {
 		return nil, err
 	}
@@ -175,8 +176,8 @@ func ValidateSessionWithContext(authStore store.AuthStore, sessionID, currentIP,
 	return session, nil
 }
 
-func ExtendSession(authStore store.AuthStore, sessionID string) error {
-	return authStore.ExtendSession(sessionID)
+func ExtendSession(ctx context.Context, authStore store.AuthStore, sessionID string) error {
+	return authStore.ExtendSession(ctx, sessionID)
 }
 
 func generateSecureSessionID() (string, error) {
@@ -188,6 +189,6 @@ func generateSecureSessionID() (string, error) {
 	return hex.EncodeToString(bytes), nil
 }
 
-func GetActiveSessionCount(authStore store.AuthStore, userID int) (int, error) {
-	return authStore.GetActiveSessionCount(userID)
+func GetActiveSessionCount(ctx context.Context, authStore store.AuthStore, userID int) (int, error) {
+	return authStore.GetActiveSessionCount(ctx, userID)
 }

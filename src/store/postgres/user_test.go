@@ -1,6 +1,7 @@
 package postgres
 
 import (
+	"context"
 	"testing"
 
 	"github.com/mr-flannery/go-recipe-book/src/testutil"
@@ -13,7 +14,7 @@ func TestUserStore_GetUsernameByID_ReturnsUsernameWhenExists(t *testing.T) {
 	userID := testDB.SeedUser(t, "testuser", "test@example.com", "hashedpassword", false)
 	store := NewUserStore(testDB.DB)
 
-	username, err := store.GetUsernameByID(userID)
+	username, err := store.GetUsernameByID(context.Background(), userID)
 	if err != nil {
 		t.Fatalf("failed to get username by ID: %v", err)
 	}
@@ -29,7 +30,7 @@ func TestUserStore_GetUsernameByID_ReturnsErrorWhenNotFound(t *testing.T) {
 
 	store := NewUserStore(testDB.DB)
 
-	_, err := store.GetUsernameByID(99999)
+	_, err := store.GetUsernameByID(context.Background(), 99999)
 	if err == nil {
 		t.Error("expected error for non-existent user")
 	}

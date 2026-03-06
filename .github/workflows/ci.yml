@@ -125,6 +125,10 @@ jobs:
           railway variables set DB_ADMIN_USERNAME="${{ secrets.INITIAL_ADMIN_USERNAME }}" --service ${{ vars.RAILWAY_SERVICE_NAME }}
           railway variables set DB_ADMIN_EMAIL="${{ secrets.INITIAL_ADMIN_EMAIL }}" --service ${{ vars.RAILWAY_SERVICE_NAME }}
           railway variables set DB_ADMIN_PASSWORD="${{ secrets.INITIAL_ADMIN_PASSWORD }}" --service ${{ vars.RAILWAY_SERVICE_NAME }}
+          railway variables set OTEL_SERVICE_NAME="recipe-book" --service ${{ vars.RAILWAY_SERVICE_NAME }}
+          railway variables set OTEL_EXPORTER_OTLP_PROTOCOL="http/protobuf" --service ${{ vars.RAILWAY_SERVICE_NAME }}
+          railway variables set OTEL_EXPORTER_OTLP_ENDPOINT="https://api.eu1.honeycomb.io" --service ${{ vars.RAILWAY_SERVICE_NAME }}
+          railway variables set OTEL_EXPORTER_OTLP_HEADERS="x-honeycomb-team=${{ secrets.HONEYCOMB_API_KEY }}" --service ${{ vars.RAILWAY_SERVICE_NAME }}
 
       - name: Deploy to Railway
         env:

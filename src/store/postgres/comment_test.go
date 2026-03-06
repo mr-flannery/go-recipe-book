@@ -1,6 +1,7 @@
 package postgres
 
 import (
+	"context"
 	"strconv"
 	"testing"
 
@@ -22,12 +23,12 @@ func TestCommentStore_Save_CreatesComment(t *testing.T) {
 		ContentMD: "This is a test comment",
 	}
 
-	err := store.Save(comment)
+	err := store.Save(context.Background(), comment)
 	if err != nil {
 		t.Fatalf("failed to save comment: %v", err)
 	}
 
-	comments, _ := store.GetByRecipeID(strconv.Itoa(recipeID))
+	comments, _ := store.GetByRecipeID(context.Background(), strconv.Itoa(recipeID))
 	if len(comments) != 1 {
 		t.Errorf("expected 1 comment, got %d", len(comments))
 	}
@@ -43,7 +44,7 @@ func TestCommentStore_GetByRecipeID_ReturnsCommentsForRecipe(t *testing.T) {
 	testDB.SeedComment(t, recipeID, userID, "Comment 2")
 	store := NewCommentStore(testDB.DB)
 
-	comments, err := store.GetByRecipeID(strconv.Itoa(recipeID))
+	comments, err := store.GetByRecipeID(context.Background(), strconv.Itoa(recipeID))
 	if err != nil {
 		t.Fatalf("failed to get comments: %v", err)
 	}
@@ -61,7 +62,7 @@ func TestCommentStore_GetByRecipeID_ReturnsEmptyForNoComments(t *testing.T) {
 	recipeID := testDB.SeedRecipe(t, "Test Recipe", "- flour", "Mix it", userID)
 	store := NewCommentStore(testDB.DB)
 
-	comments, err := store.GetByRecipeID(strconv.Itoa(recipeID))
+	comments, err := store.GetByRecipeID(context.Background(), strconv.Itoa(recipeID))
 	if err != nil {
 		t.Fatalf("failed to get comments: %v", err)
 	}
@@ -80,7 +81,7 @@ func TestCommentStore_GetByID_ReturnsCommentWhenExists(t *testing.T) {
 	commentID := testDB.SeedComment(t, recipeID, userID, "Test Comment")
 	store := NewCommentStore(testDB.DB)
 
-	comment, err := store.GetByID(commentID)
+	comment, err := store.GetByID(context.Background(), commentID)
 	if err != nil {
 		t.Fatalf("failed to get comment by ID: %v", err)
 	}
@@ -96,7 +97,7 @@ func TestCommentStore_GetByID_ReturnsErrorWhenNotFound(t *testing.T) {
 
 	store := NewCommentStore(testDB.DB)
 
-	_, err := store.GetByID(99999)
+	_, err := store.GetByID(context.Background(), 99999)
 	if err == nil {
 		t.Error("expected error for non-existent comment")
 	}
@@ -112,7 +113,7 @@ func TestCommentStore_GetLatestByUserAndRecipe_ReturnsLatestComment(t *testing.T
 	testDB.SeedComment(t, recipeID, userID, "Latest comment")
 	store := NewCommentStore(testDB.DB)
 
-	comment, err := store.GetLatestByUserAndRecipe(userID, recipeID)
+	comment, err := store.GetLatestByUserAndRecipe(context.Background(), userID, recipeID)
 	if err != nil {
 		t.Fatalf("failed to get latest comment: %v", err)
 	}
@@ -131,12 +132,12 @@ func TestCommentStore_Update_ModifiesCommentContent(t *testing.T) {
 	commentID := testDB.SeedComment(t, recipeID, userID, "Original content")
 	store := NewCommentStore(testDB.DB)
 
-	err := store.Update(commentID, "Updated content")
+	err := store.Update(context.Background(), commentID, "Updated content")
 	if err != nil {
 		t.Fatalf("failed to update comment: %v", err)
 	}
 
-	updated, _ := store.GetByID(commentID)
+	updated, _ := store.GetByID(context.Background(), commentID)
 	if updated.ContentMD != "Updated content" {
 		t.Errorf("expected content 'Updated content', got '%s'", updated.ContentMD)
 	}
@@ -151,12 +152,12 @@ func TestCommentStore_Delete_RemovesComment(t *testing.T) {
 	commentID := testDB.SeedComment(t, recipeID, userID, "To delete")
 	store := NewCommentStore(testDB.DB)
 
-	err := store.Delete(commentID)
+	err := store.Delete(context.Background(), commentID)
 	if err != nil {
 		t.Fatalf("failed to delete comment: %v", err)
 	}
 
-	_, err = store.GetByID(commentID)
+	_, err = store.GetByID(context.Background(), commentID)
 	if err == nil {
 		t.Error("expected error after deleting comment")
 	}

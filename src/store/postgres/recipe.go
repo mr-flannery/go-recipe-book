@@ -1,6 +1,7 @@
 package postgres
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"strings"
@@ -17,12 +18,12 @@ func NewRecipeStore(db *sql.DB) *RecipeStore {
 	return &RecipeStore{db: db}
 }
 
-func (s *RecipeStore) Save(recipe models.Recipe) (int, error) {
+func (s *RecipeStore) Save(ctx context.Context, recipe models.Recipe) (int, error) {
 	query := `INSERT INTO recipes (title, ingredients_md, instructions_md, prep_time, cook_time, calories, author_id, image, parent_id, created_at, updated_at) 
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING id`
 
 	var id int
-	err := s.db.QueryRow(query, recipe.Title, recipe.IngredientsMD, recipe.InstructionsMD, recipe.PrepTime, recipe.CookTime, recipe.Calories, recipe.AuthorID, recipe.Image, recipe.ParentID, time.Now(), time.Now()).Scan(&id)
+	err := s.db.QueryRowContext(ctx, query, recipe.Title, recipe.IngredientsMD, recipe.InstructionsMD, recipe.PrepTime, recipe.CookTime, recipe.Calories, recipe.AuthorID, recipe.Image, recipe.ParentID, time.Now(), time.Now()).Scan(&id)
 	if err != nil {
 		return 0, err
 	}
@@ -30,11 +31,11 @@ func (s *RecipeStore) Save(recipe models.Recipe) (int, error) {
 	return id, nil
 }
 
-func (s *RecipeStore) GetByID(id string) (models.Recipe, error) {
+func (s *RecipeStore) GetByID(ctx context.Context, id string) (models.Recipe, error) {
 	var recipe models.Recipe
 
 	err := s.db.
-		QueryRow("SELECT id, title, ingredients_md, instructions_md, prep_time, cook_time, calories, author_id, image, parent_id, created_at, updated_at FROM recipes WHERE id = $1", id).
+		QueryRowContext(ctx, "SELECT id, title, ingredients_md, instructions_md, prep_time, cook_time, calories, author_id, image, parent_id, created_at, updated_at FROM recipes WHERE id = $1", id).
 		Scan(&recipe.ID, &recipe.Title, &recipe.IngredientsMD, &recipe.InstructionsMD, &recipe.PrepTime, &recipe.CookTime, &recipe.Calories, &recipe.AuthorID, &recipe.Image, &recipe.ParentID, &recipe.CreatedAt, &recipe.UpdatedAt)
 
 	if err != nil {
@@ -44,20 +45,20 @@ func (s *RecipeStore) GetByID(id string) (models.Recipe, error) {
 	return recipe, nil
 }
 
-func (s *RecipeStore) Update(recipe models.Recipe) error {
-	_, err := s.db.Exec("UPDATE recipes SET title = $1, ingredients_md = $2, instructions_md = $3, prep_time = $4, cook_time = $5, calories = $6, image = $7, updated_at = $8 WHERE id = $9",
+func (s *RecipeStore) Update(ctx context.Context, recipe models.Recipe) error {
+	_, err := s.db.ExecContext(ctx, "UPDATE recipes SET title = $1, ingredients_md = $2, instructions_md = $3, prep_time = $4, cook_time = $5, calories = $6, image = $7, updated_at = $8 WHERE id = $9",
 		recipe.Title, recipe.IngredientsMD, recipe.InstructionsMD, recipe.PrepTime, recipe.CookTime, recipe.Calories, recipe.Image, time.Now(), recipe.ID)
 
 	return err
 }
 
-func (s *RecipeStore) Delete(id string) error {
-	_, err := s.db.Exec("DELETE FROM recipes WHERE id = $1", id)
+func (s *RecipeStore) Delete(ctx context.Context, id string) error {
+	_, err := s.db.ExecContext(ctx, "DELETE FROM recipes WHERE id = $1", id)
 	return err
 }
 
-func (s *RecipeStore) GetAll() ([]models.Recipe, error) {
-	rows, err := s.db.Query("SELECT id, title, ingredients_md, instructions_md, prep_time, cook_time, calories, author_id, image, parent_id, created_at, updated_at FROM recipes")
+func (s *RecipeStore) GetAll(ctx context.Context) ([]models.Recipe, error) {
+	rows, err := s.db.QueryContext(ctx, "SELECT id, title, ingredients_md, instructions_md, prep_time, cook_time, calories, author_id, image, parent_id, created_at, updated_at FROM recipes")
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch recipes: %v", err)
@@ -80,7 +81,7 @@ func (s *RecipeStore) GetAll() ([]models.Recipe, error) {
 	return recipes, nil
 }
 
-func (s *RecipeStore) GetFiltered(params models.FilterParams) ([]models.Recipe, error) {
+func (s *RecipeStore) GetFiltered(ctx context.Context, params models.FilterParams) ([]models.Recipe, error) {
 	query := "SELECT DISTINCT r.id, r.title, r.ingredients_md, r.instructions_md, r.prep_time, r.cook_time, r.calories, r.author_id, r.image, r.parent_id, r.created_at, r.updated_at FROM recipes r"
 	args := []interface{}{}
 	argIndex := 1
@@ -204,7 +205,7 @@ func (s *RecipeStore) GetFiltered(params models.FilterParams) ([]models.Recipe, 
 		argIndex++
 	}
 
-	rows, err := s.db.Query(query, args...)
+	rows, err := s.db.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch filtered recipes: %v", err)
 	}
@@ -226,7 +227,7 @@ func (s *RecipeStore) GetFiltered(params models.FilterParams) ([]models.Recipe, 
 	return recipes, nil
 }
 
-func (s *RecipeStore) CountFiltered(params models.FilterParams) (int, error) {
+func (s *RecipeStore) CountFiltered(ctx context.Context, params models.FilterParams) (int, error) {
 	query := "SELECT COUNT(DISTINCT r.id) FROM recipes r"
 	args := []interface{}{}
 	argIndex := 1
@@ -336,7 +337,7 @@ func (s *RecipeStore) CountFiltered(params models.FilterParams) (int, error) {
 	}
 
 	var count int
-	err := s.db.QueryRow(query, args...).Scan(&count)
+	err := s.db.QueryRowContext(ctx, query, args...).Scan(&count)
 	if err != nil {
 		return 0, fmt.Errorf("failed to count filtered recipes: %v", err)
 	}
@@ -344,10 +345,10 @@ func (s *RecipeStore) CountFiltered(params models.FilterParams) (int, error) {
 	return count, nil
 }
 
-func (s *RecipeStore) GetRandomID() (int, error) {
+func (s *RecipeStore) GetRandomID(ctx context.Context) (int, error) {
 	var id int
 
-	err := s.db.QueryRow("SELECT id FROM recipes ORDER BY RANDOM() LIMIT 1").Scan(&id)
+	err := s.db.QueryRowContext(ctx, "SELECT id FROM recipes ORDER BY RANDOM() LIMIT 1").Scan(&id)
 	if err != nil {
 		return 0, fmt.Errorf("failed to get random recipe: %v", err)
 	}
@@ -355,9 +356,9 @@ func (s *RecipeStore) GetRandomID() (int, error) {
 	return id, nil
 }
 
-func (s *RecipeStore) SearchByTitle(query string, limit int) ([]models.RecipeSearchResult, error) {
+func (s *RecipeStore) SearchByTitle(ctx context.Context, query string, limit int) ([]models.RecipeSearchResult, error) {
 	searchPattern := "%" + strings.ToLower(query) + "%"
-	rows, err := s.db.Query(
+	rows, err := s.db.QueryContext(ctx,
 		"SELECT id, title FROM recipes WHERE LOWER(title) LIKE $1 ORDER BY title LIMIT $2",
 		searchPattern, limit,
 	)

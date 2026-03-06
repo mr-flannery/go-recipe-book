@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"time"
@@ -19,7 +20,7 @@ type RegistrationRequest struct {
 	ReviewedAt   *time.Time
 }
 
-func CreateRegistrationRequest(authStore store.AuthStore, username, email, password string) error {
+func CreateRegistrationRequest(ctx context.Context, authStore store.AuthStore, username, email, password string) error {
 	if err := ValidatePasswordStrength(password); err != nil {
 		return fmt.Errorf("password validation failed: %w", err)
 	}
@@ -29,11 +30,11 @@ func CreateRegistrationRequest(authStore store.AuthStore, username, email, passw
 		return fmt.Errorf("failed to hash password: %w", err)
 	}
 
-	return authStore.CreateRegistrationRequest(username, email, passwordHash)
+	return authStore.CreateRegistrationRequest(ctx, username, email, passwordHash)
 }
 
-func GetPendingRegistrations(authStore store.AuthStore) ([]RegistrationRequest, error) {
-	storeReqs, err := authStore.GetPendingRegistrations()
+func GetPendingRegistrations(ctx context.Context, authStore store.AuthStore) ([]RegistrationRequest, error) {
+	storeReqs, err := authStore.GetPendingRegistrations(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -51,16 +52,16 @@ func GetPendingRegistrations(authStore store.AuthStore) ([]RegistrationRequest, 
 	return reqs, nil
 }
 
-func ApproveRegistration(authStore store.AuthStore, requestID int, adminID int) error {
-	return authStore.ApproveRegistration(requestID, adminID)
+func ApproveRegistration(ctx context.Context, authStore store.AuthStore, requestID int, adminID int) error {
+	return authStore.ApproveRegistration(ctx, requestID, adminID)
 }
 
-func RejectRegistration(authStore store.AuthStore, requestID int, adminID int) error {
-	return authStore.RejectRegistration(requestID, adminID)
+func RejectRegistration(ctx context.Context, authStore store.AuthStore, requestID int, adminID int) error {
+	return authStore.RejectRegistration(ctx, requestID, adminID)
 }
 
-func GetRegistrationRequestByID(authStore store.AuthStore, requestID int) (*RegistrationRequest, error) {
-	reqs, err := authStore.GetPendingRegistrations()
+func GetRegistrationRequestByID(ctx context.Context, authStore store.AuthStore, requestID int) (*RegistrationRequest, error) {
+	reqs, err := authStore.GetPendingRegistrations(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -80,8 +81,8 @@ func GetRegistrationRequestByID(authStore store.AuthStore, requestID int) (*Regi
 	return nil, fmt.Errorf("registration request not found")
 }
 
-func CreateSeedAdmin(authStore store.AuthStore, username, email, password string) error {
-	exists, err := authStore.UserExists(username)
+func CreateSeedAdmin(ctx context.Context, authStore store.AuthStore, username, email, password string) error {
+	exists, err := authStore.UserExists(ctx, username)
 	if err != nil {
 		return fmt.Errorf("failed to check existing admin: %w", err)
 	}
@@ -95,7 +96,7 @@ func CreateSeedAdmin(authStore store.AuthStore, username, email, password string
 		return fmt.Errorf("failed to hash admin password: %w", err)
 	}
 
-	err = authStore.CreateUser(username, email, passwordHash, true)
+	err = authStore.CreateUser(ctx, username, email, passwordHash, true)
 	if err != nil {
 		return fmt.Errorf("failed to create seed admin: %w", err)
 	}

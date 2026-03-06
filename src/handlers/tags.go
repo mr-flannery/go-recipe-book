@@ -20,9 +20,10 @@ type TagResponse struct {
 }
 
 func (h *Handler) SearchTagsHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	query := r.URL.Query().Get("q")
 
-	tags, err := h.TagStore.Search(query)
+	tags, err := h.TagStore.Search(ctx, query)
 	if err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusInternalServerError)
@@ -40,9 +41,10 @@ func (h *Handler) SearchTagsHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) SearchUserTagsHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	query := r.URL.Query().Get("q")
 
-	user, err := auth.GetUserBySession(h.AuthStore, r)
+	user, err := auth.GetUserBySession(ctx, h.AuthStore, r)
 	if err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusUnauthorized)
@@ -50,7 +52,7 @@ func (h *Handler) SearchUserTagsHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	tags, err := h.UserTagStore.Search(user.ID, query)
+	tags, err := h.UserTagStore.Search(ctx, user.ID, query)
 	if err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusInternalServerError)
@@ -63,6 +65,7 @@ func (h *Handler) SearchUserTagsHandler(w http.ResponseWriter, r *http.Request) 
 }
 
 func (h *Handler) AddTagToRecipeHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	recipeID := r.PathValue("id")
 	if recipeID == "" {
 		w.Header().Set("Content-Type", "application/json")
@@ -79,7 +82,7 @@ func (h *Handler) AddTagToRecipeHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	user, err := auth.GetUserBySession(h.AuthStore, r)
+	user, err := auth.GetUserBySession(ctx, h.AuthStore, r)
 	if err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusUnauthorized)
@@ -87,7 +90,7 @@ func (h *Handler) AddTagToRecipeHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	recipe, err := h.RecipeStore.GetByID(recipeID)
+	recipe, err := h.RecipeStore.GetByID(ctx, recipeID)
 	if err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusNotFound)
@@ -113,7 +116,7 @@ func (h *Handler) AddTagToRecipeHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	tag, err := h.TagStore.GetOrCreate(tagName)
+	tag, err := h.TagStore.GetOrCreate(ctx, tagName)
 	if err != nil {
 		log.Printf("ERROR: GetOrCreateTag failed for tag '%s': %v", tagName, err)
 		w.Header().Set("Content-Type", "application/json")
@@ -122,7 +125,7 @@ func (h *Handler) AddTagToRecipeHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	err = h.TagStore.AddToRecipe(recipeIDInt, tag.ID)
+	err = h.TagStore.AddToRecipe(ctx, recipeIDInt, tag.ID)
 	if err != nil {
 		log.Printf("ERROR: AddTagToRecipe failed for recipe %d, tag %d: %v", recipeIDInt, tag.ID, err)
 		w.Header().Set("Content-Type", "application/json")
@@ -136,6 +139,7 @@ func (h *Handler) AddTagToRecipeHandler(w http.ResponseWriter, r *http.Request) 
 }
 
 func (h *Handler) RemoveTagFromRecipeHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	recipeID := r.PathValue("id")
 	tagID := r.PathValue("tagId")
 	if recipeID == "" || tagID == "" {
@@ -161,7 +165,7 @@ func (h *Handler) RemoveTagFromRecipeHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	user, err := auth.GetUserBySession(h.AuthStore, r)
+	user, err := auth.GetUserBySession(ctx, h.AuthStore, r)
 	if err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusUnauthorized)
@@ -169,7 +173,7 @@ func (h *Handler) RemoveTagFromRecipeHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	recipe, err := h.RecipeStore.GetByID(recipeID)
+	recipe, err := h.RecipeStore.GetByID(ctx, recipeID)
 	if err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusNotFound)
@@ -184,7 +188,7 @@ func (h *Handler) RemoveTagFromRecipeHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	err = h.TagStore.RemoveFromRecipe(recipeIDInt, tagIDInt)
+	err = h.TagStore.RemoveFromRecipe(ctx, recipeIDInt, tagIDInt)
 	if err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusInternalServerError)
@@ -197,6 +201,7 @@ func (h *Handler) RemoveTagFromRecipeHandler(w http.ResponseWriter, r *http.Requ
 }
 
 func (h *Handler) AddUserTagToRecipeHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	recipeID := r.PathValue("id")
 	if recipeID == "" {
 		w.Header().Set("Content-Type", "application/json")
@@ -213,7 +218,7 @@ func (h *Handler) AddUserTagToRecipeHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	user, err := auth.GetUserBySession(h.AuthStore, r)
+	user, err := auth.GetUserBySession(ctx, h.AuthStore, r)
 	if err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusUnauthorized)
@@ -221,7 +226,7 @@ func (h *Handler) AddUserTagToRecipeHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	_, err = h.RecipeStore.GetByID(recipeID)
+	_, err = h.RecipeStore.GetByID(ctx, recipeID)
 	if err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusNotFound)
@@ -240,7 +245,7 @@ func (h *Handler) AddUserTagToRecipeHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	_, err = h.UserTagStore.GetOrCreate(user.ID, recipeIDInt, tagName)
+	_, err = h.UserTagStore.GetOrCreate(ctx, user.ID, recipeIDInt, tagName)
 	if err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusInternalServerError)
@@ -253,6 +258,7 @@ func (h *Handler) AddUserTagToRecipeHandler(w http.ResponseWriter, r *http.Reque
 }
 
 func (h *Handler) RemoveUserTagHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	tagID := r.PathValue("tagId")
 	if tagID == "" {
 		w.Header().Set("Content-Type", "application/json")
@@ -269,7 +275,7 @@ func (h *Handler) RemoveUserTagHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := auth.GetUserBySession(h.AuthStore, r)
+	user, err := auth.GetUserBySession(ctx, h.AuthStore, r)
 	if err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusUnauthorized)
@@ -277,7 +283,7 @@ func (h *Handler) RemoveUserTagHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.UserTagStore.Remove(user.ID, tagIDInt)
+	err = h.UserTagStore.Remove(ctx, user.ID, tagIDInt)
 	if err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusInternalServerError)

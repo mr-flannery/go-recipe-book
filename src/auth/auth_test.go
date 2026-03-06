@@ -16,7 +16,7 @@ func TestAuthenticate_ReturnsUserWhenCredentialsAreValid(t *testing.T) {
 	hash, _ := HashPassword(password)
 
 	mockStore := &mocks.MockAuthStore{
-		GetUserByEmailFunc: func(email string) (*store.AuthUser, string, error) {
+		GetUserByEmailFunc: func(ctx context.Context, email string) (*store.AuthUser, string, error) {
 			return &store.AuthUser{
 				ID:       1,
 				Username: "testuser",
@@ -25,12 +25,12 @@ func TestAuthenticate_ReturnsUserWhenCredentialsAreValid(t *testing.T) {
 				IsActive: true,
 			}, hash, nil
 		},
-		UpdateLastLoginFunc: func(userID int) error {
+		UpdateLastLoginFunc: func(ctx context.Context, userID int) error {
 			return nil
 		},
 	}
 
-	user, err := Authenticate(mockStore, "test@example.com", password)
+	user, err := Authenticate(context.Background(), mockStore, "test@example.com", password)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -50,12 +50,12 @@ func TestAuthenticate_ReturnsUserWhenCredentialsAreValid(t *testing.T) {
 
 func TestAuthenticate_ReturnsErrorWhenUserDoesNotExist(t *testing.T) {
 	mockStore := &mocks.MockAuthStore{
-		GetUserByEmailFunc: func(email string) (*store.AuthUser, string, error) {
+		GetUserByEmailFunc: func(ctx context.Context, email string) (*store.AuthUser, string, error) {
 			return nil, "", errors.New("user not found")
 		},
 	}
 
-	user, err := Authenticate(mockStore, "notfound@example.com", "password")
+	user, err := Authenticate(context.Background(), mockStore, "notfound@example.com", "password")
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
@@ -71,7 +71,7 @@ func TestAuthenticate_ReturnsErrorWhenPasswordIsIncorrect(t *testing.T) {
 	hash, _ := HashPassword("CorrectPassword123!")
 
 	mockStore := &mocks.MockAuthStore{
-		GetUserByEmailFunc: func(email string) (*store.AuthUser, string, error) {
+		GetUserByEmailFunc: func(ctx context.Context, email string) (*store.AuthUser, string, error) {
 			return &store.AuthUser{
 				ID:       1,
 				Username: "testuser",
@@ -82,7 +82,7 @@ func TestAuthenticate_ReturnsErrorWhenPasswordIsIncorrect(t *testing.T) {
 		},
 	}
 
-	user, err := Authenticate(mockStore, "test@example.com", "WrongPassword123!")
+	user, err := Authenticate(context.Background(), mockStore, "test@example.com", "WrongPassword123!")
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
@@ -99,7 +99,7 @@ func TestAuthenticate_SucceedsEvenWhenUpdateLastLoginFails(t *testing.T) {
 	hash, _ := HashPassword(password)
 
 	mockStore := &mocks.MockAuthStore{
-		GetUserByEmailFunc: func(email string) (*store.AuthUser, string, error) {
+		GetUserByEmailFunc: func(ctx context.Context, email string) (*store.AuthUser, string, error) {
 			return &store.AuthUser{
 				ID:       1,
 				Username: "testuser",
@@ -108,12 +108,12 @@ func TestAuthenticate_SucceedsEvenWhenUpdateLastLoginFails(t *testing.T) {
 				IsActive: true,
 			}, hash, nil
 		},
-		UpdateLastLoginFunc: func(userID int) error {
+		UpdateLastLoginFunc: func(ctx context.Context, userID int) error {
 			return errors.New("database error")
 		},
 	}
 
-	user, err := Authenticate(mockStore, "test@example.com", password)
+	user, err := Authenticate(context.Background(), mockStore, "test@example.com", password)
 	if err != nil {
 		t.Fatalf("expected no error (UpdateLastLogin failure is non-fatal), got %v", err)
 	}
@@ -124,13 +124,13 @@ func TestAuthenticate_SucceedsEvenWhenUpdateLastLoginFails(t *testing.T) {
 
 func TestGetUserBySession_ReturnsUserWhenSessionIsValid(t *testing.T) {
 	mockStore := &mocks.MockAuthStore{
-		GetSessionFunc: func(sessionID string) (*store.Session, error) {
+		GetSessionFunc: func(ctx context.Context, sessionID string) (*store.Session, error) {
 			return &store.Session{
 				ID:     sessionID,
 				UserID: 1,
 			}, nil
 		},
-		GetUserByIDFunc: func(userID int) (*store.AuthUser, error) {
+		GetUserByIDFunc: func(ctx context.Context, userID int) (*store.AuthUser, error) {
 			return &store.AuthUser{
 				ID:       userID,
 				Username: "testuser",
@@ -144,7 +144,7 @@ func TestGetUserBySession_ReturnsUserWhenSessionIsValid(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	req.AddCookie(&http.Cookie{Name: "session", Value: "test-session-id"})
 
-	user, err := GetUserBySession(mockStore, req)
+	user, err := GetUserBySession(context.Background(), mockStore, req)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -164,7 +164,7 @@ func TestGetUserBySession_ReturnsErrorWhenNoCookiePresent(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 
-	user, err := GetUserBySession(mockStore, req)
+	user, err := GetUserBySession(context.Background(), mockStore, req)
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
@@ -175,7 +175,7 @@ func TestGetUserBySession_ReturnsErrorWhenNoCookiePresent(t *testing.T) {
 
 func TestGetUserBySession_ReturnsErrorWhenSessionIsInvalid(t *testing.T) {
 	mockStore := &mocks.MockAuthStore{
-		GetSessionFunc: func(sessionID string) (*store.Session, error) {
+		GetSessionFunc: func(ctx context.Context, sessionID string) (*store.Session, error) {
 			return nil, errors.New("session not found")
 		},
 	}
@@ -183,7 +183,7 @@ func TestGetUserBySession_ReturnsErrorWhenSessionIsInvalid(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	req.AddCookie(&http.Cookie{Name: "session", Value: "invalid-session"})
 
-	user, err := GetUserBySession(mockStore, req)
+	user, err := GetUserBySession(context.Background(), mockStore, req)
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
@@ -194,13 +194,13 @@ func TestGetUserBySession_ReturnsErrorWhenSessionIsInvalid(t *testing.T) {
 
 func TestGetUserBySession_ReturnsErrorWhenUserDoesNotExist(t *testing.T) {
 	mockStore := &mocks.MockAuthStore{
-		GetSessionFunc: func(sessionID string) (*store.Session, error) {
+		GetSessionFunc: func(ctx context.Context, sessionID string) (*store.Session, error) {
 			return &store.Session{
 				ID:     sessionID,
 				UserID: 999,
 			}, nil
 		},
-		GetUserByIDFunc: func(userID int) (*store.AuthUser, error) {
+		GetUserByIDFunc: func(ctx context.Context, userID int) (*store.AuthUser, error) {
 			return nil, errors.New("user not found")
 		},
 	}
@@ -208,7 +208,7 @@ func TestGetUserBySession_ReturnsErrorWhenUserDoesNotExist(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	req.AddCookie(&http.Cookie{Name: "session", Value: "test-session"})
 
-	user, err := GetUserBySession(mockStore, req)
+	user, err := GetUserBySession(context.Background(), mockStore, req)
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
@@ -227,10 +227,10 @@ func TestIsSessionValid_ReturnsTrueOrFalseBasedOnSessionValidity(t *testing.T) {
 		{
 			name: "returns true when session is valid",
 			mock: &mocks.MockAuthStore{
-				GetSessionFunc: func(sessionID string) (*store.Session, error) {
+				GetSessionFunc: func(ctx context.Context, sessionID string) (*store.Session, error) {
 					return &store.Session{ID: sessionID, UserID: 1}, nil
 				},
-				GetUserByIDFunc: func(userID int) (*store.AuthUser, error) {
+				GetUserByIDFunc: func(ctx context.Context, userID int) (*store.AuthUser, error) {
 					return &store.AuthUser{ID: userID}, nil
 				},
 			},
@@ -246,7 +246,7 @@ func TestIsSessionValid_ReturnsTrueOrFalseBasedOnSessionValidity(t *testing.T) {
 		{
 			name: "returns false when session is invalid",
 			mock: &mocks.MockAuthStore{
-				GetSessionFunc: func(sessionID string) (*store.Session, error) {
+				GetSessionFunc: func(ctx context.Context, sessionID string) (*store.Session, error) {
 					return nil, errors.New("not found")
 				},
 			},
@@ -262,7 +262,7 @@ func TestIsSessionValid_ReturnsTrueOrFalseBasedOnSessionValidity(t *testing.T) {
 				req.AddCookie(tt.cookie)
 			}
 
-			result := IsSessionValid(tt.mock, req)
+			result := IsSessionValid(context.Background(), tt.mock, req)
 			if result != tt.expected {
 				t.Errorf("expected %v, got %v", tt.expected, result)
 			}
@@ -272,7 +272,7 @@ func TestIsSessionValid_ReturnsTrueOrFalseBasedOnSessionValidity(t *testing.T) {
 
 func TestGetUserIDByUsername_ReturnsIDWhenUserExistsAndErrorWhenNot(t *testing.T) {
 	mockStore := &mocks.MockAuthStore{
-		GetUserIDByUsernameFunc: func(username string) (int, error) {
+		GetUserIDByUsernameFunc: func(ctx context.Context, username string) (int, error) {
 			if username == "admin" {
 				return 1, nil
 			}
@@ -280,7 +280,7 @@ func TestGetUserIDByUsername_ReturnsIDWhenUserExistsAndErrorWhenNot(t *testing.T
 		},
 	}
 
-	id, err := GetUserIDByUsername(mockStore, "admin")
+	id, err := GetUserIDByUsername(context.Background(), mockStore, "admin")
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -288,7 +288,7 @@ func TestGetUserIDByUsername_ReturnsIDWhenUserExistsAndErrorWhenNot(t *testing.T
 		t.Errorf("expected ID 1, got %d", id)
 	}
 
-	_, err = GetUserIDByUsername(mockStore, "unknown")
+	_, err = GetUserIDByUsername(context.Background(), mockStore, "unknown")
 	if err == nil {
 		t.Fatal("expected error for unknown user, got nil")
 	}

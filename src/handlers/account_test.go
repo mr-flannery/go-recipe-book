@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -18,28 +19,28 @@ import (
 )
 
 type MockUserPreferencesStore struct {
-	GetFunc         func(userID int) (*models.UserPreferences, error)
-	SetPageSizeFunc func(userID, pageSize int) error
-	SetViewModeFunc func(userID int, viewMode string) error
+	GetFunc         func(ctx context.Context, userID int) (*models.UserPreferences, error)
+	SetPageSizeFunc func(ctx context.Context, userID, pageSize int) error
+	SetViewModeFunc func(ctx context.Context, userID int, viewMode string) error
 }
 
-func (m *MockUserPreferencesStore) Get(userID int) (*models.UserPreferences, error) {
+func (m *MockUserPreferencesStore) Get(ctx context.Context, userID int) (*models.UserPreferences, error) {
 	if m.GetFunc != nil {
-		return m.GetFunc(userID)
+		return m.GetFunc(ctx, userID)
 	}
 	return nil, nil
 }
 
-func (m *MockUserPreferencesStore) SetPageSize(userID, pageSize int) error {
+func (m *MockUserPreferencesStore) SetPageSize(ctx context.Context, userID, pageSize int) error {
 	if m.SetPageSizeFunc != nil {
-		return m.SetPageSizeFunc(userID, pageSize)
+		return m.SetPageSizeFunc(ctx, userID, pageSize)
 	}
 	return nil
 }
 
-func (m *MockUserPreferencesStore) SetViewMode(userID int, viewMode string) error {
+func (m *MockUserPreferencesStore) SetViewMode(ctx context.Context, userID int, viewMode string) error {
 	if m.SetViewModeFunc != nil {
-		return m.SetViewModeFunc(userID, viewMode)
+		return m.SetViewModeFunc(ctx, userID, viewMode)
 	}
 	return nil
 }
@@ -171,7 +172,7 @@ func TestExportUserDataHandler_ReturnsUnauthorizedWhenNotLoggedIn(t *testing.T) 
 
 func TestExportUserDataHandler_ReturnsErrorWhenUserNotFound(t *testing.T) {
 	mockAuthStore := &mocks.MockAuthStore{
-		GetFullUserByIDFunc: func(userID int) (*store.FullAuthUser, error) {
+		GetFullUserByIDFunc: func(ctx context.Context, userID int) (*store.FullAuthUser, error) {
 			return nil, errors.New("user not found")
 		},
 	}
@@ -206,7 +207,7 @@ func TestExportUserDataHandler_ExportsUserDataAsJSON(t *testing.T) {
 	lastLogin := now.Add(-24 * time.Hour)
 
 	mockAuthStore := &mocks.MockAuthStore{
-		GetFullUserByIDFunc: func(userID int) (*store.FullAuthUser, error) {
+		GetFullUserByIDFunc: func(ctx context.Context, userID int) (*store.FullAuthUser, error) {
 			return &store.FullAuthUser{
 				ID:        1,
 				Username:  "testuser",
@@ -220,7 +221,7 @@ func TestExportUserDataHandler_ExportsUserDataAsJSON(t *testing.T) {
 	}
 
 	mockUserPreferencesStore := &MockUserPreferencesStore{
-		GetFunc: func(userID int) (*models.UserPreferences, error) {
+		GetFunc: func(ctx context.Context, userID int) (*models.UserPreferences, error) {
 			return &models.UserPreferences{
 				UserID:   1,
 				PageSize: 25,
@@ -229,7 +230,7 @@ func TestExportUserDataHandler_ExportsUserDataAsJSON(t *testing.T) {
 	}
 
 	mockRecipeStore := &mocks.MockRecipeStore{
-		GetFilteredFunc: func(params models.FilterParams) ([]models.Recipe, error) {
+		GetFilteredFunc: func(ctx context.Context, params models.FilterParams) ([]models.Recipe, error) {
 			return []models.Recipe{
 				{
 					ID:             1,
@@ -248,7 +249,7 @@ func TestExportUserDataHandler_ExportsUserDataAsJSON(t *testing.T) {
 	}
 
 	mockCommentStore := &mocks.MockCommentStore{
-		GetByUserIDFunc: func(userID int) ([]models.Comment, error) {
+		GetByUserIDFunc: func(ctx context.Context, userID int) ([]models.Comment, error) {
 			return []models.Comment{
 				{
 					ID:        1,
@@ -262,7 +263,7 @@ func TestExportUserDataHandler_ExportsUserDataAsJSON(t *testing.T) {
 	}
 
 	mockUserTagStore := &mocks.MockUserTagStore{
-		GetByUserIDFunc: func(userID int) ([]models.UserTag, error) {
+		GetByUserIDFunc: func(ctx context.Context, userID int) ([]models.UserTag, error) {
 			return []models.UserTag{
 				{
 					ID:       1,
@@ -336,7 +337,7 @@ func TestExportUserDataHandler_HandlesEmptyData(t *testing.T) {
 	now := time.Now()
 
 	mockAuthStore := &mocks.MockAuthStore{
-		GetFullUserByIDFunc: func(userID int) (*store.FullAuthUser, error) {
+		GetFullUserByIDFunc: func(ctx context.Context, userID int) (*store.FullAuthUser, error) {
 			return &store.FullAuthUser{
 				ID:        1,
 				Username:  "newuser",
@@ -348,25 +349,25 @@ func TestExportUserDataHandler_HandlesEmptyData(t *testing.T) {
 	}
 
 	mockUserPreferencesStore := &MockUserPreferencesStore{
-		GetFunc: func(userID int) (*models.UserPreferences, error) {
+		GetFunc: func(ctx context.Context, userID int) (*models.UserPreferences, error) {
 			return nil, errors.New("no preferences")
 		},
 	}
 
 	mockRecipeStore := &mocks.MockRecipeStore{
-		GetFilteredFunc: func(params models.FilterParams) ([]models.Recipe, error) {
+		GetFilteredFunc: func(ctx context.Context, params models.FilterParams) ([]models.Recipe, error) {
 			return []models.Recipe{}, nil
 		},
 	}
 
 	mockCommentStore := &mocks.MockCommentStore{
-		GetByUserIDFunc: func(userID int) ([]models.Comment, error) {
+		GetByUserIDFunc: func(ctx context.Context, userID int) ([]models.Comment, error) {
 			return []models.Comment{}, nil
 		},
 	}
 
 	mockUserTagStore := &mocks.MockUserTagStore{
-		GetByUserIDFunc: func(userID int) ([]models.UserTag, error) {
+		GetByUserIDFunc: func(ctx context.Context, userID int) ([]models.UserTag, error) {
 			return []models.UserTag{}, nil
 		},
 	}
@@ -516,7 +517,7 @@ func TestDeleteOwnAccountHandler_RedirectsWhenConfirmDeleteWrong(t *testing.T) {
 
 func TestDeleteOwnAccountHandler_RedirectsWhenUserNotFound(t *testing.T) {
 	mockAuthStore := &mocks.MockAuthStore{
-		GetUserByIDFunc: func(userID int) (*store.AuthUser, error) {
+		GetUserByIDFunc: func(ctx context.Context, userID int) (*store.AuthUser, error) {
 			return nil, errors.New("user not found")
 		},
 	}
@@ -555,14 +556,14 @@ func TestDeleteOwnAccountHandler_RedirectsWhenPasswordIncorrect(t *testing.T) {
 	}
 
 	mockAuthStore := &mocks.MockAuthStore{
-		GetUserByIDFunc: func(userID int) (*store.AuthUser, error) {
+		GetUserByIDFunc: func(ctx context.Context, userID int) (*store.AuthUser, error) {
 			return &store.AuthUser{
 				ID:       1,
 				Username: "testuser",
 				Email:    "test@example.com",
 			}, nil
 		},
-		GetUserByEmailFunc: func(email string) (*store.AuthUser, string, error) {
+		GetUserByEmailFunc: func(ctx context.Context, email string) (*store.AuthUser, string, error) {
 			return &store.AuthUser{
 				ID:       1,
 				Username: "testuser",
@@ -608,25 +609,25 @@ func TestDeleteOwnAccountHandler_DeletesAccountSuccessfully(t *testing.T) {
 	deleteSessionsCalled := false
 
 	mockAuthStore := &mocks.MockAuthStore{
-		GetUserByIDFunc: func(userID int) (*store.AuthUser, error) {
+		GetUserByIDFunc: func(ctx context.Context, userID int) (*store.AuthUser, error) {
 			return &store.AuthUser{
 				ID:       1,
 				Username: "testuser",
 				Email:    "test@example.com",
 			}, nil
 		},
-		GetUserByEmailFunc: func(email string) (*store.AuthUser, string, error) {
+		GetUserByEmailFunc: func(ctx context.Context, email string) (*store.AuthUser, string, error) {
 			return &store.AuthUser{
 				ID:       1,
 				Username: "testuser",
 				Email:    email,
 			}, hashedPassword, nil
 		},
-		DeleteUserFunc: func(userID int) error {
+		DeleteUserFunc: func(ctx context.Context, userID int) error {
 			deleteCalled = true
 			return nil
 		},
-		DeleteUserSessionsFunc: func(userID int) error {
+		DeleteUserSessionsFunc: func(ctx context.Context, userID int) error {
 			deleteSessionsCalled = true
 			return nil
 		},
@@ -683,24 +684,24 @@ func TestDeleteOwnAccountHandler_RedirectsWhenDeleteFails(t *testing.T) {
 	}
 
 	mockAuthStore := &mocks.MockAuthStore{
-		GetUserByIDFunc: func(userID int) (*store.AuthUser, error) {
+		GetUserByIDFunc: func(ctx context.Context, userID int) (*store.AuthUser, error) {
 			return &store.AuthUser{
 				ID:       1,
 				Username: "testuser",
 				Email:    "test@example.com",
 			}, nil
 		},
-		GetUserByEmailFunc: func(email string) (*store.AuthUser, string, error) {
+		GetUserByEmailFunc: func(ctx context.Context, email string) (*store.AuthUser, string, error) {
 			return &store.AuthUser{
 				ID:       1,
 				Username: "testuser",
 				Email:    email,
 			}, hashedPassword, nil
 		},
-		DeleteUserFunc: func(userID int) error {
+		DeleteUserFunc: func(ctx context.Context, userID int) error {
 			return errors.New("database error")
 		},
-		DeleteUserSessionsFunc: func(userID int) error {
+		DeleteUserSessionsFunc: func(ctx context.Context, userID int) error {
 			return nil
 		},
 	}

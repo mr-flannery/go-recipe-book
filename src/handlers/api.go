@@ -89,6 +89,7 @@ func sendJSONResponse(w http.ResponseWriter, message string, recipeID int) {
 }
 
 func (h *Handler) APICreateRecipeHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	if r.Method != http.MethodPost {
 		sendJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -110,7 +111,7 @@ func (h *Handler) APICreateRecipeHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	adminID, err := auth.GetAdminUserID(h.AuthStore)
+	adminID, err := auth.GetAdminUserID(ctx, h.AuthStore)
 	if err != nil {
 		slog.Error("Failed to get admin user ID", "error", err)
 		sendJSONError(w, "Internal server error", http.StatusInternalServerError)
@@ -148,7 +149,7 @@ func (h *Handler) APICreateRecipeHandler(w http.ResponseWriter, r *http.Request)
 		AuthorID:       adminID,
 	}
 
-	recipeID, err := h.RecipeStore.Save(recipe)
+	recipeID, err := h.RecipeStore.Save(ctx, recipe)
 	if err != nil {
 		slog.Error("Failed to save recipe via API", "error", err)
 		sendJSONError(w, "Failed to save recipe", http.StatusInternalServerError)
@@ -178,6 +179,7 @@ func APIHealthHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) APISearchIngredientsHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	if r.Method != http.MethodGet {
 		sendJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -190,7 +192,7 @@ func (h *Handler) APISearchIngredientsHandler(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	results, err := h.IngredientStore.Search(query, 10)
+	results, err := h.IngredientStore.Search(ctx, query, 10)
 	if err != nil {
 		slog.Error("Failed to search ingredients", "error", err)
 		sendJSONError(w, "Failed to search ingredients", http.StatusInternalServerError)
@@ -206,6 +208,7 @@ func (h *Handler) APISearchIngredientsHandler(w http.ResponseWriter, r *http.Req
 }
 
 func (h *Handler) APISearchRecipesHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	if r.Method != http.MethodGet {
 		sendJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -218,7 +221,7 @@ func (h *Handler) APISearchRecipesHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	results, err := h.RecipeStore.SearchByTitle(query, 10)
+	results, err := h.RecipeStore.SearchByTitle(ctx, query, 10)
 	if err != nil {
 		slog.Error("Failed to search recipes", "error", err)
 		sendJSONError(w, "Failed to search recipes", http.StatusInternalServerError)

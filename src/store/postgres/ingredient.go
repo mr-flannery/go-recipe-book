@@ -1,6 +1,7 @@
 package postgres
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"strings"
@@ -14,9 +15,9 @@ func NewIngredientStore(db *sql.DB) *IngredientStore {
 	return &IngredientStore{db: db}
 }
 
-func (s *IngredientStore) Search(query string, limit int) ([]string, error) {
+func (s *IngredientStore) Search(ctx context.Context, query string, limit int) ([]string, error) {
 	searchPattern := "%" + strings.ToLower(query) + "%"
-	rows, err := s.db.Query(
+	rows, err := s.db.QueryContext(ctx,
 		"SELECT name FROM ingredients WHERE LOWER(name) LIKE $1 ORDER BY name LIMIT $2",
 		searchPattern, limit,
 	)
@@ -37,11 +38,11 @@ func (s *IngredientStore) Search(query string, limit int) ([]string, error) {
 	return results, rows.Err()
 }
 
-func (s *IngredientStore) GetOrCreate(name string) (int, error) {
+func (s *IngredientStore) GetOrCreate(ctx context.Context, name string) (int, error) {
 	normalizedName := strings.ToLower(strings.TrimSpace(name))
 
 	var id int
-	err := s.db.QueryRow(
+	err := s.db.QueryRowContext(ctx,
 		"INSERT INTO ingredients (name) VALUES ($1) ON CONFLICT (name) DO UPDATE SET name = EXCLUDED.name RETURNING id",
 		normalizedName,
 	).Scan(&id)
