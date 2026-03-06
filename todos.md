@@ -24,14 +24,16 @@
   - alerts
   - traces?
 
-- SEO/performance testing
-  - can I use gzip and shit like this?
+- honeycomb integration should probalby also not be done when running on localhost/in dev mode
+
+- performance testing
 
 - browser tests in CI
   - fix mobile tests
 
 - login should work with both username and email address
   - which requires username to be unique
+
 
 - cmd enter doesnt' seem to work any more since reworking the action buttons
   - the fuck. it has created the recipe 3 times.

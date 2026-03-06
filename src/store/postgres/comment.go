@@ -1,6 +1,7 @@
 package postgres
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"time"
@@ -16,8 +17,8 @@ func NewCommentStore(db *sql.DB) *CommentStore {
 	return &CommentStore{db: db}
 }
 
-func (s *CommentStore) GetByRecipeID(recipeID string) ([]models.Comment, error) {
-	rows, err := s.db.Query("SELECT id, recipe_id, author_id, content_md, created_at, updated_at FROM comments WHERE recipe_id = $1 ORDER BY created_at DESC", recipeID)
+func (s *CommentStore) GetByRecipeID(ctx context.Context, recipeID string) ([]models.Comment, error) {
+	rows, err := s.db.QueryContext(ctx, "SELECT id, recipe_id, author_id, content_md, created_at, updated_at FROM comments WHERE recipe_id = $1 ORDER BY created_at DESC", recipeID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch comments: %v", err)
 	}
@@ -39,18 +40,18 @@ func (s *CommentStore) GetByRecipeID(recipeID string) ([]models.Comment, error) 
 	return comments, nil
 }
 
-func (s *CommentStore) Save(comment models.Comment) error {
+func (s *CommentStore) Save(ctx context.Context, comment models.Comment) error {
 	query := `INSERT INTO comments (recipe_id, author_id, content_md, created_at, updated_at) 
 		VALUES ($1, $2, $3, $4, $5)`
 
-	_, err := s.db.Exec(query, comment.RecipeID, comment.AuthorID, comment.ContentMD, time.Now(), time.Now())
+	_, err := s.db.ExecContext(ctx, query, comment.RecipeID, comment.AuthorID, comment.ContentMD, time.Now(), time.Now())
 	return err
 }
 
-func (s *CommentStore) GetLatestByUserAndRecipe(userID int, recipeID int) (models.Comment, error) {
+func (s *CommentStore) GetLatestByUserAndRecipe(ctx context.Context, userID int, recipeID int) (models.Comment, error) {
 	var comment models.Comment
 
-	err := s.db.QueryRow(
+	err := s.db.QueryRowContext(ctx,
 		"SELECT id, recipe_id, author_id, content_md, created_at, updated_at FROM comments WHERE author_id = $1 AND recipe_id = $2 ORDER BY created_at DESC LIMIT 1",
 		userID, recipeID,
 	).Scan(&comment.ID, &comment.RecipeID, &comment.AuthorID, &comment.ContentMD, &comment.CreatedAt, &comment.UpdatedAt)
@@ -62,10 +63,10 @@ func (s *CommentStore) GetLatestByUserAndRecipe(userID int, recipeID int) (model
 	return comment, nil
 }
 
-func (s *CommentStore) GetByID(commentID int) (models.Comment, error) {
+func (s *CommentStore) GetByID(ctx context.Context, commentID int) (models.Comment, error) {
 	var comment models.Comment
 
-	err := s.db.QueryRow(
+	err := s.db.QueryRowContext(ctx,
 		"SELECT id, recipe_id, author_id, content_md, created_at, updated_at FROM comments WHERE id = $1",
 		commentID,
 	).Scan(&comment.ID, &comment.RecipeID, &comment.AuthorID, &comment.ContentMD, &comment.CreatedAt, &comment.UpdatedAt)
@@ -77,8 +78,8 @@ func (s *CommentStore) GetByID(commentID int) (models.Comment, error) {
 	return comment, nil
 }
 
-func (s *CommentStore) GetByUserID(userID int) ([]models.Comment, error) {
-	rows, err := s.db.Query(
+func (s *CommentStore) GetByUserID(ctx context.Context, userID int) ([]models.Comment, error) {
+	rows, err := s.db.QueryContext(ctx,
 		"SELECT id, recipe_id, author_id, content_md, created_at, updated_at FROM comments WHERE author_id = $1 ORDER BY created_at DESC",
 		userID,
 	)
@@ -103,15 +104,15 @@ func (s *CommentStore) GetByUserID(userID int) ([]models.Comment, error) {
 	return comments, nil
 }
 
-func (s *CommentStore) Update(commentID int, content string) error {
-	_, err := s.db.Exec(
+func (s *CommentStore) Update(ctx context.Context, commentID int, content string) error {
+	_, err := s.db.ExecContext(ctx,
 		"UPDATE comments SET content_md = $1, updated_at = $2 WHERE id = $3",
 		content, time.Now(), commentID,
 	)
 	return err
 }
 
-func (s *CommentStore) Delete(commentID int) error {
-	_, err := s.db.Exec("DELETE FROM comments WHERE id = $1", commentID)
+func (s *CommentStore) Delete(ctx context.Context, commentID int) error {
+	_, err := s.db.ExecContext(ctx, "DELETE FROM comments WHERE id = $1", commentID)
 	return err
 }

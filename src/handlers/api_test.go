@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -261,7 +262,7 @@ func TestAPISearchIngredientsHandler_ReturnsMatchingIngredients(t *testing.T) {
 
 	t.Run("returns matching ingredients from store", func(t *testing.T) {
 		mockIngredientStore := &mocks.MockIngredientStore{
-			SearchFunc: func(query string, limit int) ([]string, error) {
+			SearchFunc: func(ctx context.Context, query string, limit int) ([]string, error) {
 				if query == "flou" {
 					return []string{"flour", "all-purpose flour", "bread flour"}, nil
 				}
@@ -291,7 +292,7 @@ func TestAPISearchIngredientsHandler_ReturnsMatchingIngredients(t *testing.T) {
 
 	t.Run("returns error when store fails", func(t *testing.T) {
 		mockIngredientStore := &mocks.MockIngredientStore{
-			SearchFunc: func(query string, limit int) ([]string, error) {
+			SearchFunc: func(ctx context.Context, query string, limit int) ([]string, error) {
 				return nil, errors.New("database error")
 			},
 		}
@@ -344,7 +345,7 @@ func TestAPISearchRecipesHandler_ReturnsMatchingRecipes(t *testing.T) {
 
 	t.Run("returns matching recipes from store", func(t *testing.T) {
 		mockRecipeStore := &mocks.MockRecipeStore{
-			SearchByTitleFunc: func(query string, limit int) ([]models.RecipeSearchResult, error) {
+			SearchByTitleFunc: func(ctx context.Context, query string, limit int) ([]models.RecipeSearchResult, error) {
 				if query == "cake" {
 					return []models.RecipeSearchResult{
 						{ID: 1, Title: "Chocolate Cake"},
@@ -380,7 +381,7 @@ func TestAPISearchRecipesHandler_ReturnsMatchingRecipes(t *testing.T) {
 
 	t.Run("returns error when store fails", func(t *testing.T) {
 		mockRecipeStore := &mocks.MockRecipeStore{
-			SearchByTitleFunc: func(query string, limit int) ([]models.RecipeSearchResult, error) {
+			SearchByTitleFunc: func(ctx context.Context, query string, limit int) ([]models.RecipeSearchResult, error) {
 				return nil, errors.New("database error")
 			},
 		}
@@ -452,12 +453,12 @@ func TestAPICreateRecipeHandler_CreatesRecipeBasedOnInput(t *testing.T) {
 
 	t.Run("creates recipe and returns ID when input is valid", func(t *testing.T) {
 		mockAuthStore := &mocks.MockAuthStore{
-			GetUserIDByUsernameFunc: func(username string) (int, error) {
+			GetUserIDByUsernameFunc: func(ctx context.Context, username string) (int, error) {
 				return 1, nil
 			},
 		}
 		mockRecipeStore := &mocks.MockRecipeStore{
-			SaveFunc: func(recipe models.Recipe) (int, error) {
+			SaveFunc: func(ctx context.Context, recipe models.Recipe) (int, error) {
 				return 123, nil
 			},
 		}
@@ -496,13 +497,13 @@ func TestAPICreateRecipeHandler_CreatesRecipeBasedOnInput(t *testing.T) {
 
 	t.Run("decodes and stores base64 image when provided", func(t *testing.T) {
 		mockAuthStore := &mocks.MockAuthStore{
-			GetUserIDByUsernameFunc: func(username string) (int, error) {
+			GetUserIDByUsernameFunc: func(ctx context.Context, username string) (int, error) {
 				return 1, nil
 			},
 		}
 		var capturedRecipe models.Recipe
 		mockRecipeStore := &mocks.MockRecipeStore{
-			SaveFunc: func(recipe models.Recipe) (int, error) {
+			SaveFunc: func(ctx context.Context, recipe models.Recipe) (int, error) {
 				capturedRecipe = recipe
 				return 124, nil
 			},
@@ -535,13 +536,13 @@ func TestAPICreateRecipeHandler_CreatesRecipeBasedOnInput(t *testing.T) {
 
 	t.Run("strips data URI prefix before decoding image", func(t *testing.T) {
 		mockAuthStore := &mocks.MockAuthStore{
-			GetUserIDByUsernameFunc: func(username string) (int, error) {
+			GetUserIDByUsernameFunc: func(ctx context.Context, username string) (int, error) {
 				return 1, nil
 			},
 		}
 		var capturedRecipe models.Recipe
 		mockRecipeStore := &mocks.MockRecipeStore{
-			SaveFunc: func(recipe models.Recipe) (int, error) {
+			SaveFunc: func(ctx context.Context, recipe models.Recipe) (int, error) {
 				capturedRecipe = recipe
 				return 125, nil
 			},
@@ -574,7 +575,7 @@ func TestAPICreateRecipeHandler_CreatesRecipeBasedOnInput(t *testing.T) {
 
 	t.Run("returns error when base64 image is invalid", func(t *testing.T) {
 		mockAuthStore := &mocks.MockAuthStore{
-			GetUserIDByUsernameFunc: func(username string) (int, error) {
+			GetUserIDByUsernameFunc: func(ctx context.Context, username string) (int, error) {
 				return 1, nil
 			},
 		}
@@ -607,12 +608,12 @@ func TestAPICreateRecipeHandler_CreatesRecipeBasedOnInput(t *testing.T) {
 
 	t.Run("returns error when store fails to save recipe", func(t *testing.T) {
 		mockAuthStore := &mocks.MockAuthStore{
-			GetUserIDByUsernameFunc: func(username string) (int, error) {
+			GetUserIDByUsernameFunc: func(ctx context.Context, username string) (int, error) {
 				return 1, nil
 			},
 		}
 		mockRecipeStore := &mocks.MockRecipeStore{
-			SaveFunc: func(recipe models.Recipe) (int, error) {
+			SaveFunc: func(ctx context.Context, recipe models.Recipe) (int, error) {
 				return 0, errors.New("database error")
 			},
 		}

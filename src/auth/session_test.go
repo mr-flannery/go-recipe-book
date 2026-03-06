@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"net/http/httptest"
@@ -13,13 +14,13 @@ import (
 func TestCreateSession_ReturnsSessionWhenStoreSucceeds(t *testing.T) {
 	var capturedSession *store.Session
 	mockStore := &mocks.MockAuthStore{
-		CreateSessionFunc: func(session *store.Session) error {
+		CreateSessionFunc: func(ctx context.Context, session *store.Session) error {
 			capturedSession = session
 			return nil
 		},
 	}
 
-	session, err := CreateSession(mockStore, 1, "192.168.1.1", "Mozilla/5.0")
+	session, err := CreateSession(context.Background(), mockStore, 1, "192.168.1.1", "Mozilla/5.0")
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -48,12 +49,12 @@ func TestCreateSession_ReturnsSessionWhenStoreSucceeds(t *testing.T) {
 
 func TestCreateSession_ReturnsErrorWhenStoreFails(t *testing.T) {
 	mockStore := &mocks.MockAuthStore{
-		CreateSessionFunc: func(session *store.Session) error {
+		CreateSessionFunc: func(ctx context.Context, session *store.Session) error {
 			return errors.New("database error")
 		},
 	}
 
-	session, err := CreateSession(mockStore, 1, "192.168.1.1", "Mozilla/5.0")
+	session, err := CreateSession(context.Background(), mockStore, 1, "192.168.1.1", "Mozilla/5.0")
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
@@ -64,7 +65,7 @@ func TestCreateSession_ReturnsErrorWhenStoreFails(t *testing.T) {
 
 func TestValidateSession_ReturnsSessionWhenItExists(t *testing.T) {
 	mockStore := &mocks.MockAuthStore{
-		GetSessionFunc: func(sessionID string) (*store.Session, error) {
+		GetSessionFunc: func(ctx context.Context, sessionID string) (*store.Session, error) {
 			return &store.Session{
 				ID:        sessionID,
 				UserID:    42,
@@ -74,7 +75,7 @@ func TestValidateSession_ReturnsSessionWhenItExists(t *testing.T) {
 		},
 	}
 
-	session, err := ValidateSession(mockStore, "test-session-id")
+	session, err := ValidateSession(context.Background(), mockStore, "test-session-id")
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -91,12 +92,12 @@ func TestValidateSession_ReturnsSessionWhenItExists(t *testing.T) {
 
 func TestValidateSession_ReturnsErrorWhenSessionNotFound(t *testing.T) {
 	mockStore := &mocks.MockAuthStore{
-		GetSessionFunc: func(sessionID string) (*store.Session, error) {
+		GetSessionFunc: func(ctx context.Context, sessionID string) (*store.Session, error) {
 			return nil, errors.New("session not found")
 		},
 	}
 
-	session, err := ValidateSession(mockStore, "nonexistent")
+	session, err := ValidateSession(context.Background(), mockStore, "nonexistent")
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
@@ -108,13 +109,13 @@ func TestValidateSession_ReturnsErrorWhenSessionNotFound(t *testing.T) {
 func TestInvalidateSession_DeletesSessionFromStore(t *testing.T) {
 	deletedSessionID := ""
 	mockStore := &mocks.MockAuthStore{
-		DeleteSessionFunc: func(sessionID string) error {
+		DeleteSessionFunc: func(ctx context.Context, sessionID string) error {
 			deletedSessionID = sessionID
 			return nil
 		},
 	}
 
-	err := InvalidateSession(mockStore, "session-to-delete")
+	err := InvalidateSession(context.Background(), mockStore, "session-to-delete")
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -126,13 +127,13 @@ func TestInvalidateSession_DeletesSessionFromStore(t *testing.T) {
 func TestInvalidateAllUserSessions_DeletesAllSessionsForUser(t *testing.T) {
 	deletedUserID := 0
 	mockStore := &mocks.MockAuthStore{
-		DeleteUserSessionsFunc: func(userID int) error {
+		DeleteUserSessionsFunc: func(ctx context.Context, userID int) error {
 			deletedUserID = userID
 			return nil
 		},
 	}
 
-	err := InvalidateAllUserSessions(mockStore, 123)
+	err := InvalidateAllUserSessions(context.Background(), mockStore, 123)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -144,12 +145,12 @@ func TestInvalidateAllUserSessions_DeletesAllSessionsForUser(t *testing.T) {
 func TestCleanupExpiredSessions_RemovesExpiredSessionsFromStore(t *testing.T) {
 	t.Run("successfully removes expired sessions", func(t *testing.T) {
 		mockStore := &mocks.MockAuthStore{
-			DeleteExpiredSessionsFunc: func() (int64, error) {
+			DeleteExpiredSessionsFunc: func(ctx context.Context) (int64, error) {
 				return 5, nil
 			},
 		}
 
-		err := CleanupExpiredSessions(mockStore)
+		err := CleanupExpiredSessions(context.Background(), mockStore)
 		if err != nil {
 			t.Fatalf("expected no error, got %v", err)
 		}
@@ -157,12 +158,12 @@ func TestCleanupExpiredSessions_RemovesExpiredSessionsFromStore(t *testing.T) {
 
 	t.Run("returns error when store fails", func(t *testing.T) {
 		mockStore := &mocks.MockAuthStore{
-			DeleteExpiredSessionsFunc: func() (int64, error) {
+			DeleteExpiredSessionsFunc: func(ctx context.Context) (int64, error) {
 				return 0, errors.New("database error")
 			},
 		}
 
-		err := CleanupExpiredSessions(mockStore)
+		err := CleanupExpiredSessions(context.Background(), mockStore)
 		if err == nil {
 			t.Fatal("expected error, got nil")
 		}
@@ -172,13 +173,13 @@ func TestCleanupExpiredSessions_RemovesExpiredSessionsFromStore(t *testing.T) {
 func TestExtendSession_ExtendsSessionExpiryInStore(t *testing.T) {
 	extendedSessionID := ""
 	mockStore := &mocks.MockAuthStore{
-		ExtendSessionFunc: func(sessionID string) error {
+		ExtendSessionFunc: func(ctx context.Context, sessionID string) error {
 			extendedSessionID = sessionID
 			return nil
 		},
 	}
 
-	err := ExtendSession(mockStore, "extend-me")
+	err := ExtendSession(context.Background(), mockStore, "extend-me")
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -189,7 +190,7 @@ func TestExtendSession_ExtendsSessionExpiryInStore(t *testing.T) {
 
 func TestGetActiveSessionCount_ReturnsCountOfActiveSessionsForUser(t *testing.T) {
 	mockStore := &mocks.MockAuthStore{
-		GetActiveSessionCountFunc: func(userID int) (int, error) {
+		GetActiveSessionCountFunc: func(ctx context.Context, userID int) (int, error) {
 			if userID == 1 {
 				return 3, nil
 			}
@@ -197,7 +198,7 @@ func TestGetActiveSessionCount_ReturnsCountOfActiveSessionsForUser(t *testing.T)
 		},
 	}
 
-	count, err := GetActiveSessionCount(mockStore, 1)
+	count, err := GetActiveSessionCount(context.Background(), mockStore, 1)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -326,7 +327,7 @@ func TestGetClientIP_ExtractsIPFromHeadersOrRemoteAddr(t *testing.T) {
 
 func TestValidateSessionWithContext_ReturnsSessionWhenValid(t *testing.T) {
 	mockStore := &mocks.MockAuthStore{
-		GetSessionFunc: func(sessionID string) (*store.Session, error) {
+		GetSessionFunc: func(ctx context.Context, sessionID string) (*store.Session, error) {
 			return &store.Session{
 				ID:        sessionID,
 				UserID:    1,
@@ -336,7 +337,7 @@ func TestValidateSessionWithContext_ReturnsSessionWhenValid(t *testing.T) {
 		},
 	}
 
-	session, err := ValidateSessionWithContext(mockStore, "test-session", "10.0.0.1", "TestBrowser")
+	session, err := ValidateSessionWithContext(context.Background(), mockStore, "test-session", "10.0.0.1", "TestBrowser")
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}

@@ -23,6 +23,7 @@ func (h *Handler) GetCreateRecipeHandler(w http.ResponseWriter, r *http.Request)
 }
 
 func (h *Handler) PostCreateRecipeHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	err := r.ParseMultipartForm(10 << 20)
 	if err != nil {
 		slog.Error("Failed to parse multipart form", "error", err)
@@ -30,7 +31,7 @@ func (h *Handler) PostCreateRecipeHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	user, err := auth.GetUserBySession(h.AuthStore, r)
+	user, err := auth.GetUserBySession(ctx, h.AuthStore, r)
 	if err != nil {
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
@@ -112,7 +113,7 @@ func (h *Handler) PostCreateRecipeHandler(w http.ResponseWriter, r *http.Request
 		AuthorID:       user.ID,
 	}
 
-	recipeID, err := h.RecipeStore.Save(recipe)
+	recipeID, err := h.RecipeStore.Save(ctx, recipe)
 	if err != nil {
 		slog.Error("Failed to save recipe", "error", err)
 		http.Error(w, fmt.Sprintf("Failed to save recipe: %v", err), http.StatusInternalServerError)
@@ -122,7 +123,7 @@ func (h *Handler) PostCreateRecipeHandler(w http.ResponseWriter, r *http.Request
 	tagsStr := r.FormValue("tags")
 	if tagsStr != "" {
 		tagNames := strings.Split(tagsStr, ",")
-		if err := h.TagStore.SetRecipeTags(recipeID, tagNames); err != nil {
+		if err := h.TagStore.SetRecipeTags(ctx, recipeID, tagNames); err != nil {
 			slog.Error("Failed to set recipe tags", "error", err)
 		}
 	}
@@ -132,14 +133,15 @@ func (h *Handler) PostCreateRecipeHandler(w http.ResponseWriter, r *http.Request
 }
 
 func (h *Handler) ListRecipesHandler(w http.ResponseWriter, r *http.Request) {
-	userInfo := auth.GetUserInfoFromContext(r.Context())
+	ctx := r.Context()
+	userInfo := auth.GetUserInfoFromContext(ctx)
 	var currentUser *auth.User
 	pageSize := models.DefaultPageSize
 	viewMode := models.DefaultViewMode
 
 	if userInfo.IsLoggedIn {
-		currentUser, _ = auth.GetUserBySession(h.AuthStore, r)
-		if prefs, err := h.UserPreferencesStore.Get(currentUser.ID); err == nil {
+		currentUser, _ = auth.GetUserBySession(ctx, h.AuthStore, r)
+		if prefs, err := h.UserPreferencesStore.Get(ctx, currentUser.ID); err == nil {
 			pageSize = prefs.PageSize
 			if prefs.ViewMode != "" {
 				viewMode = prefs.ViewMode
@@ -228,7 +230,7 @@ func (h *Handler) ListRecipesHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	recipes, err := h.RecipeStore.GetFiltered(filterParams)
+	recipes, err := h.RecipeStore.GetFiltered(ctx, filterParams)
 	if err != nil {
 		h.Renderer.RenderError(w, r, http.StatusInternalServerError, "Failed to fetch recipes. Please try again later.")
 		return
@@ -237,20 +239,20 @@ func (h *Handler) ListRecipesHandler(w http.ResponseWriter, r *http.Request) {
 	countParams := filterParams
 	countParams.Limit = 0
 	countParams.Offset = 0
-	totalCount, _ := h.RecipeStore.CountFiltered(countParams)
+	totalCount, _ := h.RecipeStore.CountFiltered(ctx, countParams)
 
 	recipeIDs := make([]int, len(recipes))
-	for i, r := range recipes {
-		recipeIDs[i] = r.ID
+	for i, rec := range recipes {
+		recipeIDs[i] = rec.ID
 	}
-	tagsMap, _ := h.TagStore.GetForRecipes(recipeIDs)
+	tagsMap, _ := h.TagStore.GetForRecipes(ctx, recipeIDs)
 
 	for i := range recipes {
 		recipes[i].Tags = tagsMap[recipes[i].ID]
 	}
 
 	if userInfo.IsLoggedIn && currentUser != nil {
-		userTagsMap, _ := h.UserTagStore.GetForRecipes(currentUser.ID, recipeIDs)
+		userTagsMap, _ := h.UserTagStore.GetForRecipes(ctx, currentUser.ID, recipeIDs)
 		for i := range recipes {
 			recipes[i].UserTags = userTagsMap[recipes[i].ID]
 		}
@@ -280,14 +282,15 @@ func (h *Handler) ListRecipesHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) GetUpdateRecipeHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	recipeID := r.PathValue("id")
-	recipe, err := h.RecipeStore.GetByID(recipeID)
+	recipe, err := h.RecipeStore.GetByID(ctx, recipeID)
 	if err != nil {
 		h.Renderer.RenderError(w, r, http.StatusNotFound, "The recipe you're looking for doesn't exist or has been removed.")
 		return
 	}
 
-	currentUser, err := auth.GetUserBySession(h.AuthStore, r)
+	currentUser, err := auth.GetUserBySession(ctx, h.AuthStore, r)
 	if err != nil {
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
@@ -299,20 +302,21 @@ func (h *Handler) GetUpdateRecipeHandler(w http.ResponseWriter, r *http.Request)
 	}
 
 	recipeIDInt, _ := strconv.Atoi(recipeID)
-	recipe.Tags, _ = h.TagStore.GetByRecipeID(recipeIDInt)
+	recipe.Tags, _ = h.TagStore.GetByRecipeID(ctx, recipeIDInt)
 
 	data := struct {
 		Recipe   models.Recipe
 		UserInfo *auth.UserInfo
 	}{
 		Recipe:   recipe,
-		UserInfo: auth.GetUserInfoFromContext(r.Context()),
+		UserInfo: auth.GetUserInfoFromContext(ctx),
 	}
 
 	h.Renderer.RenderPage(w, "update.gohtml", data)
 }
 
 func (h *Handler) PostUpdateRecipeHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	recipeID, err := strconv.Atoi(r.PathValue("id"))
 	if err != nil {
 		slog.Error("Invalid recipe ID", "id", r.PathValue("id"), "error", err)
@@ -327,13 +331,13 @@ func (h *Handler) PostUpdateRecipeHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	user, err := auth.GetUserBySession(h.AuthStore, r)
+	user, err := auth.GetUserBySession(ctx, h.AuthStore, r)
 	if err != nil {
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
 	}
 
-	existingRecipe, err := h.RecipeStore.GetByID(strconv.Itoa(recipeID))
+	existingRecipe, err := h.RecipeStore.GetByID(ctx, strconv.Itoa(recipeID))
 	if err != nil {
 		slog.Error("Recipe not found", "id", recipeID, "error", err)
 		http.Error(w, "Recipe not found", http.StatusNotFound)
@@ -402,7 +406,7 @@ func (h *Handler) PostUpdateRecipeHandler(w http.ResponseWriter, r *http.Request
 		AuthorID:       user.ID,
 	}
 
-	if err := h.RecipeStore.Update(updatedRecipe); err != nil {
+	if err := h.RecipeStore.Update(ctx, updatedRecipe); err != nil {
 		slog.Error("Failed to update recipe", "error", err)
 		http.Error(w, "Failed to update recipe", http.StatusInternalServerError)
 		return
@@ -411,11 +415,11 @@ func (h *Handler) PostUpdateRecipeHandler(w http.ResponseWriter, r *http.Request
 	tagsStr := r.FormValue("tags")
 	if tagsStr != "" {
 		tagNames := strings.Split(tagsStr, ",")
-		if err := h.TagStore.SetRecipeTags(recipeID, tagNames); err != nil {
+		if err := h.TagStore.SetRecipeTags(ctx, recipeID, tagNames); err != nil {
 			slog.Error("Failed to set recipe tags", "error", err)
 		}
 	} else {
-		if err := h.TagStore.SetRecipeTags(recipeID, []string{}); err != nil {
+		if err := h.TagStore.SetRecipeTags(ctx, recipeID, []string{}); err != nil {
 			slog.Error("Failed to clear recipe tags", "error", err)
 		}
 	}
@@ -425,13 +429,14 @@ func (h *Handler) PostUpdateRecipeHandler(w http.ResponseWriter, r *http.Request
 }
 
 func (h *Handler) ViewRecipeHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	recipeID := r.PathValue("id")
 	if recipeID == "" {
 		h.Renderer.RenderError(w, r, http.StatusBadRequest, "No recipe specified.")
 		return
 	}
 
-	recipe, err := h.RecipeStore.GetByID(recipeID)
+	recipe, err := h.RecipeStore.GetByID(ctx, recipeID)
 	if err != nil {
 		h.Renderer.RenderError(w, r, http.StatusNotFound, "The recipe you're looking for doesn't exist or has been removed.")
 		return
@@ -439,23 +444,23 @@ func (h *Handler) ViewRecipeHandler(w http.ResponseWriter, r *http.Request) {
 
 	recipeIDInt, _ := strconv.Atoi(recipeID)
 
-	comments, err := h.CommentStore.GetByRecipeID(recipeID)
+	comments, err := h.CommentStore.GetByRecipeID(ctx, recipeID)
 	if err != nil {
 		h.Renderer.RenderError(w, r, http.StatusInternalServerError, "Failed to load comments. Please try again later.")
 		return
 	}
 
-	recipe.Tags, _ = h.TagStore.GetByRecipeID(recipeIDInt)
+	recipe.Tags, _ = h.TagStore.GetByRecipeID(ctx, recipeIDInt)
 
-	userInfo := auth.GetUserInfoFromContext(r.Context())
+	userInfo := auth.GetUserInfoFromContext(ctx)
 
-	currentUser, err := auth.GetUserBySession(h.AuthStore, r)
+	currentUser, err := auth.GetUserBySession(ctx, h.AuthStore, r)
 	isLoggedIn := err == nil
 	isRecipeAuthor := isLoggedIn && currentUser.ID == recipe.AuthorID
 
 	var commentsWithUsernames []CommentTemplateData
 	for _, comment := range comments {
-		username, err := h.UserStore.GetUsernameByID(comment.AuthorID)
+		username, err := h.UserStore.GetUsernameByID(ctx, comment.AuthorID)
 		if err != nil {
 			username = "Unknown User"
 		}
@@ -469,7 +474,7 @@ func (h *Handler) ViewRecipeHandler(w http.ResponseWriter, r *http.Request) {
 
 	var userTags []models.UserTag
 	if isLoggedIn {
-		userTags, _ = h.UserTagStore.GetByRecipeID(currentUser.ID, recipeIDInt)
+		userTags, _ = h.UserTagStore.GetByRecipeID(ctx, currentUser.ID, recipeIDInt)
 	}
 
 	data := struct {
@@ -494,13 +499,14 @@ func (h *Handler) ViewRecipeHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) CommentHTMXHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	recipeID := r.PathValue("id")
 	if recipeID == "" {
 		http.Error(w, "Recipe ID is required", http.StatusBadRequest)
 		return
 	}
 
-	user, err := auth.GetUserBySession(h.AuthStore, r)
+	user, err := auth.GetUserBySession(ctx, h.AuthStore, r)
 	if err != nil {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
@@ -525,12 +531,12 @@ func (h *Handler) CommentHTMXHandler(w http.ResponseWriter, r *http.Request) {
 		ContentMD: commentContent,
 	}
 
-	if err := h.CommentStore.Save(comment); err != nil {
+	if err := h.CommentStore.Save(ctx, comment); err != nil {
 		http.Error(w, fmt.Sprintf("Failed to save comment: %v", err), http.StatusInternalServerError)
 		return
 	}
 
-	savedComment, err := h.CommentStore.GetLatestByUserAndRecipe(user.ID, recipeIDInt)
+	savedComment, err := h.CommentStore.GetLatestByUserAndRecipe(ctx, user.ID, recipeIDInt)
 	if err != nil {
 		http.Error(w, "Failed to retrieve saved comment", http.StatusInternalServerError)
 		return
@@ -552,6 +558,7 @@ type CommentTemplateData struct {
 }
 
 func (h *Handler) UpdateCommentHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	commentIDStr := r.PathValue("id")
 	if commentIDStr == "" {
 		http.Error(w, "Comment ID is required", http.StatusBadRequest)
@@ -564,13 +571,13 @@ func (h *Handler) UpdateCommentHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := auth.GetUserBySession(h.AuthStore, r)
+	user, err := auth.GetUserBySession(ctx, h.AuthStore, r)
 	if err != nil {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
-	comment, err := h.CommentStore.GetByID(commentID)
+	comment, err := h.CommentStore.GetByID(ctx, commentID)
 	if err != nil {
 		http.Error(w, "Comment not found", http.StatusNotFound)
 		return
@@ -588,12 +595,12 @@ func (h *Handler) UpdateCommentHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.CommentStore.Update(commentID, newContent); err != nil {
+	if err := h.CommentStore.Update(ctx, commentID, newContent); err != nil {
 		http.Error(w, "Failed to update comment", http.StatusInternalServerError)
 		return
 	}
 
-	updatedComment, err := h.CommentStore.GetByID(commentID)
+	updatedComment, err := h.CommentStore.GetByID(ctx, commentID)
 	if err != nil {
 		http.Error(w, "Failed to retrieve updated comment", http.StatusInternalServerError)
 		return
@@ -609,6 +616,7 @@ func (h *Handler) UpdateCommentHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) DeleteCommentHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	commentIDStr := r.PathValue("id")
 	if commentIDStr == "" {
 		http.Error(w, "Comment ID is required", http.StatusBadRequest)
@@ -621,13 +629,13 @@ func (h *Handler) DeleteCommentHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := auth.GetUserBySession(h.AuthStore, r)
+	user, err := auth.GetUserBySession(ctx, h.AuthStore, r)
 	if err != nil {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
-	comment, err := h.CommentStore.GetByID(commentID)
+	comment, err := h.CommentStore.GetByID(ctx, commentID)
 	if err != nil {
 		http.Error(w, "Comment not found", http.StatusNotFound)
 		return
@@ -638,7 +646,7 @@ func (h *Handler) DeleteCommentHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.CommentStore.Delete(commentID); err != nil {
+	if err := h.CommentStore.Delete(ctx, commentID); err != nil {
 		http.Error(w, "Failed to delete comment", http.StatusInternalServerError)
 		return
 	}
@@ -647,19 +655,20 @@ func (h *Handler) DeleteCommentHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) DeleteRecipeHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	recipeID := r.PathValue("id")
 	if recipeID == "" {
 		http.Error(w, "Recipe ID is required", http.StatusBadRequest)
 		return
 	}
 
-	currentUser, err := auth.GetUserBySession(h.AuthStore, r)
+	currentUser, err := auth.GetUserBySession(ctx, h.AuthStore, r)
 	if err != nil {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
-	recipe, err := h.RecipeStore.GetByID(recipeID)
+	recipe, err := h.RecipeStore.GetByID(ctx, recipeID)
 	if err != nil {
 		http.Error(w, "Recipe not found", http.StatusNotFound)
 		return
@@ -670,7 +679,7 @@ func (h *Handler) DeleteRecipeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.RecipeStore.Delete(recipeID); err != nil {
+	if err := h.RecipeStore.Delete(ctx, recipeID); err != nil {
 		http.Error(w, "Failed to delete recipe", http.StatusInternalServerError)
 		return
 	}
@@ -680,7 +689,8 @@ func (h *Handler) DeleteRecipeHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) RandomRecipeHandler(w http.ResponseWriter, r *http.Request) {
-	recipeID, err := h.RecipeStore.GetRandomID()
+	ctx := r.Context()
+	recipeID, err := h.RecipeStore.GetRandomID(ctx)
 	if err != nil {
 		slog.Error("Failed to get random recipe", "error", err)
 		http.Redirect(w, r, "/recipes", http.StatusSeeOther)
@@ -691,9 +701,10 @@ func (h *Handler) RandomRecipeHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) FilterRecipesHTMXHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	r.ParseForm()
 
-	currentUser, err := auth.GetUserBySession(h.AuthStore, r)
+	currentUser, err := auth.GetUserBySession(ctx, h.AuthStore, r)
 	isLoggedIn := err == nil
 
 	pageSize := models.DefaultPageSize
@@ -703,7 +714,7 @@ func (h *Handler) FilterRecipesHTMXHandler(w http.ResponseWriter, r *http.Reques
 			pageSize = ps
 		}
 	} else if isLoggedIn {
-		if prefs, err := h.UserPreferencesStore.Get(currentUser.ID); err == nil {
+		if prefs, err := h.UserPreferencesStore.Get(ctx, currentUser.ID); err == nil {
 			pageSize = prefs.PageSize
 		}
 	}
@@ -711,10 +722,10 @@ func (h *Handler) FilterRecipesHTMXHandler(w http.ResponseWriter, r *http.Reques
 	if vm := r.FormValue("view_mode"); vm == models.ViewModeGrid || vm == models.ViewModeList {
 		viewMode = vm
 		if isLoggedIn {
-			h.UserPreferencesStore.SetViewMode(currentUser.ID, vm)
+			h.UserPreferencesStore.SetViewMode(ctx, currentUser.ID, vm)
 		}
 	} else if isLoggedIn {
-		if prefs, err := h.UserPreferencesStore.Get(currentUser.ID); err == nil && prefs.ViewMode != "" {
+		if prefs, err := h.UserPreferencesStore.Get(ctx, currentUser.ID); err == nil && prefs.ViewMode != "" {
 			viewMode = prefs.ViewMode
 		}
 	}
@@ -798,7 +809,7 @@ func (h *Handler) FilterRecipesHTMXHandler(w http.ResponseWriter, r *http.Reques
 
 	slog.Info("Filtering recipes", "params", filterParams, "page", currentPage)
 
-	recipes, err := h.RecipeStore.GetFiltered(filterParams)
+	recipes, err := h.RecipeStore.GetFiltered(ctx, filterParams)
 	if err != nil {
 		slog.Error("Failed to fetch filtered recipes", "error", err)
 		http.Error(w, "Failed to fetch filtered recipes", http.StatusInternalServerError)
@@ -808,20 +819,20 @@ func (h *Handler) FilterRecipesHTMXHandler(w http.ResponseWriter, r *http.Reques
 	countParams := filterParams
 	countParams.Limit = 0
 	countParams.Offset = 0
-	totalCount, _ := h.RecipeStore.CountFiltered(countParams)
+	totalCount, _ := h.RecipeStore.CountFiltered(ctx, countParams)
 
 	recipeIDs := make([]int, len(recipes))
-	for i, r := range recipes {
-		recipeIDs[i] = r.ID
+	for i, rec := range recipes {
+		recipeIDs[i] = rec.ID
 	}
-	tagsMap, _ := h.TagStore.GetForRecipes(recipeIDs)
+	tagsMap, _ := h.TagStore.GetForRecipes(ctx, recipeIDs)
 
 	for i := range recipes {
 		recipes[i].Tags = tagsMap[recipes[i].ID]
 	}
 
 	if isLoggedIn {
-		userTagsMap, _ := h.UserTagStore.GetForRecipes(currentUser.ID, recipeIDs)
+		userTagsMap, _ := h.UserTagStore.GetForRecipes(ctx, currentUser.ID, recipeIDs)
 		for i := range recipes {
 			recipes[i].UserTags = userTagsMap[recipes[i].ID]
 		}
@@ -849,7 +860,8 @@ func (h *Handler) FilterRecipesHTMXHandler(w http.ResponseWriter, r *http.Reques
 }
 
 func (h *Handler) SetPageSizeHandler(w http.ResponseWriter, r *http.Request) {
-	currentUser, err := auth.GetUserBySession(h.AuthStore, r)
+	ctx := r.Context()
+	currentUser, err := auth.GetUserBySession(ctx, h.AuthStore, r)
 	if err != nil {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
@@ -863,7 +875,7 @@ func (h *Handler) SetPageSizeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.UserPreferencesStore.SetPageSize(currentUser.ID, pageSize); err != nil {
+	if err := h.UserPreferencesStore.SetPageSize(ctx, currentUser.ID, pageSize); err != nil {
 		slog.Error("Failed to save page size preference", "error", err)
 		http.Error(w, "Failed to save preference", http.StatusInternalServerError)
 		return
@@ -873,7 +885,8 @@ func (h *Handler) SetPageSizeHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) SetViewModeHandler(w http.ResponseWriter, r *http.Request) {
-	currentUser, err := auth.GetUserBySession(h.AuthStore, r)
+	ctx := r.Context()
+	currentUser, err := auth.GetUserBySession(ctx, h.AuthStore, r)
 	if err != nil {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
@@ -886,7 +899,7 @@ func (h *Handler) SetViewModeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.UserPreferencesStore.SetViewMode(currentUser.ID, viewMode); err != nil {
+	if err := h.UserPreferencesStore.SetViewMode(ctx, currentUser.ID, viewMode); err != nil {
 		slog.Error("Failed to save view mode preference", "error", err)
 		http.Error(w, "Failed to save preference", http.StatusInternalServerError)
 		return

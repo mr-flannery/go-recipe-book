@@ -1,6 +1,7 @@
 package postgres
 
 import (
+	"context"
 	"testing"
 
 	"github.com/mr-flannery/go-recipe-book/src/testutil"
@@ -14,7 +15,7 @@ func TestUserTagStore_GetOrCreate_CreatesNewUserTag(t *testing.T) {
 	recipeID := testDB.SeedRecipe(t, "Test Recipe", "- flour", "Mix it", userID)
 	store := NewUserTagStore(testDB.DB)
 
-	tag, err := store.GetOrCreate(userID, recipeID, "favorite")
+	tag, err := store.GetOrCreate(context.Background(), userID, recipeID, "favorite")
 	if err != nil {
 		t.Fatalf("failed to create user tag: %v", err)
 	}
@@ -39,7 +40,7 @@ func TestUserTagStore_GetOrCreate_ReturnsExistingUserTag(t *testing.T) {
 	existingTagID := testDB.SeedUserTag(t, userID, recipeID, "favorite")
 	store := NewUserTagStore(testDB.DB)
 
-	tag, err := store.GetOrCreate(userID, recipeID, "favorite")
+	tag, err := store.GetOrCreate(context.Background(), userID, recipeID, "favorite")
 	if err != nil {
 		t.Fatalf("failed to get existing user tag: %v", err)
 	}
@@ -57,7 +58,7 @@ func TestUserTagStore_GetOrCreate_NormalizesTagName(t *testing.T) {
 	recipeID := testDB.SeedRecipe(t, "Test Recipe", "- flour", "Mix it", userID)
 	store := NewUserTagStore(testDB.DB)
 
-	tag, err := store.GetOrCreate(userID, recipeID, "  FAVORITE  ")
+	tag, err := store.GetOrCreate(context.Background(), userID, recipeID, "  FAVORITE  ")
 	if err != nil {
 		t.Fatalf("failed to create user tag: %v", err)
 	}
@@ -75,7 +76,7 @@ func TestUserTagStore_GetOrCreate_ReturnsErrorForEmptyName(t *testing.T) {
 	recipeID := testDB.SeedRecipe(t, "Test Recipe", "- flour", "Mix it", userID)
 	store := NewUserTagStore(testDB.DB)
 
-	_, err := store.GetOrCreate(userID, recipeID, "   ")
+	_, err := store.GetOrCreate(context.Background(), userID, recipeID, "   ")
 	if err == nil {
 		t.Error("expected error for empty tag name")
 	}
@@ -92,7 +93,7 @@ func TestUserTagStore_Search_FindsMatchingTags(t *testing.T) {
 	testDB.SeedUserTag(t, userID, recipeID, "healthy")
 	store := NewUserTagStore(testDB.DB)
 
-	tags, err := store.Search(userID, "fa")
+	tags, err := store.Search(context.Background(), userID, "fa")
 	if err != nil {
 		t.Fatalf("failed to search user tags: %v", err)
 	}
@@ -113,7 +114,7 @@ func TestUserTagStore_Search_ReturnsDistinctTags(t *testing.T) {
 	testDB.SeedUserTag(t, userID, recipe2ID, "favorite")
 	store := NewUserTagStore(testDB.DB)
 
-	tags, err := store.Search(userID, "fav")
+	tags, err := store.Search(context.Background(), userID, "fav")
 	if err != nil {
 		t.Fatalf("failed to search user tags: %v", err)
 	}
@@ -133,7 +134,7 @@ func TestUserTagStore_GetByRecipeID_ReturnsUserTagsForRecipe(t *testing.T) {
 	testDB.SeedUserTag(t, userID, recipeID, "to-try")
 	store := NewUserTagStore(testDB.DB)
 
-	tags, err := store.GetByRecipeID(userID, recipeID)
+	tags, err := store.GetByRecipeID(context.Background(), userID, recipeID)
 	if err != nil {
 		t.Fatalf("failed to get user tags: %v", err)
 	}
@@ -154,7 +155,7 @@ func TestUserTagStore_GetByRecipeID_ReturnsOnlyUserOwnTags(t *testing.T) {
 	testDB.SeedUserTag(t, user2ID, recipeID, "user2-tag")
 	store := NewUserTagStore(testDB.DB)
 
-	tags, err := store.GetByRecipeID(user1ID, recipeID)
+	tags, err := store.GetByRecipeID(context.Background(), user1ID, recipeID)
 	if err != nil {
 		t.Fatalf("failed to get user tags: %v", err)
 	}
@@ -178,7 +179,7 @@ func TestUserTagStore_GetForRecipes_ReturnsTagsForMultipleRecipes(t *testing.T) 
 	testDB.SeedUserTag(t, userID, recipe2ID, "to-try")
 	store := NewUserTagStore(testDB.DB)
 
-	tagsMap, err := store.GetForRecipes(userID, []int{recipe1ID, recipe2ID})
+	tagsMap, err := store.GetForRecipes(context.Background(), userID, []int{recipe1ID, recipe2ID})
 	if err != nil {
 		t.Fatalf("failed to get user tags for recipes: %v", err)
 	}
@@ -198,7 +199,7 @@ func TestUserTagStore_GetForRecipes_ReturnsEmptyMapForEmptyInput(t *testing.T) {
 	userID := testDB.SeedUser(t, "testuser", "test@example.com", "hashedpassword", false)
 	store := NewUserTagStore(testDB.DB)
 
-	tagsMap, err := store.GetForRecipes(userID, []int{})
+	tagsMap, err := store.GetForRecipes(context.Background(), userID, []int{})
 	if err != nil {
 		t.Fatalf("failed to get user tags for empty recipes: %v", err)
 	}
@@ -217,12 +218,12 @@ func TestUserTagStore_Remove_RemovesUserTag(t *testing.T) {
 	tagID := testDB.SeedUserTag(t, userID, recipeID, "to-remove")
 	store := NewUserTagStore(testDB.DB)
 
-	err := store.Remove(userID, tagID)
+	err := store.Remove(context.Background(), userID, tagID)
 	if err != nil {
 		t.Fatalf("failed to remove user tag: %v", err)
 	}
 
-	tags, _ := store.GetByRecipeID(userID, recipeID)
+	tags, _ := store.GetByRecipeID(context.Background(), userID, recipeID)
 	if len(tags) != 0 {
 		t.Errorf("expected 0 tags after removal, got %d", len(tags))
 	}
@@ -238,12 +239,12 @@ func TestUserTagStore_Remove_DoesNotRemoveOtherUserTags(t *testing.T) {
 	tagID := testDB.SeedUserTag(t, user1ID, recipeID, "user1-tag")
 	store := NewUserTagStore(testDB.DB)
 
-	err := store.Remove(user2ID, tagID)
+	err := store.Remove(context.Background(), user2ID, tagID)
 	if err != nil {
 		t.Fatalf("failed to remove user tag: %v", err)
 	}
 
-	tags, _ := store.GetByRecipeID(user1ID, recipeID)
+	tags, _ := store.GetByRecipeID(context.Background(), user1ID, recipeID)
 	if len(tags) != 1 {
 		t.Errorf("expected user1's tag to still exist, got %d tags", len(tags))
 	}

@@ -67,13 +67,14 @@ type UserDataUserTag struct {
 }
 
 func (h *Handler) ExportUserDataHandler(w http.ResponseWriter, r *http.Request) {
-	userInfo := auth.GetUserInfoFromContext(r.Context())
+	ctx := r.Context()
+	userInfo := auth.GetUserInfoFromContext(ctx)
 	if !userInfo.IsLoggedIn {
 		h.Renderer.RenderError(w, r, http.StatusUnauthorized, "You must be logged in to export your data.")
 		return
 	}
 
-	user, err := h.AuthStore.GetFullUserByID(userInfo.UserID)
+	user, err := h.AuthStore.GetFullUserByID(ctx, userInfo.UserID)
 	if err != nil {
 		slog.Error("Failed to get user for export", "error", err, "user_id", userInfo.UserID)
 		h.Renderer.RenderError(w, r, http.StatusInternalServerError, "Failed to export data. Please try again.")
@@ -97,12 +98,12 @@ func (h *Handler) ExportUserDataHandler(w http.ResponseWriter, r *http.Request) 
 		export.Account.LastLogin = &formatted
 	}
 
-	prefs, err := h.UserPreferencesStore.Get(userInfo.UserID)
+	prefs, err := h.UserPreferencesStore.Get(ctx, userInfo.UserID)
 	if err == nil && prefs != nil {
 		export.Preferences = prefs
 	}
 
-	recipes, err := h.RecipeStore.GetFiltered(models.FilterParams{AuthorID: userInfo.UserID, Limit: 10000})
+	recipes, err := h.RecipeStore.GetFiltered(ctx, models.FilterParams{AuthorID: userInfo.UserID, Limit: 10000})
 	if err == nil {
 		for _, recipe := range recipes {
 			tags := make([]string, len(recipe.Tags))
@@ -124,7 +125,7 @@ func (h *Handler) ExportUserDataHandler(w http.ResponseWriter, r *http.Request) 
 		}
 	}
 
-	comments, err := h.CommentStore.GetByUserID(userInfo.UserID)
+	comments, err := h.CommentStore.GetByUserID(ctx, userInfo.UserID)
 	if err == nil {
 		for _, comment := range comments {
 			export.Comments = append(export.Comments, UserDataComment{
@@ -136,7 +137,7 @@ func (h *Handler) ExportUserDataHandler(w http.ResponseWriter, r *http.Request) 
 		}
 	}
 
-	userTags, err := h.UserTagStore.GetByUserID(userInfo.UserID)
+	userTags, err := h.UserTagStore.GetByUserID(ctx, userInfo.UserID)
 	if err == nil {
 		for _, tag := range userTags {
 			export.UserTags = append(export.UserTags, UserDataUserTag{
@@ -162,7 +163,8 @@ func (h *Handler) ExportUserDataHandler(w http.ResponseWriter, r *http.Request) 
 }
 
 func (h *Handler) DeleteOwnAccountHandler(w http.ResponseWriter, r *http.Request) {
-	userInfo := auth.GetUserInfoFromContext(r.Context())
+	ctx := r.Context()
+	userInfo := auth.GetUserInfoFromContext(ctx)
 	if !userInfo.IsLoggedIn {
 		h.Renderer.RenderError(w, r, http.StatusUnauthorized, "You must be logged in to delete your account.")
 		return
@@ -182,20 +184,20 @@ func (h *Handler) DeleteOwnAccountHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	user, err := h.AuthStore.GetUserByID(userInfo.UserID)
+	user, err := h.AuthStore.GetUserByID(ctx, userInfo.UserID)
 	if err != nil {
 		slog.Error("Failed to get user for deletion", "error", err, "user_id", userInfo.UserID)
 		http.Redirect(w, r, "/account?error=Failed to verify account. Please try again.", http.StatusSeeOther)
 		return
 	}
 
-	_, err = auth.Authenticate(h.AuthStore, user.Email, password)
+	_, err = auth.Authenticate(ctx, h.AuthStore, user.Email, password)
 	if err != nil {
 		http.Redirect(w, r, "/account?error=Incorrect password. Please try again.", http.StatusSeeOther)
 		return
 	}
 
-	err = auth.DeleteUser(h.AuthStore, userInfo.UserID)
+	err = auth.DeleteUser(ctx, h.AuthStore, userInfo.UserID)
 	if err != nil {
 		slog.Error("Failed to delete user account", "error", err, "user_id", userInfo.UserID)
 		http.Redirect(w, r, "/account?error=Failed to delete account. Please try again.", http.StatusSeeOther)
