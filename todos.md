@@ -25,6 +25,8 @@
   - traces?
 
 - I should take a close look at how many DB queries I currently need per read, given that the recipe read is rather inefficient
+  - use concurrency as much as possible
+  - try to unify queries of the result of one query depends on the result of a different one
 
 - performance testing
 

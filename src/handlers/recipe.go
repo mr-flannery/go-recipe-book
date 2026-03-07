@@ -757,28 +757,56 @@ func (h *Handler) DeleteRecipeHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	recipeID := r.PathValue("id")
 	if recipeID == "" {
+		logging.AddMany(ctx, map[string]any{
+			"action": "recipe.delete",
+			"error":  "recipe ID is required",
+		})
 		http.Error(w, "Recipe ID is required", http.StatusBadRequest)
 		return
 	}
 
 	currentUser, err := auth.GetUserBySession(ctx, h.AuthStore, r)
 	if err != nil {
+		logging.AddMany(ctx, map[string]any{
+			"action":    "recipe.delete",
+			"recipe.id": recipeID,
+			"error":     "unauthorized",
+		})
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
 	recipe, err := h.RecipeStore.GetByID(ctx, recipeID)
 	if err != nil {
+		logging.AddError(ctx, err, "Failed to find recipe for deletion")
+		logging.AddMany(ctx, map[string]any{
+			"action":    "recipe.delete",
+			"recipe.id": recipeID,
+			"error":     "recipe not found",
+		})
 		http.Error(w, "Recipe not found", http.StatusNotFound)
 		return
 	}
 
 	if currentUser.ID != recipe.AuthorID {
+		logging.AddMany(ctx, map[string]any{
+			"action":       "recipe.delete",
+			"recipe.id":    recipeID,
+			"recipe.title": recipe.Title,
+			"error":        "forbidden: user is not the author",
+		})
 		http.Error(w, "Forbidden: You can only delete your own recipes", http.StatusForbidden)
 		return
 	}
 
 	if err := h.RecipeStore.Delete(ctx, recipeID); err != nil {
+		logging.AddError(ctx, err, "Failed to delete recipe")
+		logging.AddMany(ctx, map[string]any{
+			"action":       "recipe.delete",
+			"recipe.id":    recipeID,
+			"recipe.title": recipe.Title,
+			"error":        "failed to delete recipe",
+		})
 		http.Error(w, "Failed to delete recipe", http.StatusInternalServerError)
 		return
 	}

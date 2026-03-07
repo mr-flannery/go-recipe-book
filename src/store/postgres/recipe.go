@@ -3,7 +3,6 @@ package postgres
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -44,121 +43,6 @@ func (s *RecipeStore) GetByID(ctx context.Context, id string) (models.Recipe, er
 	}
 
 	return recipe, nil
-}
-
-func (s *RecipeStore) GetRecipeWithDetails(ctx context.Context, id string, userID *int) (models.RecipeWithDetails, error) {
-	query := `
-		WITH recipe_tags_agg AS (
-			SELECT rt.recipe_id, 
-				   COALESCE(json_agg(json_build_object('id', t.id, 'name', t.name) ORDER BY t.name), '[]'::json) AS tags
-			FROM recipe_tags rt
-			JOIN tags t ON t.id = rt.tag_id
-			WHERE rt.recipe_id = $1
-			GROUP BY rt.recipe_id
-		),
-		recipe_comments_agg AS (
-			SELECT c.recipe_id,
-				   COALESCE(json_agg(json_build_object(
-					   'id', c.id,
-					   'recipe_id', c.recipe_id,
-					   'author_id', c.author_id,
-					   'content_md', c.content_md,
-					   'created_at', c.created_at,
-					   'updated_at', c.updated_at,
-					   'author_username', u.username
-				   ) ORDER BY c.created_at DESC), '[]'::json) AS comments
-			FROM comments c
-			JOIN users u ON u.id = c.author_id
-			WHERE c.recipe_id = $1
-			GROUP BY c.recipe_id
-		),
-		user_tags_agg AS (
-			SELECT ut.recipe_id,
-				   COALESCE(json_agg(json_build_object('id', ut.id, 'user_id', ut.user_id, 'recipe_id', ut.recipe_id, 'name', ut.name) ORDER BY ut.name), '[]'::json) AS user_tags
-			FROM user_tags ut
-			WHERE ut.recipe_id = $1 AND ut.user_id = $2
-			GROUP BY ut.recipe_id
-		)
-		SELECT r.id, r.title, r.ingredients_md, r.instructions_md, 
-			   r.prep_time, r.cook_time, r.calories, r.author_id, 
-			   r.image, r.parent_id, r.created_at, r.updated_at,
-			   COALESCE(rta.tags, '[]'::json) AS tags,
-			   COALESCE(rca.comments, '[]'::json) AS comments,
-			   COALESCE(uta.user_tags, '[]'::json) AS user_tags
-		FROM recipes r
-		LEFT JOIN recipe_tags_agg rta ON rta.recipe_id = r.id
-		LEFT JOIN recipe_comments_agg rca ON rca.recipe_id = r.id
-		LEFT JOIN user_tags_agg uta ON uta.recipe_id = r.id
-		WHERE r.id = $1
-	`
-
-	var result models.RecipeWithDetails
-	var tagsJSON, commentsJSON, userTagsJSON []byte
-
-	userIDParam := 0
-	if userID != nil {
-		userIDParam = *userID
-	}
-
-	err := s.db.QueryRowContext(ctx, query, id, userIDParam).Scan(
-		&result.Recipe.ID,
-		&result.Recipe.Title,
-		&result.Recipe.IngredientsMD,
-		&result.Recipe.InstructionsMD,
-		&result.Recipe.PrepTime,
-		&result.Recipe.CookTime,
-		&result.Recipe.Calories,
-		&result.Recipe.AuthorID,
-		&result.Recipe.Image,
-		&result.Recipe.ParentID,
-		&result.Recipe.CreatedAt,
-		&result.Recipe.UpdatedAt,
-		&tagsJSON,
-		&commentsJSON,
-		&userTagsJSON,
-	)
-	if err != nil {
-		return models.RecipeWithDetails{}, err
-	}
-
-	if err := json.Unmarshal(tagsJSON, &result.Recipe.Tags); err != nil {
-		return models.RecipeWithDetails{}, fmt.Errorf("failed to unmarshal tags: %w", err)
-	}
-
-	if err := json.Unmarshal(userTagsJSON, &result.Recipe.UserTags); err != nil {
-		return models.RecipeWithDetails{}, fmt.Errorf("failed to unmarshal user tags: %w", err)
-	}
-
-	type commentJSON struct {
-		ID             int       `json:"id"`
-		RecipeID       int       `json:"recipe_id"`
-		AuthorID       int       `json:"author_id"`
-		ContentMD      string    `json:"content_md"`
-		CreatedAt      time.Time `json:"created_at"`
-		UpdatedAt      time.Time `json:"updated_at"`
-		AuthorUsername string    `json:"author_username"`
-	}
-	var commentsData []commentJSON
-	if err := json.Unmarshal(commentsJSON, &commentsData); err != nil {
-		return models.RecipeWithDetails{}, fmt.Errorf("failed to unmarshal comments: %w", err)
-	}
-
-	result.Comments = make([]models.CommentWithAuthor, len(commentsData))
-	for i, c := range commentsData {
-		result.Comments[i] = models.CommentWithAuthor{
-			Comment: models.Comment{
-				ID:        c.ID,
-				RecipeID:  c.RecipeID,
-				AuthorID:  c.AuthorID,
-				ContentMD: c.ContentMD,
-				CreatedAt: c.CreatedAt,
-				UpdatedAt: c.UpdatedAt,
-			},
-			AuthorUsername: c.AuthorUsername,
-		}
-	}
-
-	return result, nil
 }
 
 func (s *RecipeStore) Update(ctx context.Context, recipe models.Recipe) error {

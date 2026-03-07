@@ -7,16 +7,15 @@ import (
 )
 
 type MockRecipeStore struct {
-	SaveFunc                 func(ctx context.Context, recipe models.Recipe) (int, error)
-	GetByIDFunc              func(ctx context.Context, id string) (models.Recipe, error)
-	GetRecipeWithDetailsFunc func(ctx context.Context, id string, userID *int) (models.RecipeWithDetails, error)
-	UpdateFunc               func(ctx context.Context, recipe models.Recipe) error
-	DeleteFunc               func(ctx context.Context, id string) error
-	GetAllFunc               func(ctx context.Context) ([]models.Recipe, error)
-	GetFilteredFunc          func(ctx context.Context, params models.FilterParams) ([]models.Recipe, error)
-	CountFilteredFunc        func(ctx context.Context, params models.FilterParams) (int, error)
-	GetRandomIDFunc          func(ctx context.Context) (int, error)
-	SearchByTitleFunc        func(ctx context.Context, query string, limit int) ([]models.RecipeSearchResult, error)
+	SaveFunc          func(ctx context.Context, recipe models.Recipe) (int, error)
+	GetByIDFunc       func(ctx context.Context, id string) (models.Recipe, error)
+	UpdateFunc        func(ctx context.Context, recipe models.Recipe) error
+	DeleteFunc        func(ctx context.Context, id string) error
+	GetAllFunc        func(ctx context.Context) ([]models.Recipe, error)
+	GetFilteredFunc   func(ctx context.Context, params models.FilterParams) ([]models.Recipe, error)
+	CountFilteredFunc func(ctx context.Context, params models.FilterParams) (int, error)
+	GetRandomIDFunc   func(ctx context.Context) (int, error)
+	SearchByTitleFunc func(ctx context.Context, query string, limit int) ([]models.RecipeSearchResult, error)
 }
 
 func (m *MockRecipeStore) Save(ctx context.Context, recipe models.Recipe) (int, error) {
@@ -31,13 +30,6 @@ func (m *MockRecipeStore) GetByID(ctx context.Context, id string) (models.Recipe
 		return m.GetByIDFunc(ctx, id)
 	}
 	return models.Recipe{}, nil
-}
-
-func (m *MockRecipeStore) GetRecipeWithDetails(ctx context.Context, id string, userID *int) (models.RecipeWithDetails, error) {
-	if m.GetRecipeWithDetailsFunc != nil {
-		return m.GetRecipeWithDetailsFunc(ctx, id, userID)
-	}
-	return models.RecipeWithDetails{}, nil
 }
 
 func (m *MockRecipeStore) Update(ctx context.Context, recipe models.Recipe) error {

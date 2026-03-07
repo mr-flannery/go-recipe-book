@@ -10,7 +10,6 @@ import (
 type RecipeStore interface {
 	Save(ctx context.Context, recipe models.Recipe) (int, error)
 	GetByID(ctx context.Context, id string) (models.Recipe, error)
-	GetRecipeWithDetails(ctx context.Context, id string, userID *int) (models.RecipeWithDetails, error)
 	Update(ctx context.Context, recipe models.Recipe) error
 	Delete(ctx context.Context, id string) error
 	GetAll(ctx context.Context) ([]models.Recipe, error)

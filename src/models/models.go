@@ -114,16 +114,6 @@ type Comment struct {
 	UpdatedAt time.Time
 }
 
-type CommentWithAuthor struct {
-	Comment
-	AuthorUsername string
-}
-
-type RecipeWithDetails struct {
-	Recipe
-	Comments []CommentWithAuthor
-}
-
 type ProposedChange struct {
 	ID             int
 	RecipeID       int
