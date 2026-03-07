@@ -60,11 +60,13 @@ type OldCategory struct {
 
 type APIRecipeRequest struct {
 	Title          string `json:"title"`
+	Description    string `json:"description,omitempty"`
 	IngredientsMD  string `json:"ingredients_md"`
 	InstructionsMD string `json:"instructions_md"`
 	PrepTime       int    `json:"prep_time"`
 	CookTime       int    `json:"cook_time"`
 	Calories       int    `json:"calories"`
+	Source         string `json:"source,omitempty"`
 }
 
 type APIResponse struct {
@@ -135,11 +137,13 @@ func convertRecipe(old OldRecipe) APIRecipeRequest {
 
 	return APIRecipeRequest{
 		Title:          old.Title,
+		Description:    old.Info,
 		IngredientsMD:  ingredientsMD,
 		InstructionsMD: instructionsMD,
 		PrepTime:       old.PrepTime,
 		CookTime:       old.CookTime,
 		Calories:       0,
+		Source:         old.Source,
 	}
 }
 
@@ -201,48 +205,7 @@ func formatAmount(num, denom float64) string {
 }
 
 func buildInstructionsMD(old OldRecipe) string {
-	var sb strings.Builder
-
-	if old.Info != "" {
-		sb.WriteString("**Info:** ")
-		sb.WriteString(old.Info)
-		sb.WriteString("\n\n")
-	}
-
-	if old.Course != nil && old.Course.Title != "" && old.Course.Title != "beliebig" {
-		sb.WriteString("**Gang:** ")
-		sb.WriteString(old.Course.Title)
-		sb.WriteString("\n\n")
-	}
-
-	if old.Cuisine != nil && old.Cuisine.Title != "" && old.Cuisine.Title != "beliebig" {
-		sb.WriteString("**Küche:** ")
-		sb.WriteString(old.Cuisine.Title)
-		sb.WriteString("\n\n")
-	}
-
-	if old.Servings > 0 && old.Servings < 999999999 {
-		sb.WriteString(fmt.Sprintf("**Portionen:** %d\n\n", old.Servings))
-	}
-
-	if old.Directions != "" {
-		sb.WriteString("## Zubereitung\n\n")
-		sb.WriteString(old.Directions)
-		sb.WriteString("\n")
-	}
-
-	if old.Source != "" {
-		sb.WriteString("\n---\n")
-		sb.WriteString("**Quelle:** ")
-		sb.WriteString(old.Source)
-		sb.WriteString("\n")
-	}
-
-	if old.Rating > 0 {
-		sb.WriteString(fmt.Sprintf("\n**Bewertung:** %d/5\n", old.Rating))
-	}
-
-	return strings.TrimSpace(sb.String())
+	return strings.TrimSpace(old.Directions)
 }
 
 func createRecipe(client *http.Client, baseURL, apiKey string, req APIRecipeRequest) (int, error) {
