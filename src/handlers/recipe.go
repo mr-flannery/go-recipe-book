@@ -448,37 +448,115 @@ func (h *Handler) ViewRecipeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	recipeIDInt, _ := strconv.Atoi(recipeID)
+
 	userInfo := auth.GetUserInfoFromContext(ctx)
 	currentUser, err := auth.GetUserBySession(ctx, h.AuthStore, r)
 	isLoggedIn := err == nil
 
-	var userIDPtr *int
-	if isLoggedIn {
-		userIDPtr = &currentUser.ID
+	type recipeResult struct {
+		recipe models.Recipe
+		err    error
+	}
+	type commentsResult struct {
+		comments []models.Comment
+		err      error
+	}
+	type tagsResult struct {
+		tags []models.Tag
+		err  error
+	}
+	type userTagsResult struct {
+		userTags []models.UserTag
+		err      error
 	}
 
-	recipeDetails, err := h.RecipeStore.GetRecipeWithDetails(ctx, recipeID, userIDPtr)
-	if err != nil {
+	recipeCh := make(chan recipeResult, 1)
+	commentsCh := make(chan commentsResult, 1)
+	tagsCh := make(chan tagsResult, 1)
+	userTagsCh := make(chan userTagsResult, 1)
+
+	go func() {
+		recipe, err := h.RecipeStore.GetByID(ctx, recipeID)
+		recipeCh <- recipeResult{recipe, err}
+	}()
+
+	go func() {
+		comments, err := h.CommentStore.GetByRecipeID(ctx, recipeID)
+		commentsCh <- commentsResult{comments, err}
+	}()
+
+	go func() {
+		tags, err := h.TagStore.GetByRecipeID(ctx, recipeIDInt)
+		tagsCh <- tagsResult{tags, err}
+	}()
+
+	go func() {
+		if isLoggedIn {
+			userTags, err := h.UserTagStore.GetByRecipeID(ctx, currentUser.ID, recipeIDInt)
+			userTagsCh <- userTagsResult{userTags, err}
+		} else {
+			userTagsCh <- userTagsResult{nil, nil}
+		}
+	}()
+
+	recipeRes := <-recipeCh
+	if recipeRes.err != nil {
 		h.Renderer.RenderError(w, r, http.StatusNotFound, "The recipe you're looking for doesn't exist or has been removed.")
 		return
 	}
+	recipe := recipeRes.recipe
 
-	recipeIDInt, _ := strconv.Atoi(recipeID)
+	commentsRes := <-commentsCh
+	if commentsRes.err != nil {
+		h.Renderer.RenderError(w, r, http.StatusInternalServerError, "Failed to load comments. Please try again later.")
+		return
+	}
+
+	tagsRes := <-tagsCh
+	recipe.Tags = tagsRes.tags
+
+	userTagsRes := <-userTagsCh
+	var userTags []models.UserTag
+	if isLoggedIn {
+		userTags = userTagsRes.userTags
+	}
+
 	logging.AddMany(ctx, map[string]any{
 		"action":       "recipe.view",
 		"recipe.id":    recipeIDInt,
-		"recipe.title": recipeDetails.Recipe.Title,
+		"recipe.title": recipe.Title,
 	})
 
-	isRecipeAuthor := isLoggedIn && currentUser.ID == recipeDetails.Recipe.AuthorID
+	isRecipeAuthor := isLoggedIn && currentUser.ID == recipe.AuthorID
 
-	commentsWithUsernames := make([]CommentTemplateData, len(recipeDetails.Comments))
-	for i, c := range recipeDetails.Comments {
-		isCommentAuthor := isLoggedIn && currentUser.ID == c.AuthorID
-		commentsWithUsernames[i] = CommentTemplateData{
-			Comment:  c.Comment,
-			Username: c.AuthorUsername,
-			IsAuthor: isCommentAuthor,
+	var commentsWithUsernames []CommentTemplateData
+	if len(commentsRes.comments) > 0 {
+		authorIDs := make([]int, 0, len(commentsRes.comments))
+		seen := make(map[int]bool)
+		for _, c := range commentsRes.comments {
+			if !seen[c.AuthorID] {
+				authorIDs = append(authorIDs, c.AuthorID)
+				seen[c.AuthorID] = true
+			}
+		}
+
+		usernameMap := make(map[int]string)
+		for _, authorID := range authorIDs {
+			username, err := h.UserStore.GetUsernameByID(ctx, authorID)
+			if err != nil {
+				username = "Unknown User"
+			}
+			usernameMap[authorID] = username
+		}
+
+		for _, comment := range commentsRes.comments {
+			isCommentAuthor := isLoggedIn && currentUser.ID == comment.AuthorID
+			commentsWithUsernames = append(commentsWithUsernames, CommentTemplateData{
+				Comment:  comment,
+				Username: usernameMap[comment.AuthorID],
+				IsAuthor: isCommentAuthor,
+			})
 		}
 	}
 
@@ -491,8 +569,8 @@ func (h *Handler) ViewRecipeHandler(w http.ResponseWriter, r *http.Request) {
 		IsAuthor    bool
 		UserInfo    *auth.UserInfo
 	}{
-		Recipe:      recipeDetails.Recipe,
-		UserTags:    recipeDetails.Recipe.UserTags,
+		Recipe:      recipe,
+		UserTags:    userTags,
 		Comments:    commentsWithUsernames,
 		IsLoggedIn:  isLoggedIn,
 		CurrentUser: currentUser,

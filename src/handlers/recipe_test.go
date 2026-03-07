@@ -164,8 +164,8 @@ func TestViewRecipeHandler_ReturnsRecipeWhenFound(t *testing.T) {
 
 func TestViewRecipeHandler_ReturnsNotFoundWhenRecipeDoesNotExist(t *testing.T) {
 	mockRecipeStore := &mocks.MockRecipeStore{
-		GetRecipeWithDetailsFunc: func(ctx context.Context, id string, userID *int) (models.RecipeWithDetails, error) {
-			return models.RecipeWithDetails{}, errors.New("not found")
+		GetByIDFunc: func(ctx context.Context, id string) (models.Recipe, error) {
+			return models.Recipe{}, errors.New("not found")
 		},
 	}
 
@@ -176,8 +176,11 @@ func TestViewRecipeHandler_ReturnsNotFoundWhenRecipeDoesNotExist(t *testing.T) {
 	}
 
 	h := &Handler{
-		RecipeStore: mockRecipeStore,
-		Renderer:    mockRenderer,
+		RecipeStore:  mockRecipeStore,
+		CommentStore: &mocks.MockCommentStore{},
+		TagStore:     &mocks.MockTagStore{},
+		UserTagStore: &mocks.MockUserTagStore{},
+		Renderer:     mockRenderer,
 	}
 
 	req := httptest.NewRequest(http.MethodGet, "/recipes/999", nil)
