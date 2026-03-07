@@ -4,12 +4,12 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
-	"log/slog"
 	"net/http"
 	"strconv"
 	"strings"
 
 	"github.com/mr-flannery/go-recipe-book/src/auth"
+	"github.com/mr-flannery/go-recipe-book/src/logging"
 	"github.com/mr-flannery/go-recipe-book/src/models"
 )
 
@@ -26,7 +26,7 @@ func (h *Handler) PostCreateRecipeHandler(w http.ResponseWriter, r *http.Request
 	ctx := r.Context()
 	err := r.ParseMultipartForm(10 << 20)
 	if err != nil {
-		slog.Error("Failed to parse multipart form", "error", err)
+		logging.AddError(ctx, err, "Failed to parse multipart form")
 		http.Error(w, "Failed to parse form data", http.StatusBadRequest)
 		return
 	}
@@ -41,7 +41,7 @@ func (h *Handler) PostCreateRecipeHandler(w http.ResponseWriter, r *http.Request
 	if prepTimeStr := r.FormValue("preptime"); prepTimeStr != "" {
 		prepTime, err = strconv.Atoi(prepTimeStr)
 		if err != nil {
-			slog.Error("Invalid prep time", "value", prepTimeStr, "error", err)
+			logging.AddError(ctx, err, "Invalid prep time")
 			http.Error(w, "Invalid prep time", http.StatusBadRequest)
 			return
 		}
@@ -50,7 +50,7 @@ func (h *Handler) PostCreateRecipeHandler(w http.ResponseWriter, r *http.Request
 	if cookTimeStr := r.FormValue("cooktime"); cookTimeStr != "" {
 		cookTime, err = strconv.Atoi(cookTimeStr)
 		if err != nil {
-			slog.Error("Invalid cook time", "value", cookTimeStr, "error", err)
+			logging.AddError(ctx, err, "Invalid cook time")
 			http.Error(w, "Invalid cook time", http.StatusBadRequest)
 			return
 		}
@@ -59,7 +59,7 @@ func (h *Handler) PostCreateRecipeHandler(w http.ResponseWriter, r *http.Request
 	if caloriesStr := r.FormValue("calories"); caloriesStr != "" {
 		calories, err = strconv.Atoi(caloriesStr)
 		if err != nil {
-			slog.Error("Invalid calories", "value", caloriesStr, "error", err)
+			logging.AddError(ctx, err, "Invalid calories")
 			http.Error(w, "Invalid calories", http.StatusBadRequest)
 			return
 		}
@@ -78,25 +78,23 @@ func (h *Handler) PostCreateRecipeHandler(w http.ResponseWriter, r *http.Request
 
 		decodedData, err := base64.StdEncoding.DecodeString(croppedImageData)
 		if err != nil {
-			slog.Error("Failed to decode cropped image data", "error", err)
+			logging.AddError(ctx, err, "Failed to decode cropped image data")
 			http.Error(w, "Failed to process cropped image", http.StatusBadRequest)
 			return
 		}
 		imageData = decodedData
-		slog.Info("Cropped image processed", "size", len(imageData))
 	} else {
 		file, _, err := r.FormFile("image")
 		if err == nil {
 			defer file.Close()
 			imageData, err = io.ReadAll(file)
 			if err != nil {
-				slog.Error("Failed to read image file", "error", err)
+				logging.AddError(ctx, err, "Failed to read image file")
 				http.Error(w, "Failed to read image file", http.StatusInternalServerError)
 				return
 			}
-			slog.Info("Original image uploaded", "size", len(imageData))
 		} else if err != http.ErrMissingFile {
-			slog.Error("Error processing image file", "error", err)
+			logging.AddError(ctx, err, "Error processing image file")
 			http.Error(w, "Error processing image file", http.StatusBadRequest)
 			return
 		}
@@ -115,7 +113,7 @@ func (h *Handler) PostCreateRecipeHandler(w http.ResponseWriter, r *http.Request
 
 	recipeID, err := h.RecipeStore.Save(ctx, recipe)
 	if err != nil {
-		slog.Error("Failed to save recipe", "error", err)
+		logging.AddError(ctx, err, "Failed to save recipe")
 		http.Error(w, fmt.Sprintf("Failed to save recipe: %v", err), http.StatusInternalServerError)
 		return
 	}
@@ -124,11 +122,15 @@ func (h *Handler) PostCreateRecipeHandler(w http.ResponseWriter, r *http.Request
 	if tagsStr != "" {
 		tagNames := strings.Split(tagsStr, ",")
 		if err := h.TagStore.SetRecipeTags(ctx, recipeID, tagNames); err != nil {
-			slog.Error("Failed to set recipe tags", "error", err)
+			logging.AddError(ctx, err, "Failed to set recipe tags")
 		}
 	}
 
-	slog.Info("Recipe created successfully", "id", recipeID, "title", recipe.Title, "author", user.Username)
+	logging.AddMany(ctx, map[string]any{
+		"action":       "recipe.create",
+		"recipe.id":    recipeID,
+		"recipe.title": recipe.Title,
+	})
 	http.Redirect(w, r, fmt.Sprintf("/recipes/%d", recipeID), http.StatusSeeOther)
 }
 
@@ -319,14 +321,14 @@ func (h *Handler) PostUpdateRecipeHandler(w http.ResponseWriter, r *http.Request
 	ctx := r.Context()
 	recipeID, err := strconv.Atoi(r.PathValue("id"))
 	if err != nil {
-		slog.Error("Invalid recipe ID", "id", r.PathValue("id"), "error", err)
+		logging.AddError(ctx, err, "Invalid recipe ID")
 		http.Error(w, "Invalid recipe ID", http.StatusBadRequest)
 		return
 	}
 
 	err = r.ParseMultipartForm(10 << 20)
 	if err != nil {
-		slog.Error("Failed to parse multipart form", "error", err)
+		logging.AddError(ctx, err, "Failed to parse multipart form")
 		http.Error(w, "Failed to parse form data", http.StatusBadRequest)
 		return
 	}
@@ -339,7 +341,7 @@ func (h *Handler) PostUpdateRecipeHandler(w http.ResponseWriter, r *http.Request
 
 	existingRecipe, err := h.RecipeStore.GetByID(ctx, strconv.Itoa(recipeID))
 	if err != nil {
-		slog.Error("Recipe not found", "id", recipeID, "error", err)
+		logging.AddError(ctx, err, "Recipe not found")
 		http.Error(w, "Recipe not found", http.StatusNotFound)
 		return
 	}
@@ -353,7 +355,7 @@ func (h *Handler) PostUpdateRecipeHandler(w http.ResponseWriter, r *http.Request
 	if prepTimeStr := r.FormValue("preptime"); prepTimeStr != "" {
 		prepTime, err = strconv.Atoi(prepTimeStr)
 		if err != nil {
-			slog.Error("Invalid prep time", "value", prepTimeStr, "error", err)
+			logging.AddError(ctx, err, "Invalid prep time")
 			http.Error(w, "Invalid prep time", http.StatusBadRequest)
 			return
 		}
@@ -362,7 +364,7 @@ func (h *Handler) PostUpdateRecipeHandler(w http.ResponseWriter, r *http.Request
 	if cookTimeStr := r.FormValue("cooktime"); cookTimeStr != "" {
 		cookTime, err = strconv.Atoi(cookTimeStr)
 		if err != nil {
-			slog.Error("Invalid cook time", "value", cookTimeStr, "error", err)
+			logging.AddError(ctx, err, "Invalid cook time")
 			http.Error(w, "Invalid cook time", http.StatusBadRequest)
 			return
 		}
@@ -371,7 +373,7 @@ func (h *Handler) PostUpdateRecipeHandler(w http.ResponseWriter, r *http.Request
 	if caloriesStr := r.FormValue("calories"); caloriesStr != "" {
 		calories, err = strconv.Atoi(caloriesStr)
 		if err != nil {
-			slog.Error("Invalid calories", "value", caloriesStr, "error", err)
+			logging.AddError(ctx, err, "Invalid calories")
 			http.Error(w, "Invalid calories", http.StatusBadRequest)
 			return
 		}
@@ -383,13 +385,12 @@ func (h *Handler) PostUpdateRecipeHandler(w http.ResponseWriter, r *http.Request
 		defer file.Close()
 		imageData, err = io.ReadAll(file)
 		if err != nil {
-			slog.Error("Failed to read image file", "error", err)
+			logging.AddError(ctx, err, "Failed to read image file")
 			http.Error(w, "Failed to read image file", http.StatusInternalServerError)
 			return
 		}
-		slog.Info("New image uploaded", "size", len(imageData))
 	} else if err != http.ErrMissingFile {
-		slog.Error("Error processing image file", "error", err)
+		logging.AddError(ctx, err, "Error processing image file")
 		http.Error(w, "Error processing image file", http.StatusBadRequest)
 		return
 	}
@@ -407,7 +408,7 @@ func (h *Handler) PostUpdateRecipeHandler(w http.ResponseWriter, r *http.Request
 	}
 
 	if err := h.RecipeStore.Update(ctx, updatedRecipe); err != nil {
-		slog.Error("Failed to update recipe", "error", err)
+		logging.AddError(ctx, err, "Failed to update recipe")
 		http.Error(w, "Failed to update recipe", http.StatusInternalServerError)
 		return
 	}
@@ -416,15 +417,19 @@ func (h *Handler) PostUpdateRecipeHandler(w http.ResponseWriter, r *http.Request
 	if tagsStr != "" {
 		tagNames := strings.Split(tagsStr, ",")
 		if err := h.TagStore.SetRecipeTags(ctx, recipeID, tagNames); err != nil {
-			slog.Error("Failed to set recipe tags", "error", err)
+			logging.AddError(ctx, err, "Failed to set recipe tags")
 		}
 	} else {
 		if err := h.TagStore.SetRecipeTags(ctx, recipeID, []string{}); err != nil {
-			slog.Error("Failed to clear recipe tags", "error", err)
+			logging.AddError(ctx, err, "Failed to clear recipe tags")
 		}
 	}
 
-	slog.Info("Recipe updated successfully", "id", recipeID, "title", updatedRecipe.Title, "author", user.Username)
+	logging.AddMany(ctx, map[string]any{
+		"action":       "recipe.update",
+		"recipe.id":    recipeID,
+		"recipe.title": updatedRecipe.Title,
+	})
 	http.Redirect(w, r, fmt.Sprintf("/recipes/%d", recipeID), http.StatusSeeOther)
 }
 
@@ -451,6 +456,12 @@ func (h *Handler) ViewRecipeHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	recipe.Tags, _ = h.TagStore.GetByRecipeID(ctx, recipeIDInt)
+
+	logging.AddMany(ctx, map[string]any{
+		"action":       "recipe.view",
+		"recipe.id":    recipeIDInt,
+		"recipe.title": recipe.Title,
+	})
 
 	userInfo := auth.GetUserInfoFromContext(ctx)
 
@@ -542,6 +553,12 @@ func (h *Handler) CommentHTMXHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	logging.AddMany(ctx, map[string]any{
+		"action":     "comment.create",
+		"recipe.id":  recipeIDInt,
+		"comment.id": savedComment.ID,
+	})
+
 	commentData := CommentTemplateData{
 		Comment:  savedComment,
 		Username: user.Username,
@@ -606,6 +623,11 @@ func (h *Handler) UpdateCommentHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	logging.AddMany(ctx, map[string]any{
+		"action":     "comment.update",
+		"comment.id": commentID,
+	})
+
 	commentData := CommentTemplateData{
 		Comment:  updatedComment,
 		Username: user.Username,
@@ -651,6 +673,11 @@ func (h *Handler) DeleteCommentHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	logging.AddMany(ctx, map[string]any{
+		"action":     "comment.delete",
+		"comment.id": commentID,
+	})
+
 	w.WriteHeader(http.StatusOK)
 }
 
@@ -684,6 +711,12 @@ func (h *Handler) DeleteRecipeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	logging.AddMany(ctx, map[string]any{
+		"action":       "recipe.delete",
+		"recipe.id":    recipeID,
+		"recipe.title": recipe.Title,
+	})
+
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("Recipe deleted successfully"))
 }
@@ -692,7 +725,7 @@ func (h *Handler) RandomRecipeHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	recipeID, err := h.RecipeStore.GetRandomID(ctx)
 	if err != nil {
-		slog.Error("Failed to get random recipe", "error", err)
+		logging.AddError(ctx, err, "Failed to get random recipe")
 		http.Redirect(w, r, "/recipes", http.StatusSeeOther)
 		return
 	}
@@ -807,11 +840,9 @@ func (h *Handler) FilterRecipesHTMXHandler(w http.ResponseWriter, r *http.Reques
 		}
 	}
 
-	slog.Info("Filtering recipes", "params", filterParams, "page", currentPage)
-
 	recipes, err := h.RecipeStore.GetFiltered(ctx, filterParams)
 	if err != nil {
-		slog.Error("Failed to fetch filtered recipes", "error", err)
+		logging.AddError(ctx, err, "Failed to fetch filtered recipes")
 		http.Error(w, "Failed to fetch filtered recipes", http.StatusInternalServerError)
 		return
 	}
@@ -876,7 +907,7 @@ func (h *Handler) SetPageSizeHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.UserPreferencesStore.SetPageSize(ctx, currentUser.ID, pageSize); err != nil {
-		slog.Error("Failed to save page size preference", "error", err)
+		logging.AddError(ctx, err, "Failed to save page size preference")
 		http.Error(w, "Failed to save preference", http.StatusInternalServerError)
 		return
 	}
@@ -900,7 +931,7 @@ func (h *Handler) SetViewModeHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.UserPreferencesStore.SetViewMode(ctx, currentUser.ID, viewMode); err != nil {
-		slog.Error("Failed to save view mode preference", "error", err)
+		logging.AddError(ctx, err, "Failed to save view mode preference")
 		http.Error(w, "Failed to save preference", http.StatusInternalServerError)
 		return
 	}

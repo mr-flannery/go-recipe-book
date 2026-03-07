@@ -4,11 +4,11 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"log/slog"
 	"net/http"
 	"strings"
 
 	"github.com/mr-flannery/go-recipe-book/src/auth"
+	"github.com/mr-flannery/go-recipe-book/src/logging"
 	"github.com/mr-flannery/go-recipe-book/src/models"
 )
 
@@ -100,20 +100,20 @@ func (h *Handler) APICreateRecipeHandler(w http.ResponseWriter, r *http.Request)
 	decoder.DisallowUnknownFields()
 
 	if err := decoder.Decode(&req); err != nil {
-		slog.Error("Failed to decode API recipe request", "error", err)
+		logging.AddError(ctx, err, "Failed to decode API recipe request")
 		sendJSONError(w, "Invalid JSON format", http.StatusBadRequest)
 		return
 	}
 
 	if err := validateRecipeRequest(req); err != nil {
-		slog.Warn("API recipe validation failed", "error", err)
+		logging.AddError(ctx, err, "API recipe validation failed")
 		sendJSONError(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	adminID, err := auth.GetAdminUserID(ctx, h.AuthStore)
 	if err != nil {
-		slog.Error("Failed to get admin user ID", "error", err)
+		logging.AddError(ctx, err, "Failed to get admin user ID")
 		sendJSONError(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
@@ -130,12 +130,11 @@ func (h *Handler) APICreateRecipeHandler(w http.ResponseWriter, r *http.Request)
 
 		decodedData, err := base64.StdEncoding.DecodeString(imageStr)
 		if err != nil {
-			slog.Error("Failed to decode base64 image data", "error", err)
+			logging.AddError(ctx, err, "Failed to decode base64 image data")
 			sendJSONError(w, "Invalid base64 image data", http.StatusBadRequest)
 			return
 		}
 		imageData = decodedData
-		slog.Info("API recipe image processed", "size", len(imageData))
 	}
 
 	recipe := models.Recipe{
@@ -151,12 +150,16 @@ func (h *Handler) APICreateRecipeHandler(w http.ResponseWriter, r *http.Request)
 
 	recipeID, err := h.RecipeStore.Save(ctx, recipe)
 	if err != nil {
-		slog.Error("Failed to save recipe via API", "error", err)
+		logging.AddError(ctx, err, "Failed to save recipe via API")
 		sendJSONError(w, "Failed to save recipe", http.StatusInternalServerError)
 		return
 	}
 
-	slog.Info("Recipe created successfully via API", "title", recipe.Title, "author_id", adminID, "recipe_id", recipeID)
+	logging.AddMany(ctx, map[string]any{
+		"action":       "api.recipe.create",
+		"recipe.id":    recipeID,
+		"recipe.title": recipe.Title,
+	})
 	sendJSONResponse(w, "Recipe created successfully", recipeID)
 }
 
@@ -194,7 +197,7 @@ func (h *Handler) APISearchIngredientsHandler(w http.ResponseWriter, r *http.Req
 
 	results, err := h.IngredientStore.Search(ctx, query, 10)
 	if err != nil {
-		slog.Error("Failed to search ingredients", "error", err)
+		logging.AddError(ctx, err, "Failed to search ingredients")
 		sendJSONError(w, "Failed to search ingredients", http.StatusInternalServerError)
 		return
 	}
@@ -223,7 +226,7 @@ func (h *Handler) APISearchRecipesHandler(w http.ResponseWriter, r *http.Request
 
 	results, err := h.RecipeStore.SearchByTitle(ctx, query, 10)
 	if err != nil {
-		slog.Error("Failed to search recipes", "error", err)
+		logging.AddError(ctx, err, "Failed to search recipes")
 		sendJSONError(w, "Failed to search recipes", http.StatusInternalServerError)
 		return
 	}

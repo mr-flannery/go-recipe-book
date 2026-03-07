@@ -13,6 +13,7 @@ import (
 	"github.com/mr-flannery/go-recipe-book/src/config"
 	"github.com/mr-flannery/go-recipe-book/src/db"
 	"github.com/mr-flannery/go-recipe-book/src/handlers"
+	"github.com/mr-flannery/go-recipe-book/src/logging"
 	"github.com/mr-flannery/go-recipe-book/src/mail"
 	"github.com/mr-flannery/go-recipe-book/src/middleware"
 	"github.com/mr-flannery/go-recipe-book/src/store/postgres"
@@ -24,12 +25,21 @@ import (
 )
 
 func main() {
+	ctx := context.Background()
+
 	otelShutdown, err := otelconfig.ConfigureOpenTelemetry()
 	if err != nil {
 		slog.Warn("Failed to configure OpenTelemetry, continuing without tracing", "error", err)
 	} else {
 		defer otelShutdown()
 		slog.Info("OpenTelemetry configured")
+	}
+
+	logShutdown, err := logging.InitOTLPLogging(ctx)
+	if err != nil {
+		slog.Warn("Failed to configure OTLP log exporter, continuing with stdout only", "error", err)
+	} else {
+		defer logShutdown(ctx)
 	}
 
 	addr := ":8080"
@@ -281,6 +291,6 @@ func main() {
 
 	slog.Info("Ready to serve!")
 
-	handler := otelhttp.NewHandler(middleware.Gzip(mux), "recipe-book")
+	handler := otelhttp.NewHandler(middleware.WideEventMiddleware(middleware.Gzip(mux)), "recipe-book")
 	slog.Error("Server failed to start", "error", http.ListenAndServe(addr, handler))
 }

@@ -7,11 +7,13 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/XSAM/otelsql"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/lib/pq"
 	"github.com/mr-flannery/go-recipe-book/src/config"
 	"github.com/mr-flannery/go-recipe-book/src/utils"
+	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
 )
 
 var pool *sql.DB
@@ -43,7 +45,9 @@ func InitPool() (*sql.DB, error) {
 
 	connectionString := getConnectionString()
 
-	db, err := sql.Open("postgres", connectionString)
+	db, err := otelsql.Open("postgres", connectionString,
+		otelsql.WithAttributes(semconv.DBSystemPostgreSQL),
+	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %w", err)
 	}

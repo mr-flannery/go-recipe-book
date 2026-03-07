@@ -1,12 +1,12 @@
 package handlers
 
 import (
-	"log/slog"
 	"net/http"
 	"strconv"
 
 	"github.com/mr-flannery/go-recipe-book/src/auth"
 	"github.com/mr-flannery/go-recipe-book/src/config"
+	"github.com/mr-flannery/go-recipe-book/src/logging"
 	"github.com/mr-flannery/go-recipe-book/src/mail"
 )
 
@@ -54,6 +54,11 @@ func (h *Handler) PostLoginHandler(w http.ResponseWriter, r *http.Request) {
 
 	auth.SetSecureSessionCookie(w, session.ID)
 
+	logging.AddMany(ctx, map[string]any{
+		"action":        "auth.login",
+		"login.user_id": user.ID,
+	})
+
 	finalRedirectURL := "/"
 	if redirectURL != "" {
 		finalRedirectURL = redirectURL
@@ -68,6 +73,8 @@ func (h *Handler) LogoutHandler(w http.ResponseWriter, r *http.Request) {
 	if err == nil {
 		auth.InvalidateSession(ctx, h.AuthStore, sessionID)
 	}
+
+	logging.Add(ctx, "action", "auth.logout")
 
 	auth.ClearSessionCookie(w)
 	http.Redirect(w, r, "/", http.StatusSeeOther)
@@ -110,7 +117,7 @@ func (h *Handler) PostRegisterHandler(w http.ResponseWriter, r *http.Request) {
 
 	err := auth.CreateRegistrationRequest(ctx, h.AuthStore, username, email, password)
 	if err != nil {
-		slog.Error("Failed to create registration request", "error", err)
+		logging.AddError(ctx, err, "Failed to create registration request")
 		data.Error = err.Error()
 		h.Renderer.RenderPage(w, "register.gohtml", data)
 		return
@@ -120,7 +127,7 @@ func (h *Handler) PostRegisterHandler(w http.ResponseWriter, r *http.Request) {
 	approvalURL := "http://localhost:8080/admin/registrations"
 	err = mail.SendNewRegistrationNotification(h.MailClient, conf.DB.Admin.Email, conf.DB.Admin.Username, username, email, approvalURL)
 	if err != nil {
-		slog.Error("Failed to send admin notification email", "error", err)
+		logging.AddError(ctx, err, "Failed to send admin notification email")
 	}
 
 	data.Success = "Registration request submitted successfully! An administrator will review your request and you will receive an email when it's approved."
@@ -149,7 +156,7 @@ func (h *Handler) GetPendingRegistrationsHandler(w http.ResponseWriter, r *http.
 	ctx := r.Context()
 	registrations, err := auth.GetPendingRegistrations(ctx, h.AuthStore)
 	if err != nil {
-		slog.Error("Failed to get pending registrations", "error", err)
+		logging.AddError(ctx, err, "Failed to get pending registrations")
 		h.Renderer.RenderError(w, r, http.StatusInternalServerError, "Failed to load pending registrations. Please try again later.")
 		return
 	}
@@ -183,24 +190,28 @@ func (h *Handler) ApproveRegistrationHandler(w http.ResponseWriter, r *http.Requ
 
 	regRequest, err := auth.GetRegistrationRequestByID(ctx, h.AuthStore, registrationID)
 	if err != nil {
-		slog.Error("Failed to get registration request", "error", err)
+		logging.AddError(ctx, err, "Failed to get registration request")
 		h.Renderer.RenderError(w, r, http.StatusNotFound, "Registration request not found.")
 		return
 	}
 
 	err = auth.ApproveRegistration(ctx, h.AuthStore, registrationID, user.ID)
 	if err != nil {
-		slog.Error("Failed to approve registration", "error", err)
+		logging.AddError(ctx, err, "Failed to approve registration")
 		h.Renderer.RenderError(w, r, http.StatusInternalServerError, "Failed to approve registration. Please try again.")
 		return
 	}
 
 	err = mail.SendRegistrationApprovedNotification(h.MailClient, regRequest.Email, regRequest.Username)
 	if err != nil {
-		slog.Error("Failed to send approval email", "error", err)
+		logging.AddError(ctx, err, "Failed to send approval email")
 	}
 
-	slog.Info("Registration approved", "admin_id", user.ID, "registration_id", registrationID, "username", regRequest.Username)
+	logging.AddMany(ctx, map[string]any{
+		"action":                "admin.registration.approve",
+		"registration.id":       registrationID,
+		"registration.username": regRequest.Username,
+	})
 
 	http.Redirect(w, r, "/admin/registrations?success=Registration approved successfully", http.StatusSeeOther)
 }
@@ -227,19 +238,23 @@ func (h *Handler) DenyRegistrationHandler(w http.ResponseWriter, r *http.Request
 
 	regRequest, err := auth.GetRegistrationRequestByID(ctx, h.AuthStore, registrationID)
 	if err != nil {
-		slog.Error("Failed to get registration request", "error", err)
+		logging.AddError(ctx, err, "Failed to get registration request")
 		h.Renderer.RenderError(w, r, http.StatusNotFound, "Registration request not found.")
 		return
 	}
 
 	err = auth.RejectRegistration(ctx, h.AuthStore, registrationID, user.ID)
 	if err != nil {
-		slog.Error("Failed to deny registration", "error", err)
+		logging.AddError(ctx, err, "Failed to deny registration")
 		h.Renderer.RenderError(w, r, http.StatusInternalServerError, "Failed to deny registration. Please try again.")
 		return
 	}
 
-	slog.Info("Registration denied", "admin_id", user.ID, "registration_id", registrationID, "username", regRequest.Username)
+	logging.AddMany(ctx, map[string]any{
+		"action":                "admin.registration.deny",
+		"registration.id":       registrationID,
+		"registration.username": regRequest.Username,
+	})
 
 	http.Redirect(w, r, "/admin/registrations?success=Registration denied successfully", http.StatusSeeOther)
 }
@@ -255,7 +270,7 @@ func (h *Handler) GetUsersHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	users, err := auth.GetAllUsers(ctx, h.AuthStore)
 	if err != nil {
-		slog.Error("Failed to get users", "error", err)
+		logging.AddError(ctx, err, "Failed to get users")
 		h.Renderer.RenderError(w, r, http.StatusInternalServerError, "Failed to load users. Please try again later.")
 		return
 	}
@@ -301,12 +316,16 @@ func (h *Handler) DeleteUserHandler(w http.ResponseWriter, r *http.Request) {
 
 	err = auth.DeleteUser(ctx, h.AuthStore, userID)
 	if err != nil {
-		slog.Error("Failed to delete user", "error", err, "user_id", userID)
+		logging.AddError(ctx, err, "Failed to delete user")
 		http.Error(w, "Failed to delete user", http.StatusInternalServerError)
 		return
 	}
 
-	slog.Info("User deleted", "admin_id", currentUser.UserID, "deleted_user_id", userID, "deleted_username", targetUser.Username)
+	logging.AddMany(ctx, map[string]any{
+		"action":           "admin.user.delete",
+		"deleted.user_id":  userID,
+		"deleted.username": targetUser.Username,
+	})
 
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("User deleted successfully"))

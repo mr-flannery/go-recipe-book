@@ -2,34 +2,36 @@ package auth
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"log/slog"
 	"net/http"
 	"strings"
 
 	"github.com/mr-flannery/go-recipe-book/src/config"
+	"github.com/mr-flannery/go-recipe-book/src/logging"
 	"github.com/mr-flannery/go-recipe-book/src/store"
 )
 
 func RequireAPIKey() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			ctx := r.Context()
 			authHeader := r.Header.Get("Authorization")
 			if authHeader == "" {
-				slog.Warn("API request missing Authorization header", "path", r.URL.Path, "method", r.Method)
+				logging.AddError(ctx, errors.New("missing authorization header"), "API authentication failed")
 				http.Error(w, "Authorization header required", http.StatusUnauthorized)
 				return
 			}
 
 			if !strings.HasPrefix(authHeader, "Bearer ") {
-				slog.Warn("API request with invalid Authorization header format", "path", r.URL.Path, "method", r.Method)
+				logging.AddError(ctx, errors.New("invalid authorization header format"), "API authentication failed")
 				http.Error(w, "Authorization header must be in Bearer token format", http.StatusUnauthorized)
 				return
 			}
 
 			token := strings.TrimPrefix(authHeader, "Bearer ")
 			if token == "" {
-				slog.Warn("API request with empty Bearer token", "path", r.URL.Path, "method", r.Method)
+				logging.AddError(ctx, errors.New("empty bearer token"), "API authentication failed")
 				http.Error(w, "Bearer token cannot be empty", http.StatusUnauthorized)
 				return
 			}
@@ -45,12 +47,11 @@ func RequireAPIKey() func(http.Handler) http.Handler {
 			}
 
 			if !validToken {
-				slog.Warn("API request with invalid API key", "path", r.URL.Path, "method", r.Method)
+				logging.AddError(ctx, errors.New("invalid API key"), "API authentication failed")
 				http.Error(w, "Invalid API key", http.StatusUnauthorized)
 				return
 			}
 
-			slog.Info("API request authenticated successfully", "path", r.URL.Path, "method", r.Method)
 			next.ServeHTTP(w, r)
 		})
 	}

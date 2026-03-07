@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"net/http"
 
+	"github.com/mr-flannery/go-recipe-book/src/logging"
 	"github.com/mr-flannery/go-recipe-book/src/store"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
@@ -52,6 +53,12 @@ func UserContextMiddleware(authStore store.AuthStore) func(http.Handler) http.Ha
 					attribute.String("user.username", user.Username),
 					attribute.Bool("user.is_admin", user.IsAdmin),
 				)
+
+				logging.AddMany(ctx, map[string]any{
+					"user.id":       user.ID,
+					"user.username": user.Username,
+					"user.is_admin": user.IsAdmin,
+				})
 			}
 			next.ServeHTTP(w, r)
 		})

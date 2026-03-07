@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/mr-flannery/go-recipe-book/src/auth"
+	"github.com/mr-flannery/go-recipe-book/src/logging"
 )
 
 type TagSearchResponse struct {
@@ -134,6 +135,13 @@ func (h *Handler) AddTagToRecipeHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	logging.AddMany(ctx, map[string]any{
+		"action":    "tag.add",
+		"recipe.id": recipeIDInt,
+		"tag.id":    tag.ID,
+		"tag.name":  tagName,
+	})
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(TagResponse{Success: true})
 }
@@ -196,6 +204,12 @@ func (h *Handler) RemoveTagFromRecipeHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
+	logging.AddMany(ctx, map[string]any{
+		"action":    "tag.remove",
+		"recipe.id": recipeIDInt,
+		"tag.id":    tagIDInt,
+	})
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(TagResponse{Success: true})
 }
@@ -253,6 +267,12 @@ func (h *Handler) AddUserTagToRecipeHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
+	logging.AddMany(ctx, map[string]any{
+		"action":        "user_tag.add",
+		"recipe.id":     recipeIDInt,
+		"user_tag.name": tagName,
+	})
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(TagResponse{Success: true})
 }
@@ -290,6 +310,11 @@ func (h *Handler) RemoveUserTagHandler(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(TagResponse{Success: false, Error: "Failed to remove user tag"})
 		return
 	}
+
+	logging.AddMany(ctx, map[string]any{
+		"action":      "user_tag.remove",
+		"user_tag.id": tagIDInt,
+	})
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(TagResponse{Success: true})

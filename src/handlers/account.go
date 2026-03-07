@@ -2,11 +2,11 @@ package handlers
 
 import (
 	"encoding/json"
-	"log/slog"
 	"net/http"
 	"time"
 
 	"github.com/mr-flannery/go-recipe-book/src/auth"
+	"github.com/mr-flannery/go-recipe-book/src/logging"
 	"github.com/mr-flannery/go-recipe-book/src/models"
 )
 
@@ -76,7 +76,7 @@ func (h *Handler) ExportUserDataHandler(w http.ResponseWriter, r *http.Request) 
 
 	user, err := h.AuthStore.GetFullUserByID(ctx, userInfo.UserID)
 	if err != nil {
-		slog.Error("Failed to get user for export", "error", err, "user_id", userInfo.UserID)
+		logging.AddError(ctx, err, "Failed to get user for export")
 		h.Renderer.RenderError(w, r, http.StatusInternalServerError, "Failed to export data. Please try again.")
 		return
 	}
@@ -149,7 +149,7 @@ func (h *Handler) ExportUserDataHandler(w http.ResponseWriter, r *http.Request) 
 
 	jsonData, err := json.MarshalIndent(export, "", "  ")
 	if err != nil {
-		slog.Error("Failed to marshal export data", "error", err, "user_id", userInfo.UserID)
+		logging.AddError(ctx, err, "Failed to marshal export data")
 		h.Renderer.RenderError(w, r, http.StatusInternalServerError, "Failed to export data. Please try again.")
 		return
 	}
@@ -159,7 +159,11 @@ func (h *Handler) ExportUserDataHandler(w http.ResponseWriter, r *http.Request) 
 	w.Header().Set("Content-Disposition", "attachment; filename=\""+filename+"\"")
 	w.Write(jsonData)
 
-	slog.Info("User data exported", "user_id", userInfo.UserID, "username", user.Username)
+	logging.AddMany(ctx, map[string]any{
+		"action":               "account.export",
+		"export.recipe_count":  len(export.Recipes),
+		"export.comment_count": len(export.Comments),
+	})
 }
 
 func (h *Handler) DeleteOwnAccountHandler(w http.ResponseWriter, r *http.Request) {
@@ -186,7 +190,7 @@ func (h *Handler) DeleteOwnAccountHandler(w http.ResponseWriter, r *http.Request
 
 	user, err := h.AuthStore.GetUserByID(ctx, userInfo.UserID)
 	if err != nil {
-		slog.Error("Failed to get user for deletion", "error", err, "user_id", userInfo.UserID)
+		logging.AddError(ctx, err, "Failed to get user for deletion")
 		http.Redirect(w, r, "/account?error=Failed to verify account. Please try again.", http.StatusSeeOther)
 		return
 	}
@@ -199,14 +203,18 @@ func (h *Handler) DeleteOwnAccountHandler(w http.ResponseWriter, r *http.Request
 
 	err = auth.DeleteUser(ctx, h.AuthStore, userInfo.UserID)
 	if err != nil {
-		slog.Error("Failed to delete user account", "error", err, "user_id", userInfo.UserID)
+		logging.AddError(ctx, err, "Failed to delete user account")
 		http.Redirect(w, r, "/account?error=Failed to delete account. Please try again.", http.StatusSeeOther)
 		return
 	}
 
 	auth.ClearSessionCookie(w)
 
-	slog.Info("User self-deleted account", "user_id", userInfo.UserID, "username", user.Username)
+	logging.AddMany(ctx, map[string]any{
+		"action":           "account.delete_self",
+		"deleted.user_id":  userInfo.UserID,
+		"deleted.username": user.Username,
+	})
 
 	http.Redirect(w, r, "/?account_deleted=true", http.StatusSeeOther)
 }
