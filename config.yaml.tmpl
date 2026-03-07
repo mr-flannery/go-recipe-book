@@ -14,8 +14,7 @@ server:
 environment:
   mode: development
 api:
-  keys:
-    - test-api-key-32-characters-here
+  encryption_key: ${API_ENCRYPTION_KEY}
 mail:
   domain: ${MAIL_DOMAIN}
   api_key: ${MAIL_API_KEY}

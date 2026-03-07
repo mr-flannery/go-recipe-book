@@ -2,8 +2,10 @@ package auth
 
 import (
 	"context"
+	"crypto/sha256"
+	"crypto/subtle"
+	"encoding/hex"
 	"errors"
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -12,7 +14,7 @@ import (
 	"github.com/mr-flannery/go-recipe-book/src/store"
 )
 
-func RequireAPIKey() func(http.Handler) http.Handler {
+func RequireAPIKey(apiKeyStore store.APIKeyStore, authStore store.AuthStore) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			ctx := r.Context()
@@ -36,34 +38,76 @@ func RequireAPIKey() func(http.Handler) http.Handler {
 				return
 			}
 
-			cfg := config.GetConfig()
-
-			validToken := false
-			for _, validKey := range cfg.Api.Keys {
-				if token == validKey {
-					validToken = true
-					break
-				}
-			}
-
-			if !validToken {
-				logging.AddError(ctx, errors.New("invalid API key"), "API authentication failed")
+			apiKey, user, err := validateAPIKey(ctx, apiKeyStore, authStore, token)
+			if err != nil {
+				logging.AddError(ctx, err, "API authentication failed")
 				http.Error(w, "Invalid API key", http.StatusUnauthorized)
 				return
 			}
 
-			next.ServeHTTP(w, r)
+			go func() {
+				_ = apiKeyStore.UpdateLastUsed(context.Background(), apiKey.ID)
+			}()
+
+			userInfo := &UserInfo{
+				IsLoggedIn: true,
+				IsAdmin:    user.IsAdmin,
+				Username:   user.Username,
+				UserID:     user.ID,
+			}
+			ctx = ContextWithUserInfo(ctx, userInfo)
+
+			logging.AddMany(ctx, map[string]any{
+				"api_key.id":    apiKey.ID,
+				"api_key.name":  apiKey.Name,
+				"user.id":       user.ID,
+				"user.username": user.Username,
+			})
+
+			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
 }
 
-func GetAdminUserID(ctx context.Context, authStore store.AuthStore) (int, error) {
+func validateAPIKey(ctx context.Context, apiKeyStore store.APIKeyStore, authStore store.AuthStore, token string) (*store.APIKey, *store.AuthUser, error) {
 	cfg := config.GetConfig()
-
-	adminID, err := authStore.GetUserIDByUsername(ctx, cfg.DB.Admin.Username)
-	if err != nil {
-		return 0, fmt.Errorf("failed to get admin user ID: %w", err)
+	for _, validKey := range cfg.Api.Keys {
+		if validKey != "" && subtle.ConstantTimeCompare([]byte(token), []byte(validKey)) == 1 {
+			adminUser, err := getAdminUser(ctx, authStore)
+			if err != nil {
+				return nil, nil, err
+			}
+			return &store.APIKey{ID: 0, Name: "legacy-config-key", UserID: adminUser.ID}, adminUser, nil
+		}
 	}
 
-	return adminID, nil
+	keyHash := HashAPIKey(token)
+	apiKey, err := apiKeyStore.GetByKeyHash(ctx, keyHash)
+	if err != nil {
+		return nil, nil, err
+	}
+	if apiKey == nil {
+		return nil, nil, errors.New("API key not found")
+	}
+
+	user, err := authStore.GetUserByID(ctx, apiKey.UserID)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return apiKey, user, nil
+}
+
+func getAdminUser(ctx context.Context, authStore store.AuthStore) (*store.AuthUser, error) {
+	cfg := config.GetConfig()
+	adminID, err := authStore.GetUserIDByUsername(ctx, cfg.DB.Admin.Username)
+	if err != nil {
+		return nil, err
+	}
+	return authStore.GetUserByID(ctx, adminID)
+}
+
+func HashAPIKey(key string) string {
+	hash := sha256.Sum256([]byte(key))
+	return hex.EncodeToString(hash[:])
 }

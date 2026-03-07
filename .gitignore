@@ -69,3 +69,6 @@ config.yaml
 # Act (local CI runner)
 .secrets
 .act-artifacts/
+
+# misc/random
+recipes2.json

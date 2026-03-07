@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/mr-flannery/go-recipe-book/src/auth"
 	"github.com/mr-flannery/go-recipe-book/src/models"
 	"github.com/mr-flannery/go-recipe-book/src/store/mocks"
 )
@@ -452,11 +453,6 @@ func TestAPICreateRecipeHandler_CreatesRecipeBasedOnInput(t *testing.T) {
 	})
 
 	t.Run("creates recipe and returns ID when input is valid", func(t *testing.T) {
-		mockAuthStore := &mocks.MockAuthStore{
-			GetUserIDByUsernameFunc: func(ctx context.Context, username string) (int, error) {
-				return 1, nil
-			},
-		}
 		mockRecipeStore := &mocks.MockRecipeStore{
 			SaveFunc: func(ctx context.Context, recipe models.Recipe) (int, error) {
 				return 123, nil
@@ -464,7 +460,6 @@ func TestAPICreateRecipeHandler_CreatesRecipeBasedOnInput(t *testing.T) {
 		}
 
 		h := &Handler{
-			AuthStore:   mockAuthStore,
 			RecipeStore: mockRecipeStore,
 		}
 
@@ -477,6 +472,8 @@ func TestAPICreateRecipeHandler_CreatesRecipeBasedOnInput(t *testing.T) {
 			"calories": 300
 		}`
 		req := httptest.NewRequest(http.MethodPost, "/api/recipe/upload", bytes.NewBufferString(body))
+		userInfo := &auth.UserInfo{IsLoggedIn: true, UserID: 1, Username: "apiuser"}
+		req = req.WithContext(auth.ContextWithUserInfo(req.Context(), userInfo))
 		rec := httptest.NewRecorder()
 
 		h.APICreateRecipeHandler(rec, req)
@@ -496,11 +493,6 @@ func TestAPICreateRecipeHandler_CreatesRecipeBasedOnInput(t *testing.T) {
 	})
 
 	t.Run("decodes and stores base64 image when provided", func(t *testing.T) {
-		mockAuthStore := &mocks.MockAuthStore{
-			GetUserIDByUsernameFunc: func(ctx context.Context, username string) (int, error) {
-				return 1, nil
-			},
-		}
 		var capturedRecipe models.Recipe
 		mockRecipeStore := &mocks.MockRecipeStore{
 			SaveFunc: func(ctx context.Context, recipe models.Recipe) (int, error) {
@@ -510,7 +502,6 @@ func TestAPICreateRecipeHandler_CreatesRecipeBasedOnInput(t *testing.T) {
 		}
 
 		h := &Handler{
-			AuthStore:   mockAuthStore,
 			RecipeStore: mockRecipeStore,
 		}
 
@@ -521,6 +512,8 @@ func TestAPICreateRecipeHandler_CreatesRecipeBasedOnInput(t *testing.T) {
 			"image_base64": "SGVsbG8gV29ybGQ="
 		}`
 		req := httptest.NewRequest(http.MethodPost, "/api/recipe/upload", bytes.NewBufferString(body))
+		userInfo := &auth.UserInfo{IsLoggedIn: true, UserID: 1, Username: "apiuser"}
+		req = req.WithContext(auth.ContextWithUserInfo(req.Context(), userInfo))
 		rec := httptest.NewRecorder()
 
 		h.APICreateRecipeHandler(rec, req)
@@ -535,11 +528,6 @@ func TestAPICreateRecipeHandler_CreatesRecipeBasedOnInput(t *testing.T) {
 	})
 
 	t.Run("strips data URI prefix before decoding image", func(t *testing.T) {
-		mockAuthStore := &mocks.MockAuthStore{
-			GetUserIDByUsernameFunc: func(ctx context.Context, username string) (int, error) {
-				return 1, nil
-			},
-		}
 		var capturedRecipe models.Recipe
 		mockRecipeStore := &mocks.MockRecipeStore{
 			SaveFunc: func(ctx context.Context, recipe models.Recipe) (int, error) {
@@ -549,7 +537,6 @@ func TestAPICreateRecipeHandler_CreatesRecipeBasedOnInput(t *testing.T) {
 		}
 
 		h := &Handler{
-			AuthStore:   mockAuthStore,
 			RecipeStore: mockRecipeStore,
 		}
 
@@ -560,6 +547,8 @@ func TestAPICreateRecipeHandler_CreatesRecipeBasedOnInput(t *testing.T) {
 			"image_base64": "data:image/png;base64,SGVsbG8gV29ybGQ="
 		}`
 		req := httptest.NewRequest(http.MethodPost, "/api/recipe/upload", bytes.NewBufferString(body))
+		userInfo := &auth.UserInfo{IsLoggedIn: true, UserID: 1, Username: "apiuser"}
+		req = req.WithContext(auth.ContextWithUserInfo(req.Context(), userInfo))
 		rec := httptest.NewRecorder()
 
 		h.APICreateRecipeHandler(rec, req)
@@ -574,15 +563,7 @@ func TestAPICreateRecipeHandler_CreatesRecipeBasedOnInput(t *testing.T) {
 	})
 
 	t.Run("returns error when base64 image is invalid", func(t *testing.T) {
-		mockAuthStore := &mocks.MockAuthStore{
-			GetUserIDByUsernameFunc: func(ctx context.Context, username string) (int, error) {
-				return 1, nil
-			},
-		}
-
-		h := &Handler{
-			AuthStore: mockAuthStore,
-		}
+		h := &Handler{}
 
 		body := `{
 			"title": "Test Recipe",
@@ -591,6 +572,8 @@ func TestAPICreateRecipeHandler_CreatesRecipeBasedOnInput(t *testing.T) {
 			"image_base64": "not-valid-base64!!!"
 		}`
 		req := httptest.NewRequest(http.MethodPost, "/api/recipe/upload", bytes.NewBufferString(body))
+		userInfo := &auth.UserInfo{IsLoggedIn: true, UserID: 1, Username: "apiuser"}
+		req = req.WithContext(auth.ContextWithUserInfo(req.Context(), userInfo))
 		rec := httptest.NewRecorder()
 
 		h.APICreateRecipeHandler(rec, req)
@@ -607,11 +590,6 @@ func TestAPICreateRecipeHandler_CreatesRecipeBasedOnInput(t *testing.T) {
 	})
 
 	t.Run("returns error when store fails to save recipe", func(t *testing.T) {
-		mockAuthStore := &mocks.MockAuthStore{
-			GetUserIDByUsernameFunc: func(ctx context.Context, username string) (int, error) {
-				return 1, nil
-			},
-		}
 		mockRecipeStore := &mocks.MockRecipeStore{
 			SaveFunc: func(ctx context.Context, recipe models.Recipe) (int, error) {
 				return 0, errors.New("database error")
@@ -619,7 +597,6 @@ func TestAPICreateRecipeHandler_CreatesRecipeBasedOnInput(t *testing.T) {
 		}
 
 		h := &Handler{
-			AuthStore:   mockAuthStore,
 			RecipeStore: mockRecipeStore,
 		}
 
@@ -629,6 +606,8 @@ func TestAPICreateRecipeHandler_CreatesRecipeBasedOnInput(t *testing.T) {
 			"instructions_md": "Mix and bake"
 		}`
 		req := httptest.NewRequest(http.MethodPost, "/api/recipe/upload", bytes.NewBufferString(body))
+		userInfo := &auth.UserInfo{IsLoggedIn: true, UserID: 1, Username: "apiuser"}
+		req = req.WithContext(auth.ContextWithUserInfo(req.Context(), userInfo))
 		rec := httptest.NewRecorder()
 
 		h.APICreateRecipeHandler(rec, req)

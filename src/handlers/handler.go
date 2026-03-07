@@ -18,11 +18,13 @@ type Handler struct {
 	AuthStore            store.AuthStore
 	IngredientStore      store.IngredientStore
 	UserPreferencesStore store.UserPreferencesStore
+	APIKeyStore          store.APIKeyStore
 	Renderer             templates.Renderer
 	MailClient           mail.MailClient
+	APIEncryptionKey     []byte
 }
 
-func NewHandler(db *sql.DB, recipeStore store.RecipeStore, tagStore store.TagStore, userTagStore store.UserTagStore, commentStore store.CommentStore, userStore store.UserStore, authStore store.AuthStore, ingredientStore store.IngredientStore, userPreferencesStore store.UserPreferencesStore, renderer templates.Renderer, mailClient mail.MailClient) *Handler {
+func NewHandler(db *sql.DB, recipeStore store.RecipeStore, tagStore store.TagStore, userTagStore store.UserTagStore, commentStore store.CommentStore, userStore store.UserStore, authStore store.AuthStore, ingredientStore store.IngredientStore, userPreferencesStore store.UserPreferencesStore, apiKeyStore store.APIKeyStore, renderer templates.Renderer, mailClient mail.MailClient, apiEncryptionKey []byte) *Handler {
 	return &Handler{
 		DB:                   db,
 		RecipeStore:          recipeStore,
@@ -33,7 +35,9 @@ func NewHandler(db *sql.DB, recipeStore store.RecipeStore, tagStore store.TagSto
 		AuthStore:            authStore,
 		IngredientStore:      ingredientStore,
 		UserPreferencesStore: userPreferencesStore,
+		APIKeyStore:          apiKeyStore,
 		Renderer:             renderer,
 		MailClient:           mailClient,
+		APIEncryptionKey:     apiEncryptionKey,
 	}
 }

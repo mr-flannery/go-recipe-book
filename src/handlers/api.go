@@ -111,10 +111,9 @@ func (h *Handler) APICreateRecipeHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	adminID, err := auth.GetAdminUserID(ctx, h.AuthStore)
-	if err != nil {
-		logging.AddError(ctx, err, "Failed to get admin user ID")
-		sendJSONError(w, "Internal server error", http.StatusInternalServerError)
+	userID := auth.GetUserIDFromContext(ctx)
+	if userID == 0 {
+		sendJSONError(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
@@ -145,7 +144,7 @@ func (h *Handler) APICreateRecipeHandler(w http.ResponseWriter, r *http.Request)
 		CookTime:       req.CookTime,
 		Calories:       req.Calories,
 		Image:          imageData,
-		AuthorID:       adminID,
+		AuthorID:       userID,
 	}
 
 	recipeID, err := h.RecipeStore.Save(ctx, recipe)

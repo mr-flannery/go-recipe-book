@@ -1,0 +1,135 @@
+{{define "account-api-keys.gohtml"}}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Keys - Taste Magazine</title>
+    <link rel="stylesheet" href="/static/css/editorial.css">
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+</head>
+<body>
+    {{template "navbar" .UserInfo}}
+
+    <main class="main-content">
+        <div class="page-header">
+            <nav style="margin-bottom: 10px;">
+                <a href="/account" style="color: var(--muted);">Account</a> &rsaquo; API Keys
+            </nav>
+            <h1>API Keys</h1>
+            <p>Manage API keys for external tools</p>
+        </div>
+
+        {{if .Error}}
+        <div class="error" style="margin-bottom: 20px;">{{.Error}}</div>
+        {{end}}
+        {{if and .Success (hasPrefix .Success "rb_")}}
+        <div class="success" style="margin-bottom: 20px;">
+            <strong>API key created!</strong> You can reveal it anytime from the list below.
+        </div>
+        {{else if .Success}}
+        <div class="success" style="margin-bottom: 20px;">{{.Success}}</div>
+        {{end}}
+
+        <div class="card" style="margin-bottom: 30px;">
+            <h2 style="font-size: 1.3rem; margin-bottom: 15px;">Create New Key</h2>
+            <p style="line-height: 1.7; margin-bottom: 20px; color: var(--muted);">
+                API keys allow external tools to create recipes on your behalf. Give each key a descriptive name so you can identify it later.
+            </p>
+            <form id="create-key-form" method="POST" action="/account/api-keys" style="display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap;">
+                <div class="form-group" style="flex: 1; min-width: 250px; margin-bottom: 0;">
+                    <label for="api-key-name">Key Name</label>
+                    <input type="text" id="api-key-name" name="name" placeholder="e.g., Recipe Import Script" required maxlength="100" style="height: 44px; box-sizing: border-box;" autocomplete="off" data-1p-ignore="true">
+                </div>
+                <button type="submit" class="btn primary" style="height: 44px; box-sizing: border-box;">Create Key</button>
+            </form>
+        </div>
+
+        {{if .APIKeys}}
+        <div class="card">
+            <h2 style="font-size: 1.3rem; margin-bottom: 20px;">Your API Keys</h2>
+            <div style="overflow-x: auto;">
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="border-bottom: 2px solid var(--rule); text-align: left;">
+                            <th style="padding: 12px 16px 12px 0;">Name</th>
+                            <th style="padding: 12px 16px;">Key</th>
+                            <th style="padding: 12px 16px;">Created</th>
+                            <th style="padding: 12px 16px;">Last Used</th>
+                            <th style="padding: 12px 0 12px 16px; text-align: right;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{range .APIKeys}}
+                        <tr style="border-bottom: 1px solid var(--rule);">
+                            <td style="padding: 16px 16px 16px 0; font-weight: 500;">{{.Name}}</td>
+                            <td style="padding: 16px;">
+                                {{if .DecryptedKey}}
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <code class="api-key-display" data-key="{{.DecryptedKey}}" style="background: #f5f5f5; padding: 4px 8px; border-radius: 4px; font-size: 0.85rem;">{{.KeyPrefix}}••••••••</code>
+                                    <button type="button" class="btn toggle-key-btn" style="padding: 4px 10px; font-size: 0.8rem;" onclick="toggleKey(this)">Show</button>
+                                </div>
+                                {{else}}
+                                <code style="background: #f5f5f5; padding: 4px 8px; border-radius: 4px;">{{.KeyPrefix}}...</code>
+                                {{end}}
+                            </td>
+                            <td style="padding: 16px; color: var(--muted);">{{.CreatedAt.Format "Jan 2, 2006"}}</td>
+                            <td style="padding: 16px; color: var(--muted);">
+                                {{if .LastUsedAt}}
+                                    {{.LastUsedAt.Format "Jan 2, 2006"}}
+                                {{else}}
+                                    Never
+                                {{end}}
+                            </td>
+                            <td style="padding: 16px 0 16px 16px; text-align: right;">
+                                <button type="button" class="btn" style="padding: 4px 10px; font-size: 0.8rem;"
+                                        hx-delete="/account/api-keys/{{.ID}}"
+                                        hx-confirm="Revoke this API key? Any tools using it will stop working."
+                                        hx-target="closest tr"
+                                        hx-swap="outerHTML swap:0.2s">
+                                    Revoke
+                                </button>
+                            </td>
+                        </tr>
+                        {{end}}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {{else}}
+        <div class="card">
+            <p style="color: var(--muted); text-align: center; padding: 20px 0;">
+                You don't have any API keys yet. Create one above to get started.
+            </p>
+        </div>
+        {{end}}
+    </main>
+
+    {{template "footer" .UserInfo}}
+
+    <script>
+        function toggleKey(btn) {
+            const container = btn.parentElement;
+            const display = container.querySelector('.api-key-display');
+            const fullKey = display.dataset.key;
+            const prefix = fullKey.substring(0, 11);
+            
+            if (btn.textContent === 'Show') {
+                display.textContent = fullKey;
+                btn.textContent = 'Hide';
+            } else {
+                display.textContent = prefix + '••••••••';
+                btn.textContent = 'Show';
+            }
+        }
+
+        document.getElementById('api-key-name').addEventListener('keydown', function(e) {
+            if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+                e.preventDefault();
+                document.getElementById('create-key-form').submit();
+            }
+        });
+    </script>
+</body>
+</html>
+{{end}}

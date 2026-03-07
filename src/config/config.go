@@ -33,7 +33,8 @@ type Config struct {
 		Mode string `yaml:"mode"`
 	} `yaml:"environment"`
 	Api struct {
-		Keys []string `yaml:"keys"`
+		Keys          []string `yaml:"keys"`
+		EncryptionKey string   `yaml:"encryption_key"`
 	} `yaml:"api"`
 	Mail struct {
 		Domain string `yaml:"domain"`
@@ -115,6 +116,9 @@ func applyEnvOverrides(cfg *Config) {
 	}
 	if v := os.Getenv("API_KEYS"); v != "" {
 		cfg.Api.Keys = strings.Split(v, ",")
+	}
+	if v := os.Getenv("API_ENCRYPTION_KEY"); v != "" {
+		cfg.Api.EncryptionKey = v
 	}
 	if v := os.Getenv("MAIL_DOMAIN"); v != "" {
 		cfg.Mail.Domain = v

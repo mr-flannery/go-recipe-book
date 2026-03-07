@@ -85,7 +85,7 @@ func TestGetAccountSettingsHandler_RendersAccountSettingsPage(t *testing.T) {
 	}
 }
 
-func TestGetAccountSettingsHandler_IncludesSuccessMessage(t *testing.T) {
+func TestGetAccountAPIKeysHandler_IncludesSuccessMessage(t *testing.T) {
 	var capturedData any
 	mockRenderer := &tmocks.MockRenderer{
 		RenderPageFunc: func(w http.ResponseWriter, name string, data any) {
@@ -94,28 +94,35 @@ func TestGetAccountSettingsHandler_IncludesSuccessMessage(t *testing.T) {
 		},
 	}
 
-	h := &Handler{
-		Renderer: mockRenderer,
+	mockAPIKeyStore := &mocks.MockAPIKeyStore{
+		GetByUserIDFunc: func(ctx context.Context, userID int) ([]store.APIKey, error) {
+			return []store.APIKey{}, nil
+		},
 	}
 
-	req := httptest.NewRequest(http.MethodGet, "/account?success=Settings+saved", nil)
+	h := &Handler{
+		Renderer:    mockRenderer,
+		APIKeyStore: mockAPIKeyStore,
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/account/api-keys?success=rb_testkey123", nil)
 	userInfo := &auth.UserInfo{IsLoggedIn: true, UserID: 1, Username: "testuser"}
 	req = req.WithContext(auth.ContextWithUserInfo(req.Context(), userInfo))
 	rec := httptest.NewRecorder()
 
-	h.GetAccountSettingsHandler(rec, req)
+	h.GetAccountAPIKeysHandler(rec, req)
 
 	data, ok := capturedData.(AccountSettingsData)
 	if !ok {
 		t.Fatal("expected capturedData to be AccountSettingsData")
 	}
 
-	if data.Success != "Settings saved" {
-		t.Errorf("expected success message 'Settings saved', got '%s'", data.Success)
+	if data.Success != "rb_testkey123" {
+		t.Errorf("expected success message 'rb_testkey123', got '%s'", data.Success)
 	}
 }
 
-func TestGetAccountSettingsHandler_IncludesErrorMessage(t *testing.T) {
+func TestGetAccountAPIKeysHandler_IncludesErrorMessage(t *testing.T) {
 	var capturedData any
 	mockRenderer := &tmocks.MockRenderer{
 		RenderPageFunc: func(w http.ResponseWriter, name string, data any) {
@@ -124,16 +131,23 @@ func TestGetAccountSettingsHandler_IncludesErrorMessage(t *testing.T) {
 		},
 	}
 
-	h := &Handler{
-		Renderer: mockRenderer,
+	mockAPIKeyStore := &mocks.MockAPIKeyStore{
+		GetByUserIDFunc: func(ctx context.Context, userID int) ([]store.APIKey, error) {
+			return []store.APIKey{}, nil
+		},
 	}
 
-	req := httptest.NewRequest(http.MethodGet, "/account?error=Something+went+wrong", nil)
+	h := &Handler{
+		Renderer:    mockRenderer,
+		APIKeyStore: mockAPIKeyStore,
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/account/api-keys?error=Something+went+wrong", nil)
 	userInfo := &auth.UserInfo{IsLoggedIn: true, UserID: 1, Username: "testuser"}
 	req = req.WithContext(auth.ContextWithUserInfo(req.Context(), userInfo))
 	rec := httptest.NewRecorder()
 
-	h.GetAccountSettingsHandler(rec, req)
+	h.GetAccountAPIKeysHandler(rec, req)
 
 	data, ok := capturedData.(AccountSettingsData)
 	if !ok {

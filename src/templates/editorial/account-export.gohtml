@@ -1,0 +1,41 @@
+{{define "account-export.gohtml"}}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Export Data - Taste Magazine</title>
+    <link rel="stylesheet" href="/static/css/editorial.css">
+</head>
+<body>
+    {{template "navbar" .UserInfo}}
+
+    <main class="main-content">
+        <div class="page-header">
+            <nav style="margin-bottom: 10px;">
+                <a href="/account" style="color: var(--muted);">Account</a> &rsaquo; Export Data
+            </nav>
+            <h1>Export Your Data</h1>
+            <p>Download a copy of all your personal data</p>
+        </div>
+
+        <div class="card" style="max-width: 700px; margin: 0 auto;">
+            <h2 style="font-size: 1.3rem; margin-bottom: 15px;">What's Included</h2>
+            <ul style="line-height: 1.8; margin-bottom: 25px; color: var(--muted);">
+                <li>Your account information (username, email, registration date)</li>
+                <li>All recipes you've created</li>
+                <li>Your comments on recipes</li>
+                <li>Your personal tags</li>
+                <li>Your preferences</li>
+            </ul>
+            <p style="line-height: 1.7; margin-bottom: 25px; color: var(--muted);">
+                The data will be exported as a JSON file that you can open in any text editor or import into other applications.
+            </p>
+            <a href="/account/export/download" class="btn primary">Download My Data</a>
+        </div>
+    </main>
+
+    {{template "footer" .UserInfo}}
+</body>
+</html>
+{{end}}

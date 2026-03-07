@@ -1,28 +1,88 @@
 package handlers
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"net/http"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/mr-flannery/go-recipe-book/src/auth"
 	"github.com/mr-flannery/go-recipe-book/src/logging"
 	"github.com/mr-flannery/go-recipe-book/src/models"
+	"github.com/mr-flannery/go-recipe-book/src/store"
+	"github.com/mr-flannery/go-recipe-book/src/utils"
 )
+
+type APIKeyDisplay struct {
+	store.APIKey
+	DecryptedKey string
+}
 
 type AccountSettingsData struct {
 	UserInfo *auth.UserInfo
+	APIKeys  []APIKeyDisplay
 	Success  string
 	Error    string
 }
 
 func (h *Handler) GetAccountSettingsHandler(w http.ResponseWriter, r *http.Request) {
+	userInfo := auth.GetUserInfoFromContext(r.Context())
 	data := AccountSettingsData{
-		UserInfo: auth.GetUserInfoFromContext(r.Context()),
+		UserInfo: userInfo,
+	}
+	h.Renderer.RenderPage(w, "account-settings.gohtml", data)
+}
+
+func (h *Handler) GetAccountAPIKeysHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	userInfo := auth.GetUserInfoFromContext(ctx)
+
+	apiKeys, err := h.APIKeyStore.GetByUserID(ctx, userInfo.UserID)
+	if err != nil {
+		logging.AddError(ctx, err, "Failed to fetch API keys")
+		apiKeys = []store.APIKey{}
+	}
+
+	displayKeys := make([]APIKeyDisplay, len(apiKeys))
+	for i, key := range apiKeys {
+		displayKeys[i] = APIKeyDisplay{APIKey: key}
+		if key.EncryptedKey != "" && len(h.APIEncryptionKey) > 0 {
+			decrypted, err := utils.Decrypt(key.EncryptedKey, h.APIEncryptionKey)
+			if err != nil {
+				logging.AddError(ctx, err, "Failed to decrypt API key")
+			} else {
+				displayKeys[i].DecryptedKey = decrypted
+			}
+		}
+	}
+
+	data := AccountSettingsData{
+		UserInfo: userInfo,
+		APIKeys:  displayKeys,
 		Success:  r.URL.Query().Get("success"),
 		Error:    r.URL.Query().Get("error"),
 	}
-	h.Renderer.RenderPage(w, "account-settings.gohtml", data)
+	h.Renderer.RenderPage(w, "account-api-keys.gohtml", data)
+}
+
+func (h *Handler) GetAccountExportHandler(w http.ResponseWriter, r *http.Request) {
+	userInfo := auth.GetUserInfoFromContext(r.Context())
+	data := AccountSettingsData{
+		UserInfo: userInfo,
+	}
+	h.Renderer.RenderPage(w, "account-export.gohtml", data)
+}
+
+func (h *Handler) GetAccountDeleteHandler(w http.ResponseWriter, r *http.Request) {
+	userInfo := auth.GetUserInfoFromContext(r.Context())
+	data := AccountSettingsData{
+		UserInfo: userInfo,
+		Error:    r.URL.Query().Get("error"),
+	}
+	h.Renderer.RenderPage(w, "account-delete.gohtml", data)
 }
 
 type UserDataExport struct {
@@ -175,7 +235,7 @@ func (h *Handler) DeleteOwnAccountHandler(w http.ResponseWriter, r *http.Request
 	}
 
 	if userInfo.IsAdmin {
-		http.Redirect(w, r, "/account?error=Admin accounts cannot be deleted through self-service. Please contact another administrator.", http.StatusSeeOther)
+		http.Redirect(w, r, "/account/delete?error=Admin accounts cannot be deleted through self-service. Please contact another administrator.", http.StatusSeeOther)
 		return
 	}
 
@@ -184,27 +244,27 @@ func (h *Handler) DeleteOwnAccountHandler(w http.ResponseWriter, r *http.Request
 	confirmDelete := r.FormValue("confirm_delete")
 
 	if confirmDelete != "DELETE" {
-		http.Redirect(w, r, "/account?error=Please type DELETE to confirm account deletion.", http.StatusSeeOther)
+		http.Redirect(w, r, "/account/delete?error=Please type DELETE to confirm account deletion.", http.StatusSeeOther)
 		return
 	}
 
 	user, err := h.AuthStore.GetUserByID(ctx, userInfo.UserID)
 	if err != nil {
 		logging.AddError(ctx, err, "Failed to get user for deletion")
-		http.Redirect(w, r, "/account?error=Failed to verify account. Please try again.", http.StatusSeeOther)
+		http.Redirect(w, r, "/account/delete?error=Failed to verify account. Please try again.", http.StatusSeeOther)
 		return
 	}
 
 	_, err = auth.Authenticate(ctx, h.AuthStore, user.Email, password)
 	if err != nil {
-		http.Redirect(w, r, "/account?error=Incorrect password. Please try again.", http.StatusSeeOther)
+		http.Redirect(w, r, "/account/delete?error=Incorrect password. Please try again.", http.StatusSeeOther)
 		return
 	}
 
 	err = auth.DeleteUser(ctx, h.AuthStore, userInfo.UserID)
 	if err != nil {
 		logging.AddError(ctx, err, "Failed to delete user account")
-		http.Redirect(w, r, "/account?error=Failed to delete account. Please try again.", http.StatusSeeOther)
+		http.Redirect(w, r, "/account/delete?error=Failed to delete account. Please try again.", http.StatusSeeOther)
 		return
 	}
 
@@ -217,4 +277,123 @@ func (h *Handler) DeleteOwnAccountHandler(w http.ResponseWriter, r *http.Request
 	})
 
 	http.Redirect(w, r, "/?account_deleted=true", http.StatusSeeOther)
+}
+
+func generateAPIKey() (string, error) {
+	bytes := make([]byte, 32)
+	if _, err := rand.Read(bytes); err != nil {
+		return "", err
+	}
+	return "rb_" + hex.EncodeToString(bytes), nil
+}
+
+func (h *Handler) CreateAPIKeyHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	userInfo := auth.GetUserInfoFromContext(ctx)
+	if !userInfo.IsLoggedIn {
+		h.Renderer.RenderError(w, r, http.StatusUnauthorized, "You must be logged in to create API keys.")
+		return
+	}
+
+	if err := r.ParseForm(); err != nil {
+		http.Redirect(w, r, "/account/api-keys?error=Invalid form data.", http.StatusSeeOther)
+		return
+	}
+
+	name := strings.TrimSpace(r.FormValue("name"))
+	if name == "" {
+		http.Redirect(w, r, "/account/api-keys?error=API key name is required.", http.StatusSeeOther)
+		return
+	}
+	if len(name) > 100 {
+		http.Redirect(w, r, "/account/api-keys?error=API key name must be 100 characters or less.", http.StatusSeeOther)
+		return
+	}
+
+	rawKey, err := generateAPIKey()
+	if err != nil {
+		logging.AddError(ctx, err, "Failed to generate API key")
+		http.Redirect(w, r, "/account/api-keys?error=Failed to generate API key.", http.StatusSeeOther)
+		return
+	}
+
+	keyHash := auth.HashAPIKey(rawKey)
+	keyPrefix := rawKey[:10]
+
+	var encryptedKey string
+	if len(h.APIEncryptionKey) > 0 {
+		encryptedKey, err = utils.Encrypt(rawKey, h.APIEncryptionKey)
+		if err != nil {
+			logging.AddError(ctx, err, "Failed to encrypt API key")
+			http.Redirect(w, r, "/account/api-keys?error=Failed to create API key.", http.StatusSeeOther)
+			return
+		}
+	}
+
+	_, err = h.APIKeyStore.Create(ctx, userInfo.UserID, name, keyHash, keyPrefix, encryptedKey)
+	if err != nil {
+		logging.AddError(ctx, err, "Failed to save API key")
+		http.Redirect(w, r, "/account/api-keys?error=Failed to create API key.", http.StatusSeeOther)
+		return
+	}
+
+	logging.AddMany(ctx, map[string]any{
+		"action":         "account.api_key.create",
+		"api_key.name":   name,
+		"api_key.prefix": keyPrefix,
+	})
+
+	http.Redirect(w, r, "/account/api-keys?success="+rawKey, http.StatusSeeOther)
+}
+
+func (h *Handler) DeleteAPIKeyHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	userInfo := auth.GetUserInfoFromContext(ctx)
+	if !userInfo.IsLoggedIn {
+		h.Renderer.RenderError(w, r, http.StatusUnauthorized, "You must be logged in to delete API keys.")
+		return
+	}
+
+	keyIDStr := r.PathValue("id")
+	logging.AddMany(ctx, map[string]any{
+		"debug.path":       r.URL.Path,
+		"debug.key_id_str": keyIDStr,
+		"debug.method":     r.Method,
+	})
+	keyID, err := strconv.Atoi(keyIDStr)
+	if err != nil {
+		if r.Header.Get("HX-Request") == "true" {
+			w.Header().Set("Content-Type", "text/html")
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte(`<tr><td colspan="5" style="color: red; padding: 16px;">Invalid API key ID</td></tr>`))
+			return
+		}
+		http.Redirect(w, r, "/account/api-keys?error=Invalid API key ID.", http.StatusSeeOther)
+		return
+	}
+
+	err = h.APIKeyStore.Delete(ctx, userInfo.UserID, keyID)
+	if err != nil {
+		logging.AddError(ctx, err, "Failed to delete API key")
+		if r.Header.Get("HX-Request") == "true" {
+			w.Header().Set("Content-Type", "text/html")
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(`<tr><td colspan="5" style="color: red; padding: 16px;">Failed to delete API key</td></tr>`))
+			return
+		}
+		http.Redirect(w, r, "/account/api-keys?error=Failed to delete API key.", http.StatusSeeOther)
+		return
+	}
+
+	logging.AddMany(ctx, map[string]any{
+		"action":     "account.api_key.delete",
+		"api_key.id": keyID,
+	})
+
+	if r.Header.Get("HX-Request") == "true" {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
+	http.Redirect(w, r, "/account/api-keys?success=API key deleted.", http.StatusSeeOther)
 }

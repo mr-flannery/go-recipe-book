@@ -122,3 +122,21 @@ type UserPreferencesStore interface {
 	SetPageSize(ctx context.Context, userID, pageSize int) error
 	SetViewMode(ctx context.Context, userID int, viewMode string) error
 }
+
+type APIKey struct {
+	ID           int
+	UserID       int
+	Name         string
+	KeyPrefix    string
+	EncryptedKey string
+	CreatedAt    time.Time
+	LastUsedAt   *time.Time
+}
+
+type APIKeyStore interface {
+	Create(ctx context.Context, userID int, name string, keyHash string, keyPrefix string, encryptedKey string) (int, error)
+	GetByKeyHash(ctx context.Context, keyHash string) (*APIKey, error)
+	GetByUserID(ctx context.Context, userID int) ([]APIKey, error)
+	Delete(ctx context.Context, userID int, keyID int) error
+	UpdateLastUsed(ctx context.Context, keyID int) error
+}

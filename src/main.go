@@ -90,6 +90,7 @@ func main() {
 	userStore := postgres.NewUserStore(database)
 	ingredientStore := postgres.NewIngredientStore(database)
 	userPreferencesStore := postgres.NewUserPreferencesStore(database)
+	apiKeyStore := postgres.NewAPIKeyStore(database)
 	renderer := templates.NewRenderer(templates.Templates)
 
 	var mailClient mail.MailClient
@@ -105,11 +106,20 @@ func main() {
 		}
 	}
 
-	h := handlers.NewHandler(database, recipeStore, tagStore, userTagStore, commentStore, userStore, authStore, ingredientStore, userPreferencesStore, renderer, mailClient)
+	var apiEncryptionKey []byte
+	if config.Api.EncryptionKey != "" {
+		apiEncryptionKey = []byte(config.Api.EncryptionKey)
+		if len(apiEncryptionKey) != 32 {
+			slog.Error("API_ENCRYPTION_KEY must be exactly 32 bytes for AES-256")
+			panic("API_ENCRYPTION_KEY must be exactly 32 bytes")
+		}
+	}
+
+	h := handlers.NewHandler(database, recipeStore, tagStore, userTagStore, commentStore, userStore, authStore, ingredientStore, userPreferencesStore, apiKeyStore, renderer, mailClient, apiEncryptionKey)
 
 	userContext := auth.UserContextMiddleware(authStore)
 	requireAuth := auth.RequireAuth()
-	requireAPIKey := auth.RequireAPIKey()
+	requireAPIKey := auth.RequireAPIKey(apiKeyStore, authStore)
 
 	mux := http.NewServeMux()
 
@@ -146,14 +156,34 @@ func main() {
 		userContext(
 			requireAuth(
 				http.HandlerFunc(h.GetAccountSettingsHandler))))
+	mux.Handle("GET /account/api-keys",
+		userContext(
+			requireAuth(
+				http.HandlerFunc(h.GetAccountAPIKeysHandler))))
 	mux.Handle("GET /account/export",
 		userContext(
 			requireAuth(
+				http.HandlerFunc(h.GetAccountExportHandler))))
+	mux.Handle("GET /account/export/download",
+		userContext(
+			requireAuth(
 				http.HandlerFunc(h.ExportUserDataHandler))))
+	mux.Handle("GET /account/delete",
+		userContext(
+			requireAuth(
+				http.HandlerFunc(h.GetAccountDeleteHandler))))
 	mux.Handle("POST /account/delete",
 		userContext(
 			requireAuth(
 				http.HandlerFunc(h.DeleteOwnAccountHandler))))
+	mux.Handle("POST /account/api-keys",
+		userContext(
+			requireAuth(
+				http.HandlerFunc(h.CreateAPIKeyHandler))))
+	mux.Handle("DELETE /account/api-keys/{id}",
+		userContext(
+			requireAuth(
+				http.HandlerFunc(h.DeleteAPIKeyHandler))))
 
 	requireAdminAuth := func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

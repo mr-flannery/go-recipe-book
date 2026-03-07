@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/mr-flannery/go-recipe-book/src/models"
+	"github.com/mr-flannery/go-recipe-book/src/store"
 )
 
 type MockRecipeStore struct {
@@ -303,6 +304,49 @@ func (m *MockUserPreferencesStore) SetPageSize(ctx context.Context, userID, page
 func (m *MockUserPreferencesStore) SetViewMode(ctx context.Context, userID int, viewMode string) error {
 	if m.SetViewModeFunc != nil {
 		return m.SetViewModeFunc(ctx, userID, viewMode)
+	}
+	return nil
+}
+
+type MockAPIKeyStore struct {
+	CreateFunc         func(ctx context.Context, userID int, name string, keyHash string, keyPrefix string, encryptedKey string) (int, error)
+	GetByKeyHashFunc   func(ctx context.Context, keyHash string) (*store.APIKey, error)
+	GetByUserIDFunc    func(ctx context.Context, userID int) ([]store.APIKey, error)
+	DeleteFunc         func(ctx context.Context, userID int, keyID int) error
+	UpdateLastUsedFunc func(ctx context.Context, keyID int) error
+}
+
+func (m *MockAPIKeyStore) Create(ctx context.Context, userID int, name string, keyHash string, keyPrefix string, encryptedKey string) (int, error) {
+	if m.CreateFunc != nil {
+		return m.CreateFunc(ctx, userID, name, keyHash, keyPrefix, encryptedKey)
+	}
+	return 0, nil
+}
+
+func (m *MockAPIKeyStore) GetByKeyHash(ctx context.Context, keyHash string) (*store.APIKey, error) {
+	if m.GetByKeyHashFunc != nil {
+		return m.GetByKeyHashFunc(ctx, keyHash)
+	}
+	return nil, nil
+}
+
+func (m *MockAPIKeyStore) GetByUserID(ctx context.Context, userID int) ([]store.APIKey, error) {
+	if m.GetByUserIDFunc != nil {
+		return m.GetByUserIDFunc(ctx, userID)
+	}
+	return nil, nil
+}
+
+func (m *MockAPIKeyStore) Delete(ctx context.Context, userID int, keyID int) error {
+	if m.DeleteFunc != nil {
+		return m.DeleteFunc(ctx, userID, keyID)
+	}
+	return nil
+}
+
+func (m *MockAPIKeyStore) UpdateLastUsed(ctx context.Context, keyID int) error {
+	if m.UpdateLastUsedFunc != nil {
+		return m.UpdateLastUsedFunc(ctx, keyID)
 	}
 	return nil
 }

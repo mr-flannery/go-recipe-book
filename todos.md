@@ -28,6 +28,8 @@
   - use concurrency as much as possible
   - try to unify queries of the result of one query depends on the result of a different one
 
+- do a comprehensive review of all actions and make sure we log/export data properly
+
 - performance testing
 
 - browser tests in CI
