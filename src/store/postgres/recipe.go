@@ -19,11 +19,11 @@ func NewRecipeStore(db *sql.DB) *RecipeStore {
 }
 
 func (s *RecipeStore) Save(ctx context.Context, recipe models.Recipe) (int, error) {
-	query := `INSERT INTO recipes (title, ingredients_md, instructions_md, prep_time, cook_time, calories, author_id, image, parent_id, created_at, updated_at) 
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING id`
+	query := `INSERT INTO recipes (title, description, ingredients_md, instructions_md, prep_time, cook_time, calories, source, author_id, image, parent_id, created_at, updated_at) 
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING id`
 
 	var id int
-	err := s.db.QueryRowContext(ctx, query, recipe.Title, recipe.IngredientsMD, recipe.InstructionsMD, recipe.PrepTime, recipe.CookTime, recipe.Calories, recipe.AuthorID, recipe.Image, recipe.ParentID, time.Now(), time.Now()).Scan(&id)
+	err := s.db.QueryRowContext(ctx, query, recipe.Title, recipe.Description, recipe.IngredientsMD, recipe.InstructionsMD, recipe.PrepTime, recipe.CookTime, recipe.Calories, recipe.Source, recipe.AuthorID, recipe.Image, recipe.ParentID, time.Now(), time.Now()).Scan(&id)
 	if err != nil {
 		return 0, err
 	}
@@ -35,8 +35,8 @@ func (s *RecipeStore) GetByID(ctx context.Context, id string) (models.Recipe, er
 	var recipe models.Recipe
 
 	err := s.db.
-		QueryRowContext(ctx, "SELECT id, title, ingredients_md, instructions_md, prep_time, cook_time, calories, author_id, image, parent_id, created_at, updated_at FROM recipes WHERE id = $1", id).
-		Scan(&recipe.ID, &recipe.Title, &recipe.IngredientsMD, &recipe.InstructionsMD, &recipe.PrepTime, &recipe.CookTime, &recipe.Calories, &recipe.AuthorID, &recipe.Image, &recipe.ParentID, &recipe.CreatedAt, &recipe.UpdatedAt)
+		QueryRowContext(ctx, "SELECT id, title, COALESCE(description, ''), ingredients_md, instructions_md, prep_time, cook_time, calories, COALESCE(source, ''), author_id, image, parent_id, created_at, updated_at FROM recipes WHERE id = $1", id).
+		Scan(&recipe.ID, &recipe.Title, &recipe.Description, &recipe.IngredientsMD, &recipe.InstructionsMD, &recipe.PrepTime, &recipe.CookTime, &recipe.Calories, &recipe.Source, &recipe.AuthorID, &recipe.Image, &recipe.ParentID, &recipe.CreatedAt, &recipe.UpdatedAt)
 
 	if err != nil {
 		return models.Recipe{}, err
@@ -46,8 +46,8 @@ func (s *RecipeStore) GetByID(ctx context.Context, id string) (models.Recipe, er
 }
 
 func (s *RecipeStore) Update(ctx context.Context, recipe models.Recipe) error {
-	_, err := s.db.ExecContext(ctx, "UPDATE recipes SET title = $1, ingredients_md = $2, instructions_md = $3, prep_time = $4, cook_time = $5, calories = $6, image = $7, updated_at = $8 WHERE id = $9",
-		recipe.Title, recipe.IngredientsMD, recipe.InstructionsMD, recipe.PrepTime, recipe.CookTime, recipe.Calories, recipe.Image, time.Now(), recipe.ID)
+	_, err := s.db.ExecContext(ctx, "UPDATE recipes SET title = $1, description = $2, ingredients_md = $3, instructions_md = $4, prep_time = $5, cook_time = $6, calories = $7, source = $8, image = $9, updated_at = $10 WHERE id = $11",
+		recipe.Title, recipe.Description, recipe.IngredientsMD, recipe.InstructionsMD, recipe.PrepTime, recipe.CookTime, recipe.Calories, recipe.Source, recipe.Image, time.Now(), recipe.ID)
 
 	return err
 }
@@ -58,7 +58,7 @@ func (s *RecipeStore) Delete(ctx context.Context, id string) error {
 }
 
 func (s *RecipeStore) GetAll(ctx context.Context) ([]models.Recipe, error) {
-	rows, err := s.db.QueryContext(ctx, "SELECT id, title, ingredients_md, instructions_md, prep_time, cook_time, calories, author_id, image, parent_id, created_at, updated_at FROM recipes")
+	rows, err := s.db.QueryContext(ctx, "SELECT id, title, COALESCE(description, ''), ingredients_md, instructions_md, prep_time, cook_time, calories, COALESCE(source, ''), author_id, image, parent_id, created_at, updated_at FROM recipes")
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch recipes: %v", err)
@@ -68,7 +68,7 @@ func (s *RecipeStore) GetAll(ctx context.Context) ([]models.Recipe, error) {
 	var recipes []models.Recipe
 	for rows.Next() {
 		var recipe models.Recipe
-		if err := rows.Scan(&recipe.ID, &recipe.Title, &recipe.IngredientsMD, &recipe.InstructionsMD, &recipe.PrepTime, &recipe.CookTime, &recipe.Calories, &recipe.AuthorID, &recipe.Image, &recipe.ParentID, &recipe.CreatedAt, &recipe.UpdatedAt); err != nil {
+		if err := rows.Scan(&recipe.ID, &recipe.Title, &recipe.Description, &recipe.IngredientsMD, &recipe.InstructionsMD, &recipe.PrepTime, &recipe.CookTime, &recipe.Calories, &recipe.Source, &recipe.AuthorID, &recipe.Image, &recipe.ParentID, &recipe.CreatedAt, &recipe.UpdatedAt); err != nil {
 			return nil, fmt.Errorf("failed to scan recipe: %v", err)
 		}
 		recipes = append(recipes, recipe)
@@ -82,7 +82,7 @@ func (s *RecipeStore) GetAll(ctx context.Context) ([]models.Recipe, error) {
 }
 
 func (s *RecipeStore) GetFiltered(ctx context.Context, params models.FilterParams) ([]models.Recipe, error) {
-	query := "SELECT DISTINCT r.id, r.title, r.ingredients_md, r.instructions_md, r.prep_time, r.cook_time, r.calories, r.author_id, r.image, r.parent_id, r.created_at, r.updated_at FROM recipes r"
+	query := "SELECT DISTINCT r.id, r.title, COALESCE(r.description, ''), r.ingredients_md, r.instructions_md, r.prep_time, r.cook_time, r.calories, COALESCE(r.source, ''), r.author_id, r.image, r.parent_id, r.created_at, r.updated_at FROM recipes r"
 	args := []interface{}{}
 	argIndex := 1
 
@@ -214,7 +214,7 @@ func (s *RecipeStore) GetFiltered(ctx context.Context, params models.FilterParam
 	var recipes []models.Recipe
 	for rows.Next() {
 		var recipe models.Recipe
-		if err := rows.Scan(&recipe.ID, &recipe.Title, &recipe.IngredientsMD, &recipe.InstructionsMD, &recipe.PrepTime, &recipe.CookTime, &recipe.Calories, &recipe.AuthorID, &recipe.Image, &recipe.ParentID, &recipe.CreatedAt, &recipe.UpdatedAt); err != nil {
+		if err := rows.Scan(&recipe.ID, &recipe.Title, &recipe.Description, &recipe.IngredientsMD, &recipe.InstructionsMD, &recipe.PrepTime, &recipe.CookTime, &recipe.Calories, &recipe.Source, &recipe.AuthorID, &recipe.Image, &recipe.ParentID, &recipe.CreatedAt, &recipe.UpdatedAt); err != nil {
 			return nil, fmt.Errorf("failed to scan recipe: %v", err)
 		}
 		recipes = append(recipes, recipe)

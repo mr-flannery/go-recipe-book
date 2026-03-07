@@ -616,4 +616,44 @@ func TestAPICreateRecipeHandler_CreatesRecipeBasedOnInput(t *testing.T) {
 			t.Errorf("expected status %d, got %d", http.StatusInternalServerError, rec.Code)
 		}
 	})
+
+	t.Run("stores description and source fields when provided", func(t *testing.T) {
+		var capturedRecipe models.Recipe
+		mockRecipeStore := &mocks.MockRecipeStore{
+			SaveFunc: func(ctx context.Context, recipe models.Recipe) (int, error) {
+				capturedRecipe = recipe
+				return 126, nil
+			},
+		}
+
+		h := &Handler{
+			RecipeStore: mockRecipeStore,
+		}
+
+		body := `{
+			"title": "Test Recipe",
+			"description": "A delicious test recipe with special ingredients",
+			"ingredients_md": "- 1 cup flour",
+			"instructions_md": "Mix and bake",
+			"source": "https://example.com/original-recipe"
+		}`
+		req := httptest.NewRequest(http.MethodPost, "/api/recipe/upload", bytes.NewBufferString(body))
+		userInfo := &auth.UserInfo{IsLoggedIn: true, UserID: 1, Username: "apiuser"}
+		req = req.WithContext(auth.ContextWithUserInfo(req.Context(), userInfo))
+		rec := httptest.NewRecorder()
+
+		h.APICreateRecipeHandler(rec, req)
+
+		if rec.Code != http.StatusCreated {
+			t.Errorf("expected status %d, got %d", http.StatusCreated, rec.Code)
+		}
+
+		if capturedRecipe.Description != "A delicious test recipe with special ingredients" {
+			t.Errorf("expected description 'A delicious test recipe with special ingredients', got '%s'", capturedRecipe.Description)
+		}
+
+		if capturedRecipe.Source != "https://example.com/original-recipe" {
+			t.Errorf("expected source 'https://example.com/original-recipe', got '%s'", capturedRecipe.Source)
+		}
+	})
 }

@@ -27,6 +27,12 @@
                 </div>
 
                 <div class="form-group">
+                    <label for="description">Description</label>
+                    <textarea id="description" name="description" rows="3" placeholder="A brief description of your recipe (supports markdown)"></textarea>
+                    <div class="help-text">Optional. Describe what makes this recipe special.</div>
+                </div>
+
+                <div class="form-group">
                     <label for="image">Recipe Image</label>
                     <input type="file" id="image" name="image" accept="image/*">
                     <div class="help-text">Upload an image of your finished dish (optional)</div>
@@ -86,6 +92,12 @@
                     <label for="instructions">Instructions *</label>
                     <textarea id="instructions" name="instructions" required></textarea>
                     <div class="help-text">Use numbered lists for steps. Link to other recipes with [[Recipe Name]].</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="source">Source</label>
+                    <input type="text" id="source" name="source" placeholder="e.g., Grandma's cookbook or https://example.com/recipe">
+                    <div class="help-text">Optional. Credit where this recipe came from.</div>
                 </div>
 
             </form>

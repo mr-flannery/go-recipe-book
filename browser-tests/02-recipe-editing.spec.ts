@@ -38,6 +38,8 @@ test.describe.serial('Recipe Editing', () => {
   const uniqueId = Date.now();
   const testRecipe = {
     title: `Edit Test Recipe ${uniqueId}`,
+    description: 'A simple **rice recipe** for beginners.',
+    source: 'https://example.com/rice-recipe',
     prepTime: '10',
     cookTime: '20',
     calories: '300',
@@ -52,6 +54,8 @@ test.describe.serial('Recipe Editing', () => {
     // User 1 creates a recipe
     await user1Page.goto('/recipes/create');
     await user1Page.getByRole('textbox', { name: 'Title' }).fill(testRecipe.title);
+    await user1Page.locator('#description').fill(testRecipe.description);
+    await user1Page.locator('#source').fill(testRecipe.source);
     await user1Page.locator('#preptime').fill(testRecipe.prepTime);
     await user1Page.locator('#cooktime').fill(testRecipe.cookTime);
     await user1Page.locator('#calories').fill(testRecipe.calories);
@@ -91,6 +95,8 @@ test.describe.serial('Recipe Editing', () => {
 
     const updatedRecipe = {
       title: `Updated Recipe ${uniqueId}`,
+      description: 'An updated **flour-based recipe** with new instructions.',
+      source: 'Grandmas cookbook',
       prepTime: '25',
       cookTime: '45',
       calories: '550',
@@ -102,6 +108,10 @@ test.describe.serial('Recipe Editing', () => {
     // Clear and fill new values
     await user1Page.locator('#title').clear();
     await user1Page.locator('#title').fill(updatedRecipe.title);
+    await user1Page.locator('#description').clear();
+    await user1Page.locator('#description').fill(updatedRecipe.description);
+    await user1Page.locator('#source').clear();
+    await user1Page.locator('#source').fill(updatedRecipe.source);
     await user1Page.locator('#preptime').clear();
     await user1Page.locator('#preptime').fill(updatedRecipe.prepTime);
     await user1Page.locator('#cooktime').clear();
@@ -128,6 +138,11 @@ test.describe.serial('Recipe Editing', () => {
 
     // Verify all changes are persisted
     await expect(user1Page.getByRole('heading', { name: updatedRecipe.title, level: 1 })).toBeVisible();
+    // Description is rendered as markdown in its own section
+    await expect(user1Page.getByRole('heading', { name: 'Description', level: 2 })).toBeVisible();
+    await expect(user1Page.getByText('flour-based recipe')).toBeVisible();
+    // Source is plain text (not a URL), should be rendered as text
+    await expect(user1Page.locator('.recipe-source').getByText('Grandmas cookbook')).toBeVisible();
     await expect(user1Page.locator('.recipe-meta').getByText(`${updatedRecipe.prepTime} min`)).toBeVisible();
     await expect(user1Page.locator('.recipe-meta').getByText(`${updatedRecipe.cookTime} min`)).toBeVisible();
     await expect(user1Page.locator('.recipe-meta .meta-item .meta-value').getByText(updatedRecipe.calories)).toBeVisible();
@@ -143,6 +158,8 @@ test.describe.serial('Recipe Editing', () => {
     // Create a new recipe first
     const cancelTestRecipe = {
       title: `Cancel Test Recipe ${uniqueId}`,
+      description: 'A healthy **smoothie recipe** for breakfast.',
+      source: 'Mom',
       prepTime: '5',
       cookTime: '10',
       calories: '200',
@@ -153,6 +170,8 @@ test.describe.serial('Recipe Editing', () => {
 
     await user1Page.goto('/recipes/create');
     await user1Page.getByRole('textbox', { name: 'Title' }).fill(cancelTestRecipe.title);
+    await user1Page.locator('#description').fill(cancelTestRecipe.description);
+    await user1Page.locator('#source').fill(cancelTestRecipe.source);
     await user1Page.locator('#preptime').fill(cancelTestRecipe.prepTime);
     await user1Page.locator('#cooktime').fill(cancelTestRecipe.cookTime);
     await user1Page.locator('#calories').fill(cancelTestRecipe.calories);
@@ -177,6 +196,10 @@ test.describe.serial('Recipe Editing', () => {
     // Make changes to all fields
     await user1Page.locator('#title').clear();
     await user1Page.locator('#title').fill('This Should Not Be Saved');
+    await user1Page.locator('#description').clear();
+    await user1Page.locator('#description').fill('Discarded description');
+    await user1Page.locator('#source').clear();
+    await user1Page.locator('#source').fill('Discarded source');
     await user1Page.locator('#preptime').clear();
     await user1Page.locator('#preptime').fill('99');
     await user1Page.locator('#cooktime').clear();
@@ -203,6 +226,10 @@ test.describe.serial('Recipe Editing', () => {
 
     // Verify original data is still intact
     await expect(user1Page.getByRole('heading', { name: cancelTestRecipe.title, level: 1 })).toBeVisible();
+    // Description should still be the original (in its own section with h2 heading)
+    await expect(user1Page.locator('.recipe-section').filter({ hasText: 'Description' }).getByText('smoothie recipe')).toBeVisible();
+    // Source should still be the original
+    await expect(user1Page.locator('.recipe-source').getByText('Mom')).toBeVisible();
     await expect(user1Page.locator('.recipe-meta').getByText(`${cancelTestRecipe.prepTime} min`)).toBeVisible();
     await expect(user1Page.locator('.recipe-meta').getByText(`${cancelTestRecipe.cookTime} min`)).toBeVisible();
     await expect(user1Page.locator('.recipe-meta .meta-item .meta-value').getByText(cancelTestRecipe.calories)).toBeVisible();
@@ -215,6 +242,8 @@ test.describe.serial('Recipe Editing', () => {
     
     // Discarded changes should NOT be present
     await expect(user1Page.getByText('This Should Not Be Saved')).not.toBeVisible();
+    await expect(user1Page.getByText('Discarded description')).not.toBeVisible();
+    await expect(user1Page.getByText('Discarded source')).not.toBeVisible();
     await expect(user1Page.getByText('99 min')).not.toBeVisible();
     await expect(user1Page.getByText('Should not be saved')).not.toBeVisible();
     await expect(user1Page.locator('.tag').getByText('discarded-tag')).not.toBeVisible();

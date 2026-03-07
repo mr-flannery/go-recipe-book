@@ -21,11 +21,13 @@ type User struct {
 type Recipe struct {
 	ID             int
 	Title          string
+	Description    string
 	IngredientsMD  string
 	InstructionsMD string
 	PrepTime       int
 	CookTime       int
 	Calories       int
+	Source         string
 	AuthorID       int
 	Image          []byte
 	ParentID       *int

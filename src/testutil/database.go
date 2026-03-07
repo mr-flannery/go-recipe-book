@@ -196,8 +196,8 @@ func (td *TestDatabase) SeedRecipe(t *testing.T, title, ingredientsMD, instructi
 
 	var recipeID int
 	err := td.DB.QueryRow(`
-		INSERT INTO recipes (title, ingredients_md, instructions_md, author_id, prep_time, cook_time, calories, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, 10, 20, 300, NOW(), NOW())
+		INSERT INTO recipes (title, description, ingredients_md, instructions_md, author_id, prep_time, cook_time, calories, source, created_at, updated_at)
+		VALUES ($1, '', $2, $3, $4, 10, 20, 300, '', NOW(), NOW())
 		RETURNING id
 	`, title, ingredientsMD, instructionsMD, authorID).Scan(&recipeID)
 	if err != nil {

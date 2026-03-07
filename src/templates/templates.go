@@ -4,6 +4,7 @@ import (
 	"html/template"
 	"io/fs"
 	"log/slog"
+	"net/url"
 	"path/filepath"
 	"strings"
 
@@ -49,6 +50,18 @@ var funcMap = template.FuncMap{
 		return a - b
 	},
 	"hasPrefix": strings.HasPrefix,
+	"renderSource": func(source string) template.HTML {
+		if source == "" {
+			return ""
+		}
+		source = strings.TrimSpace(source)
+		parsed, err := url.Parse(source)
+		if err == nil && (parsed.Scheme == "http" || parsed.Scheme == "https") {
+			escaped := template.HTMLEscapeString(source)
+			return template.HTML(`<a href="` + escaped + `" target="_blank" rel="noopener noreferrer">` + escaped + `</a>`)
+		}
+		return template.HTML(template.HTMLEscapeString(source))
+	},
 }
 
 func loadTemplatesForTheme(root string, theme string) (*template.Template, error) {

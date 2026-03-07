@@ -282,11 +282,13 @@ func TestPostCreateRecipeHandler_CreatesRecipeWhenAuthenticated(t *testing.T) {
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
 	writer.WriteField("title", "Test Recipe")
+	writer.WriteField("description", "A delicious test recipe")
 	writer.WriteField("ingredients", "- flour\n- sugar")
 	writer.WriteField("instructions", "Mix and bake")
 	writer.WriteField("preptime", "10")
 	writer.WriteField("cooktime", "20")
 	writer.WriteField("calories", "300")
+	writer.WriteField("source", "https://example.com/recipe")
 	writer.WriteField("tags", "dinner,easy")
 	writer.Close()
 
@@ -310,8 +312,16 @@ func TestPostCreateRecipeHandler_CreatesRecipeWhenAuthenticated(t *testing.T) {
 		t.Errorf("expected title 'Test Recipe', got '%s'", capturedRecipe.Title)
 	}
 
+	if capturedRecipe.Description != "A delicious test recipe" {
+		t.Errorf("expected description 'A delicious test recipe', got '%s'", capturedRecipe.Description)
+	}
+
 	if capturedRecipe.PrepTime != 10 {
 		t.Errorf("expected prep time 10, got %d", capturedRecipe.PrepTime)
+	}
+
+	if capturedRecipe.Source != "https://example.com/recipe" {
+		t.Errorf("expected source 'https://example.com/recipe', got '%s'", capturedRecipe.Source)
 	}
 
 	if capturedRecipe.AuthorID != 1 {

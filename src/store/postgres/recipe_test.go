@@ -18,11 +18,13 @@ func TestRecipeStore_Save_ReturnsIDWhenRecipeIsSaved(t *testing.T) {
 
 	recipe := models.Recipe{
 		Title:          "Test Recipe",
+		Description:    "A delicious test recipe",
 		IngredientsMD:  "- 1 cup flour",
 		InstructionsMD: "Mix everything",
 		PrepTime:       10,
 		CookTime:       20,
 		Calories:       300,
+		Source:         "https://example.com/recipe",
 		AuthorID:       userID,
 	}
 
@@ -33,6 +35,19 @@ func TestRecipeStore_Save_ReturnsIDWhenRecipeIsSaved(t *testing.T) {
 
 	if id == 0 {
 		t.Error("expected non-zero recipe ID")
+	}
+
+	saved, err := store.GetByID(context.Background(), itoa(id))
+	if err != nil {
+		t.Fatalf("failed to get saved recipe: %v", err)
+	}
+
+	if saved.Description != "A delicious test recipe" {
+		t.Errorf("expected description 'A delicious test recipe', got '%s'", saved.Description)
+	}
+
+	if saved.Source != "https://example.com/recipe" {
+		t.Errorf("expected source 'https://example.com/recipe', got '%s'", saved.Source)
 	}
 }
 

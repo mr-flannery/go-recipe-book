@@ -16,11 +16,13 @@ import (
 
 type APIRecipeRequest struct {
 	Title          string `json:"title"`
+	Description    string `json:"description,omitempty"`
 	IngredientsMD  string `json:"ingredients_md"`
 	InstructionsMD string `json:"instructions_md"`
 	PrepTime       int    `json:"prep_time"`
 	CookTime       int    `json:"cook_time"`
 	Calories       int    `json:"calories"`
+	Source         string `json:"source,omitempty"`
 	ImageBase64    string `json:"image_base64,omitempty"`
 }
 
@@ -138,11 +140,13 @@ func (h *Handler) APICreateRecipeHandler(w http.ResponseWriter, r *http.Request)
 
 	recipe := models.Recipe{
 		Title:          strings.TrimSpace(req.Title),
+		Description:    strings.TrimSpace(req.Description),
 		IngredientsMD:  strings.TrimSpace(req.IngredientsMD),
 		InstructionsMD: strings.TrimSpace(req.InstructionsMD),
 		PrepTime:       req.PrepTime,
 		CookTime:       req.CookTime,
 		Calories:       req.Calories,
+		Source:         strings.TrimSpace(req.Source),
 		Image:          imageData,
 		AuthorID:       userID,
 	}

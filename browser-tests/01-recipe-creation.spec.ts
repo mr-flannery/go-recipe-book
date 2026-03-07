@@ -4,6 +4,8 @@ import { fillToastEditor } from './editor-helpers';
 test.describe.serial('Recipe Creation', () => {
   const testRecipe = {
     title: `Test Recipe ${Date.now()}`,
+    description: 'A delicious **test recipe** with rich flavors.',
+    source: 'https://example.com/recipes/test',
     prepTime: '15',
     cookTime: '30',
     calories: '450',
@@ -23,6 +25,8 @@ test.describe.serial('Recipe Creation', () => {
 
     // Fill in the recipe form
     await page.getByRole('textbox', { name: 'Title' }).fill(testRecipe.title);
+    await page.locator('#description').fill(testRecipe.description);
+    await page.locator('#source').fill(testRecipe.source);
     await page.locator('#preptime').fill(testRecipe.prepTime);
     await page.locator('#cooktime').fill(testRecipe.cookTime);
     await page.locator('#calories').fill(testRecipe.calories);
@@ -37,6 +41,11 @@ test.describe.serial('Recipe Creation', () => {
     
     // Verify we're on the recipe detail page with correct content
     await expect(page.getByRole('heading', { name: testRecipe.title, level: 1 })).toBeVisible();
+    // Description is rendered as markdown in its own section
+    await expect(page.getByRole('heading', { name: 'Description', level: 2 })).toBeVisible();
+    await expect(page.locator('.recipe-section').filter({ hasText: 'Description' }).getByText('test recipe')).toBeVisible();
+    // Source is a URL, so it should be rendered as a link
+    await expect(page.locator('.recipe-source a[href="https://example.com/recipes/test"]')).toBeVisible();
     await expect(page.locator('.recipe-meta').getByText(`${testRecipe.prepTime} min`)).toBeVisible();
     await expect(page.locator('.recipe-meta').getByText(`${testRecipe.cookTime} min`)).toBeVisible();
     await expect(page.locator('.recipe-meta .meta-item .meta-value').getByText(testRecipe.calories)).toBeVisible();

@@ -30,6 +30,11 @@
 
 - do a comprehensive review of all actions and make sure we log/export data properly
 
+- favicon
+- also get rid of this weird "Taste" branding and come up with a better name
+
+- if a markdown entry in a recipe contains an h2, it's currently rendered as if it's an h2 that's part of the actual website. I need to override css classes and/or forbid some things from being used
+
 - performance testing
 
 - browser tests in CI

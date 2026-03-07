@@ -5,6 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Edit Recipe - {{.Recipe.Title}} - Taste Magazine</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/easymde/dist/easymde.min.css">
     <script src="https://cdn.jsdelivr.net/npm/easymde/dist/easymde.min.js"></script>
     <link rel="stylesheet" href="/static/css/editorial.css">
@@ -27,17 +29,52 @@
                 </div>
 
                 <div class="form-group">
+                    <label for="description">Description</label>
+                    <textarea id="description" name="description" rows="3" placeholder="A brief description of your recipe (supports markdown)">{{.Recipe.Description}}</textarea>
+                    <div class="help-text">Optional. Describe what makes this recipe special.</div>
+                </div>
+
+                <div class="form-group">
                     <label for="image">Recipe Image</label>
-                    <div class="current-image">
-                        {{if .Recipe.ImageBase64}}
-                        <img src="data:image/jpeg;base64,{{.Recipe.ImageBase64}}" alt="Current recipe image">
-                        <div class="help-text">Current image (upload a new one to replace)</div>
-                        {{else}}
-                        <div style="padding: 20px; border: 1px dashed var(--rule); color: var(--muted);">No current image</div>
-                        {{end}}
+                    {{if .Recipe.ImageBase64}}
+                    <div id="current-image-container" class="current-image">
+                        <img id="current-image" src="data:image/jpeg;base64,{{.Recipe.ImageBase64}}" alt="Current recipe image">
+                        <div class="help-text">Current image - click "Change Image" to replace or crop</div>
+                        <button type="button" id="change-image-btn" class="btn" style="margin-top: 10px;">Change Image</button>
+                        <button type="button" id="crop-existing-btn" class="btn" style="margin-top: 10px;">Crop Current Image</button>
                     </div>
-                    <input type="file" id="image" name="image" accept="image/*" style="margin-top: 15px;">
-                    <div class="help-text">Upload a new image to replace the current one (optional)</div>
+                    {{else}}
+                    <div id="current-image-container" style="padding: 20px; border: 1px dashed var(--rule); color: var(--muted);">No current image</div>
+                    {{end}}
+                    <input type="file" id="image" name="image" accept="image/*" style="margin-top: 15px; {{if .Recipe.ImageBase64}}display: none;{{end}}">
+                    <div id="upload-help" class="help-text" {{if .Recipe.ImageBase64}}style="display: none;"{{end}}>Upload an image of your finished dish (optional)</div>
+                    
+                    <div id="image-preview-section" class="image-preview-section">
+                        <div id="preview-container" class="preview-container" style="display: none;">
+                            <div class="preview-label">Image Preview & Cropping</div>
+                            <div class="preview-grid">
+                                <div>
+                                    <div class="preview-label">Crop your image:</div>
+                                    <div id="crop-container" class="crop-container">
+                                        <img id="crop-image" src="" alt="Crop preview">
+                                    </div>
+                                    <div class="crop-controls">
+                                        <button type="button" id="reset-crop" class="btn" style="padding: 8px 15px; font-size: 9px;">Reset</button>
+                                        <button type="button" id="zoom-in" class="btn" style="padding: 8px 15px; font-size: 9px;">Zoom In</button>
+                                        <button type="button" id="zoom-out" class="btn" style="padding: 8px 15px; font-size: 9px;">Zoom Out</button>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="preview-label">16:9 Preview:</div>
+                                    <div class="preview-16-9">
+                                        <img id="preview-result" src="" alt="16:9 preview">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <input type="hidden" id="cropped-image-data" name="cropped_image_data">
                 </div>
 
                 <div class="form-row">
@@ -70,10 +107,9 @@
                 </div>
 
                 <div class="form-group">
-                    <label>Instructions *</label>
-                    <input type="hidden" id="instructions" name="instructions" value="{{.Recipe.InstructionsMD}}" required>
-                    <div id="instructions-editor"></div>
-                    <div class="help-text">Use numbered lists for steps. Link to other recipes with [[Recipe Name]].</div>
+                    <label for="source">Source</label>
+                    <input type="text" id="source" name="source" value="{{.Recipe.Source}}" placeholder="e.g., Grandma's cookbook or https://example.com/recipe">
+                    <div class="help-text">Optional. Credit where this recipe came from.</div>
                 </div>
 
             </form>
@@ -100,6 +136,155 @@
 
     {{template "footer" .UserInfo}}
 
+    <script>
+        let cropper = null;
+        const imageInput = document.getElementById('image');
+        const previewSection = document.getElementById('image-preview-section');
+        const previewContainer = document.getElementById('preview-container');
+        const cropImage = document.getElementById('crop-image');
+        const previewResult = document.getElementById('preview-result');
+        const croppedImageData = document.getElementById('cropped-image-data');
+        const currentImageContainer = document.getElementById('current-image-container');
+        const currentImage = document.getElementById('current-image');
+        const changeImageBtn = document.getElementById('change-image-btn');
+        const cropExistingBtn = document.getElementById('crop-existing-btn');
+        const uploadHelp = document.getElementById('upload-help');
+
+        if (changeImageBtn) {
+            changeImageBtn.addEventListener('click', function() {
+                imageInput.style.display = 'block';
+                uploadHelp.style.display = 'block';
+                imageInput.click();
+            });
+        }
+
+        if (cropExistingBtn) {
+            cropExistingBtn.addEventListener('click', function() {
+                const existingImageSrc = currentImage.src;
+                
+                previewSection.classList.add('has-image');
+                previewContainer.style.display = 'block';
+                currentImageContainer.style.display = 'none';
+                
+                cropImage.src = existingImageSrc;
+                previewResult.src = existingImageSrc;
+                
+                cropImage.onload = function() {
+                    if (cropper) {
+                        cropper.destroy();
+                    }
+                    
+                    cropper = new Cropper(cropImage, {
+                        aspectRatio: 16 / 9,
+                        viewMode: 1,
+                        autoCropArea: 1,
+                        responsive: true,
+                        restore: false,
+                        guides: true,
+                        center: true,
+                        highlight: false,
+                        cropBoxMovable: true,
+                        cropBoxResizable: true,
+                        toggleDragModeOnDblclick: false,
+                        crop: function(event) {
+                            updatePreview();
+                        }
+                    });
+                };
+            });
+        }
+
+        imageInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const imageUrl = e.target.result;
+                    
+                    previewSection.classList.add('has-image');
+                    previewContainer.style.display = 'block';
+                    if (currentImageContainer) {
+                        currentImageContainer.style.display = 'none';
+                    }
+                    
+                    cropImage.src = imageUrl;
+                    previewResult.src = imageUrl;
+                    
+                    cropImage.onload = function() {
+                        if (cropper) {
+                            cropper.destroy();
+                        }
+                        
+                        cropper = new Cropper(cropImage, {
+                            aspectRatio: 16 / 9,
+                            viewMode: 1,
+                            autoCropArea: 1,
+                            responsive: true,
+                            restore: false,
+                            guides: true,
+                            center: true,
+                            highlight: false,
+                            cropBoxMovable: true,
+                            cropBoxResizable: true,
+                            toggleDragModeOnDblclick: false,
+                            crop: function(event) {
+                                updatePreview();
+                            }
+                        });
+                    };
+                };
+                reader.readAsDataURL(file);
+            } else {
+                previewSection.classList.remove('has-image');
+                previewContainer.style.display = 'none';
+                if (cropper) {
+                    cropper.destroy();
+                    cropper = null;
+                }
+            }
+        });
+
+        function updatePreview() {
+            if (!cropper) return;
+            
+            const canvas = cropper.getCroppedCanvas({
+                width: 800,
+                height: 450,
+                imageSmoothingEnabled: true,
+                imageSmoothingQuality: 'high'
+            });
+            
+            if (canvas) {
+                const croppedImageUrl = canvas.toDataURL('image/jpeg', 0.9);
+                previewResult.src = croppedImageUrl;
+                croppedImageData.value = croppedImageUrl;
+            }
+        }
+
+        document.getElementById('reset-crop').addEventListener('click', function() {
+            if (cropper) {
+                cropper.reset();
+            }
+        });
+
+        document.getElementById('zoom-in').addEventListener('click', function() {
+            if (cropper) {
+                cropper.zoom(0.1);
+            }
+        });
+
+        document.getElementById('zoom-out').addEventListener('click', function() {
+            if (cropper) {
+                cropper.zoom(-0.1);
+            }
+        });
+
+        document.querySelector('form').addEventListener('submit', function(e) {
+            if (cropper) {
+                updatePreview();
+            }
+        });
+    </script>
     <script src="/static/js/recipe-editor.js"></script>
     <script src="/static/js/form-validation.js"></script>
     <script>

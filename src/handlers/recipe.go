@@ -102,11 +102,13 @@ func (h *Handler) PostCreateRecipeHandler(w http.ResponseWriter, r *http.Request
 
 	recipe := models.Recipe{
 		Title:          r.FormValue("title"),
+		Description:    r.FormValue("description"),
 		IngredientsMD:  r.FormValue("ingredients"),
 		InstructionsMD: r.FormValue("instructions"),
 		PrepTime:       prepTime,
 		CookTime:       cookTime,
 		Calories:       calories,
+		Source:         r.FormValue("source"),
 		Image:          imageData,
 		AuthorID:       user.ID,
 	}
@@ -387,29 +389,49 @@ func (h *Handler) PostUpdateRecipeHandler(w http.ResponseWriter, r *http.Request
 	}
 
 	imageData := existingRecipe.Image
-	file, _, err := r.FormFile("image")
-	if err == nil {
-		defer file.Close()
-		imageData, err = io.ReadAll(file)
+	croppedImageData := r.FormValue("cropped_image_data")
+	if croppedImageData != "" {
+		if strings.HasPrefix(croppedImageData, "data:image/") {
+			commaIndex := strings.Index(croppedImageData, ",")
+			if commaIndex != -1 {
+				croppedImageData = croppedImageData[commaIndex+1:]
+			}
+		}
+
+		decodedData, err := base64.StdEncoding.DecodeString(croppedImageData)
 		if err != nil {
-			logging.AddError(ctx, err, "Failed to read image file")
-			http.Error(w, "Failed to read image file", http.StatusInternalServerError)
+			logging.AddError(ctx, err, "Failed to decode cropped image data")
+			http.Error(w, "Failed to process cropped image", http.StatusBadRequest)
 			return
 		}
-	} else if err != http.ErrMissingFile {
-		logging.AddError(ctx, err, "Error processing image file")
-		http.Error(w, "Error processing image file", http.StatusBadRequest)
-		return
+		imageData = decodedData
+	} else {
+		file, _, err := r.FormFile("image")
+		if err == nil {
+			defer file.Close()
+			imageData, err = io.ReadAll(file)
+			if err != nil {
+				logging.AddError(ctx, err, "Failed to read image file")
+				http.Error(w, "Failed to read image file", http.StatusInternalServerError)
+				return
+			}
+		} else if err != http.ErrMissingFile {
+			logging.AddError(ctx, err, "Error processing image file")
+			http.Error(w, "Error processing image file", http.StatusBadRequest)
+			return
+		}
 	}
 
 	updatedRecipe := models.Recipe{
 		ID:             recipeID,
 		Title:          r.FormValue("title"),
+		Description:    r.FormValue("description"),
 		IngredientsMD:  r.FormValue("ingredients"),
 		InstructionsMD: r.FormValue("instructions"),
 		PrepTime:       prepTime,
 		CookTime:       cookTime,
 		Calories:       calories,
+		Source:         r.FormValue("source"),
 		Image:          imageData,
 		AuthorID:       user.ID,
 	}

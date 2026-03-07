@@ -126,6 +126,13 @@
             {{end}}
         </article>
 
+        {{if .Recipe.Description}}
+        <section class="recipe-section">
+            <h2>Description</h2>
+            <div class="content markdown-content">{{renderMarkdown .Recipe.Description}}</div>
+        </section>
+        {{end}}
+
         <section class="recipe-section">
             <h2>Ingredients</h2>
             <div class="content markdown-content">{{renderMarkdown .Recipe.IngredientsMD}}</div>
@@ -135,6 +142,12 @@
             <h2>Instructions</h2>
             <div class="content markdown-content">{{renderMarkdown .Recipe.InstructionsMD}}</div>
         </section>
+
+        {{if .Recipe.Source}}
+        <section class="recipe-section recipe-source">
+            <span class="source-label">Source:</span> {{renderSource .Recipe.Source}}
+        </section>
+        {{end}}
 
         <section class="comments-section">
             <h2>Reader Comments (<span id="comment-count">{{len .Comments}}</span>)</h2>
