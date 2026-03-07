@@ -262,6 +262,13 @@ func (h *Handler) ListRecipesHandler(w http.ResponseWriter, r *http.Request) {
 
 	pagination := CalculatePagination(totalCount, currentPage, pageSize)
 
+	logging.AddMany(ctx, map[string]any{
+		"action":       "recipe.list",
+		"result.count": len(recipes),
+		"result.total": totalCount,
+		"filter.page":  currentPage,
+	})
+
 	data := struct {
 		Recipes     []models.Recipe
 		UserInfo    *auth.UserInfo
@@ -441,51 +448,38 @@ func (h *Handler) ViewRecipeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	recipe, err := h.RecipeStore.GetByID(ctx, recipeID)
+	userInfo := auth.GetUserInfoFromContext(ctx)
+	currentUser, err := auth.GetUserBySession(ctx, h.AuthStore, r)
+	isLoggedIn := err == nil
+
+	var userIDPtr *int
+	if isLoggedIn {
+		userIDPtr = &currentUser.ID
+	}
+
+	recipeDetails, err := h.RecipeStore.GetRecipeWithDetails(ctx, recipeID, userIDPtr)
 	if err != nil {
 		h.Renderer.RenderError(w, r, http.StatusNotFound, "The recipe you're looking for doesn't exist or has been removed.")
 		return
 	}
 
 	recipeIDInt, _ := strconv.Atoi(recipeID)
-
-	comments, err := h.CommentStore.GetByRecipeID(ctx, recipeID)
-	if err != nil {
-		h.Renderer.RenderError(w, r, http.StatusInternalServerError, "Failed to load comments. Please try again later.")
-		return
-	}
-
-	recipe.Tags, _ = h.TagStore.GetByRecipeID(ctx, recipeIDInt)
-
 	logging.AddMany(ctx, map[string]any{
 		"action":       "recipe.view",
 		"recipe.id":    recipeIDInt,
-		"recipe.title": recipe.Title,
+		"recipe.title": recipeDetails.Recipe.Title,
 	})
 
-	userInfo := auth.GetUserInfoFromContext(ctx)
+	isRecipeAuthor := isLoggedIn && currentUser.ID == recipeDetails.Recipe.AuthorID
 
-	currentUser, err := auth.GetUserBySession(ctx, h.AuthStore, r)
-	isLoggedIn := err == nil
-	isRecipeAuthor := isLoggedIn && currentUser.ID == recipe.AuthorID
-
-	var commentsWithUsernames []CommentTemplateData
-	for _, comment := range comments {
-		username, err := h.UserStore.GetUsernameByID(ctx, comment.AuthorID)
-		if err != nil {
-			username = "Unknown User"
-		}
-		isCommentAuthor := isLoggedIn && currentUser.ID == comment.AuthorID
-		commentsWithUsernames = append(commentsWithUsernames, CommentTemplateData{
-			Comment:  comment,
-			Username: username,
+	commentsWithUsernames := make([]CommentTemplateData, len(recipeDetails.Comments))
+	for i, c := range recipeDetails.Comments {
+		isCommentAuthor := isLoggedIn && currentUser.ID == c.AuthorID
+		commentsWithUsernames[i] = CommentTemplateData{
+			Comment:  c.Comment,
+			Username: c.AuthorUsername,
 			IsAuthor: isCommentAuthor,
-		})
-	}
-
-	var userTags []models.UserTag
-	if isLoggedIn {
-		userTags, _ = h.UserTagStore.GetByRecipeID(ctx, currentUser.ID, recipeIDInt)
+		}
 	}
 
 	data := struct {
@@ -497,8 +491,8 @@ func (h *Handler) ViewRecipeHandler(w http.ResponseWriter, r *http.Request) {
 		IsAuthor    bool
 		UserInfo    *auth.UserInfo
 	}{
-		Recipe:      recipe,
-		UserTags:    userTags,
+		Recipe:      recipeDetails.Recipe,
+		UserTags:    recipeDetails.Recipe.UserTags,
 		Comments:    commentsWithUsernames,
 		IsLoggedIn:  isLoggedIn,
 		CurrentUser: currentUser,

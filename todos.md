@@ -24,7 +24,7 @@
   - alerts
   - traces?
 
-- honeycomb integration should probalby also not be done when running on localhost/in dev mode
+- I should take a close look at how many DB queries I currently need per read, given that the recipe read is rather inefficient
 
 - performance testing
 
