@@ -152,7 +152,7 @@ jobs:
             echo "Output:"
             echo "$output"
             
-            if echo "$output" | grep -qi "ratelimit"; then
+            if echo "$output" | grep -qi "rate limit"; then
               if [ $attempt -lt $MAX_ATTEMPTS ]; then
                 echo "Rate limited. Waiting ${DELAY}s before retry..."
                 sleep $DELAY

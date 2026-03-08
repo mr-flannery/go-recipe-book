@@ -18,6 +18,8 @@
 
 - the vscode launch/debug setting is kinda annoying right now
 
+- password reset?!
+
 - observability
   - logging
   - metrics
