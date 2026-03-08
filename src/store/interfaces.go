@@ -115,12 +115,25 @@ type AuthStore interface {
 
 	GetAllUsers(ctx context.Context) ([]AuthUser, error)
 	DeleteUser(ctx context.Context, userID int) error
+
+	CreatePasswordResetToken(ctx context.Context, userID int, tokenHash string, expiresAt time.Time) error
+	GetPasswordResetToken(ctx context.Context, tokenHash string) (*PasswordResetToken, error)
+	MarkPasswordResetTokenUsed(ctx context.Context, tokenHash string) error
+	DeleteExpiredPasswordResetTokens(ctx context.Context) (int64, error)
+	UpdateUserPassword(ctx context.Context, userID int, passwordHash string) error
 }
 
 type UserPreferencesStore interface {
 	Get(ctx context.Context, userID int) (*models.UserPreferences, error)
 	SetPageSize(ctx context.Context, userID, pageSize int) error
 	SetViewMode(ctx context.Context, userID int, viewMode string) error
+}
+
+type PasswordResetToken struct {
+	ID        int
+	UserID    int
+	ExpiresAt time.Time
+	UsedAt    *time.Time
 }
 
 type APIKey struct {

@@ -2,31 +2,37 @@ package mocks
 
 import (
 	"context"
+	"time"
 
 	"github.com/mr-flannery/go-recipe-book/src/store"
 )
 
 type MockAuthStore struct {
-	GetUserByEmailFunc            func(ctx context.Context, email string) (*store.AuthUser, string, error)
-	UpdateLastLoginFunc           func(ctx context.Context, userID int) error
-	GetUserByIDFunc               func(ctx context.Context, userID int) (*store.AuthUser, error)
-	GetFullUserByIDFunc           func(ctx context.Context, userID int) (*store.FullAuthUser, error)
-	GetUserIDByUsernameFunc       func(ctx context.Context, username string) (int, error)
-	CreateSessionFunc             func(ctx context.Context, session *store.Session) error
-	GetSessionFunc                func(ctx context.Context, sessionID string) (*store.Session, error)
-	DeleteSessionFunc             func(ctx context.Context, sessionID string) error
-	DeleteExpiredSessionsFunc     func(ctx context.Context) (int64, error)
-	DeleteUserSessionsFunc        func(ctx context.Context, userID int) error
-	GetActiveSessionCountFunc     func(ctx context.Context, userID int) (int, error)
-	ExtendSessionFunc             func(ctx context.Context, sessionID string) error
-	CreateRegistrationRequestFunc func(ctx context.Context, username, email, passwordHash string) error
-	GetPendingRegistrationsFunc   func(ctx context.Context) ([]store.RegistrationRequest, error)
-	ApproveRegistrationFunc       func(ctx context.Context, requestID, adminID int) error
-	RejectRegistrationFunc        func(ctx context.Context, requestID, adminID int) error
-	CreateUserFunc                func(ctx context.Context, username, email, passwordHash string, isAdmin bool) error
-	UserExistsFunc                func(ctx context.Context, username string) (bool, error)
-	GetAllUsersFunc               func(ctx context.Context) ([]store.AuthUser, error)
-	DeleteUserFunc                func(ctx context.Context, userID int) error
+	GetUserByEmailFunc                   func(ctx context.Context, email string) (*store.AuthUser, string, error)
+	UpdateLastLoginFunc                  func(ctx context.Context, userID int) error
+	GetUserByIDFunc                      func(ctx context.Context, userID int) (*store.AuthUser, error)
+	GetFullUserByIDFunc                  func(ctx context.Context, userID int) (*store.FullAuthUser, error)
+	GetUserIDByUsernameFunc              func(ctx context.Context, username string) (int, error)
+	CreateSessionFunc                    func(ctx context.Context, session *store.Session) error
+	GetSessionFunc                       func(ctx context.Context, sessionID string) (*store.Session, error)
+	DeleteSessionFunc                    func(ctx context.Context, sessionID string) error
+	DeleteExpiredSessionsFunc            func(ctx context.Context) (int64, error)
+	DeleteUserSessionsFunc               func(ctx context.Context, userID int) error
+	GetActiveSessionCountFunc            func(ctx context.Context, userID int) (int, error)
+	ExtendSessionFunc                    func(ctx context.Context, sessionID string) error
+	CreateRegistrationRequestFunc        func(ctx context.Context, username, email, passwordHash string) error
+	GetPendingRegistrationsFunc          func(ctx context.Context) ([]store.RegistrationRequest, error)
+	ApproveRegistrationFunc              func(ctx context.Context, requestID, adminID int) error
+	RejectRegistrationFunc               func(ctx context.Context, requestID, adminID int) error
+	CreateUserFunc                       func(ctx context.Context, username, email, passwordHash string, isAdmin bool) error
+	UserExistsFunc                       func(ctx context.Context, username string) (bool, error)
+	GetAllUsersFunc                      func(ctx context.Context) ([]store.AuthUser, error)
+	DeleteUserFunc                       func(ctx context.Context, userID int) error
+	CreatePasswordResetTokenFunc         func(ctx context.Context, userID int, tokenHash string, expiresAt time.Time) error
+	GetPasswordResetTokenFunc            func(ctx context.Context, tokenHash string) (*store.PasswordResetToken, error)
+	MarkPasswordResetTokenUsedFunc       func(ctx context.Context, tokenHash string) error
+	DeleteExpiredPasswordResetTokensFunc func(ctx context.Context) (int64, error)
+	UpdateUserPasswordFunc               func(ctx context.Context, userID int, passwordHash string) error
 }
 
 func (m *MockAuthStore) GetUserByEmail(ctx context.Context, email string) (*store.AuthUser, string, error) {
@@ -165,6 +171,41 @@ func (m *MockAuthStore) GetAllUsers(ctx context.Context) ([]store.AuthUser, erro
 func (m *MockAuthStore) DeleteUser(ctx context.Context, userID int) error {
 	if m.DeleteUserFunc != nil {
 		return m.DeleteUserFunc(ctx, userID)
+	}
+	return nil
+}
+
+func (m *MockAuthStore) CreatePasswordResetToken(ctx context.Context, userID int, tokenHash string, expiresAt time.Time) error {
+	if m.CreatePasswordResetTokenFunc != nil {
+		return m.CreatePasswordResetTokenFunc(ctx, userID, tokenHash, expiresAt)
+	}
+	return nil
+}
+
+func (m *MockAuthStore) GetPasswordResetToken(ctx context.Context, tokenHash string) (*store.PasswordResetToken, error) {
+	if m.GetPasswordResetTokenFunc != nil {
+		return m.GetPasswordResetTokenFunc(ctx, tokenHash)
+	}
+	return nil, nil
+}
+
+func (m *MockAuthStore) MarkPasswordResetTokenUsed(ctx context.Context, tokenHash string) error {
+	if m.MarkPasswordResetTokenUsedFunc != nil {
+		return m.MarkPasswordResetTokenUsedFunc(ctx, tokenHash)
+	}
+	return nil
+}
+
+func (m *MockAuthStore) DeleteExpiredPasswordResetTokens(ctx context.Context) (int64, error) {
+	if m.DeleteExpiredPasswordResetTokensFunc != nil {
+		return m.DeleteExpiredPasswordResetTokensFunc(ctx)
+	}
+	return 0, nil
+}
+
+func (m *MockAuthStore) UpdateUserPassword(ctx context.Context, userID int, passwordHash string) error {
+	if m.UpdateUserPasswordFunc != nil {
+		return m.UpdateUserPasswordFunc(ctx, userID, passwordHash)
 	}
 	return nil
 }

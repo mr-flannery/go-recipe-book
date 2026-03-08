@@ -466,3 +466,143 @@ func TestAuthStore_UpdateLastLogin_UpdatesTimestamp(t *testing.T) {
 		t.Fatalf("failed to update last login: %v", err)
 	}
 }
+
+func TestAuthStore_CreatePasswordResetToken_CreatesToken(t *testing.T) {
+	testDB := testutil.GetTestDatabase(t)
+
+	userID := testDB.SeedUser(t, "testuser", "test@example.com", "hashedpassword", false)
+	authStore := NewAuthStore(testDB.DB)
+
+	expiresAt := time.Now().Add(24 * time.Hour)
+	err := authStore.CreatePasswordResetToken(context.Background(), userID, "hashed-token-123", expiresAt)
+	if err != nil {
+		t.Fatalf("failed to create password reset token: %v", err)
+	}
+
+	token, err := authStore.GetPasswordResetToken(context.Background(), "hashed-token-123")
+	if err != nil {
+		t.Fatalf("failed to get password reset token: %v", err)
+	}
+
+	if token.UserID != userID {
+		t.Errorf("expected user ID %d, got %d", userID, token.UserID)
+	}
+	if token.UsedAt != nil {
+		t.Error("expected used_at to be nil for new token")
+	}
+}
+
+func TestAuthStore_GetPasswordResetToken_ReturnsTokenWhenExists(t *testing.T) {
+	testDB := testutil.GetTestDatabase(t)
+
+	userID := testDB.SeedUser(t, "testuser", "test@example.com", "hashedpassword", false)
+	expiresAt := time.Now().Add(24 * time.Hour)
+	testDB.SeedPasswordResetToken(t, userID, "test-token-hash", expiresAt, nil)
+	authStore := NewAuthStore(testDB.DB)
+
+	token, err := authStore.GetPasswordResetToken(context.Background(), "test-token-hash")
+	if err != nil {
+		t.Fatalf("failed to get password reset token: %v", err)
+	}
+
+	if token.UserID != userID {
+		t.Errorf("expected user ID %d, got %d", userID, token.UserID)
+	}
+}
+
+func TestAuthStore_GetPasswordResetToken_ReturnsErrorWhenNotFound(t *testing.T) {
+	testDB := testutil.GetTestDatabase(t)
+
+	authStore := NewAuthStore(testDB.DB)
+
+	_, err := authStore.GetPasswordResetToken(context.Background(), "nonexistent-token")
+	if err == nil {
+		t.Error("expected error for non-existent token")
+	}
+}
+
+func TestAuthStore_MarkPasswordResetTokenUsed_SetsUsedAtTimestamp(t *testing.T) {
+	testDB := testutil.GetTestDatabase(t)
+
+	userID := testDB.SeedUser(t, "testuser", "test@example.com", "hashedpassword", false)
+	expiresAt := time.Now().Add(24 * time.Hour)
+	testDB.SeedPasswordResetToken(t, userID, "test-token-hash", expiresAt, nil)
+	authStore := NewAuthStore(testDB.DB)
+
+	err := authStore.MarkPasswordResetTokenUsed(context.Background(), "test-token-hash")
+	if err != nil {
+		t.Fatalf("failed to mark token as used: %v", err)
+	}
+
+	token, _ := authStore.GetPasswordResetToken(context.Background(), "test-token-hash")
+	if token.UsedAt == nil {
+		t.Error("expected used_at to be set after marking as used")
+	}
+}
+
+func TestAuthStore_MarkPasswordResetTokenUsed_ReturnsErrorWhenNotFound(t *testing.T) {
+	testDB := testutil.GetTestDatabase(t)
+
+	authStore := NewAuthStore(testDB.DB)
+
+	err := authStore.MarkPasswordResetTokenUsed(context.Background(), "nonexistent-token")
+	if err == nil {
+		t.Error("expected error for non-existent token")
+	}
+}
+
+func TestAuthStore_DeleteExpiredPasswordResetTokens_RemovesExpiredAndUsedTokens(t *testing.T) {
+	testDB := testutil.GetTestDatabase(t)
+
+	userID := testDB.SeedUser(t, "testuser", "test@example.com", "hashedpassword", false)
+	expiredTime := time.Now().Add(-1 * time.Hour)
+	validTime := time.Now().Add(24 * time.Hour)
+	usedAt := time.Now().Add(-30 * time.Minute)
+
+	testDB.SeedPasswordResetToken(t, userID, "expired-token", expiredTime, nil)
+	testDB.SeedPasswordResetToken(t, userID, "used-token", validTime, &usedAt)
+	testDB.SeedPasswordResetToken(t, userID, "valid-token", validTime, nil)
+	authStore := NewAuthStore(testDB.DB)
+
+	deleted, err := authStore.DeleteExpiredPasswordResetTokens(context.Background())
+	if err != nil {
+		t.Fatalf("failed to delete expired tokens: %v", err)
+	}
+
+	if deleted != 2 {
+		t.Errorf("expected 2 deleted tokens, got %d", deleted)
+	}
+
+	_, err = authStore.GetPasswordResetToken(context.Background(), "valid-token")
+	if err != nil {
+		t.Error("valid token should still exist")
+	}
+}
+
+func TestAuthStore_UpdateUserPassword_UpdatesPasswordHash(t *testing.T) {
+	testDB := testutil.GetTestDatabase(t)
+
+	userID := testDB.SeedUser(t, "testuser", "test@example.com", "oldpasswordhash", false)
+	authStore := NewAuthStore(testDB.DB)
+
+	err := authStore.UpdateUserPassword(context.Background(), userID, "newpasswordhash")
+	if err != nil {
+		t.Fatalf("failed to update user password: %v", err)
+	}
+
+	_, passwordHash, _ := authStore.GetUserByEmail(context.Background(), "test@example.com")
+	if passwordHash != "newpasswordhash" {
+		t.Errorf("expected password hash 'newpasswordhash', got '%s'", passwordHash)
+	}
+}
+
+func TestAuthStore_UpdateUserPassword_ReturnsErrorWhenUserNotFound(t *testing.T) {
+	testDB := testutil.GetTestDatabase(t)
+
+	authStore := NewAuthStore(testDB.DB)
+
+	err := authStore.UpdateUserPassword(context.Background(), 99999, "newpasswordhash")
+	if err == nil {
+		t.Error("expected error for non-existent user")
+	}
+}

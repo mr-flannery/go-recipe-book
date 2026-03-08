@@ -30,7 +30,7 @@
   - use concurrency as much as possible
   - try to unify queries of the result of one query depends on the result of a different one
 
-- do a comprehensive review of all actions and make sure we log/export data properly
+- low prio: consider decoupling email sending via some async job/transactional outbox thing
 
 - favicon
 - also get rid of this weird "Taste" branding and come up with a better name

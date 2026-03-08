@@ -346,3 +346,157 @@ func (h *Handler) DeleteUserHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("User deleted successfully"))
 }
+
+type ForgotPasswordData struct {
+	Email    string
+	Error    string
+	Success  string
+	UserInfo *auth.UserInfo
+}
+
+func (h *Handler) GetForgotPasswordHandler(w http.ResponseWriter, r *http.Request) {
+	data := ForgotPasswordData{
+		UserInfo: auth.GetUserInfoFromContext(r.Context()),
+	}
+	h.Renderer.RenderPage(w, "forgot-password.gohtml", data)
+}
+
+func (h *Handler) PostForgotPasswordHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	r.ParseForm()
+	email := r.FormValue("email")
+
+	data := ForgotPasswordData{
+		Email:    email,
+		UserInfo: auth.GetUserInfoFromContext(ctx),
+	}
+
+	user, _, err := h.AuthStore.GetUserByEmail(ctx, email)
+	if err != nil {
+		logging.AddMany(ctx, map[string]any{
+			"action":                      "auth.password_reset.request",
+			"password_reset.email":        email,
+			"password_reset.user_existed": false,
+		})
+		data.Success = "If an account exists with that email, you will receive a password reset link shortly."
+		h.Renderer.RenderPage(w, "forgot-password.gohtml", data)
+		return
+	}
+
+	token, err := auth.CreatePasswordResetToken(ctx, h.AuthStore, user.ID)
+	if err != nil {
+		logging.AddError(ctx, err, "Failed to create password reset token")
+		data.Error = "An error occurred. Please try again later."
+		h.Renderer.RenderPage(w, "forgot-password.gohtml", data)
+		return
+	}
+
+	resetURL := auth.GetResetURL(token)
+	err = mail.SendPasswordResetEmail(h.MailClient, user.Email, user.Username, resetURL)
+	// TODO: might be worth to decouple mail sending from request handling and to add some background job for this.
+	if err != nil {
+		logging.AddError(ctx, err, "Failed to send password reset email")
+	}
+
+	logging.AddMany(ctx, map[string]any{
+		"action":                      "auth.password_reset.request",
+		"password_reset.email":        email,
+		"password_reset.user_id":      user.ID,
+		"password_reset.user_existed": true,
+	})
+
+	data.Success = "If an account exists with that email, you will receive a password reset link shortly."
+	h.Renderer.RenderPage(w, "forgot-password.gohtml", data)
+}
+
+type ResetPasswordData struct {
+	Token        string
+	Error        string
+	Success      string
+	InvalidToken bool
+	UserInfo     *auth.UserInfo
+}
+
+func (h *Handler) GetResetPasswordHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	token := r.URL.Query().Get("token")
+
+	data := ResetPasswordData{
+		Token:    token,
+		UserInfo: auth.GetUserInfoFromContext(ctx),
+	}
+
+	if token == "" {
+		data.InvalidToken = true
+		h.Renderer.RenderPage(w, "reset-password.gohtml", data)
+		return
+	}
+
+	_, err := auth.ValidateResetToken(ctx, h.AuthStore, token)
+	if err != nil {
+		data.InvalidToken = true
+	}
+
+	h.Renderer.RenderPage(w, "reset-password.gohtml", data)
+}
+
+func (h *Handler) PostResetPasswordHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	r.ParseForm()
+	token := r.FormValue("token")
+	password := r.FormValue("password")
+	confirmPassword := r.FormValue("confirm_password")
+
+	data := ResetPasswordData{
+		Token:    token,
+		UserInfo: auth.GetUserInfoFromContext(ctx),
+	}
+
+	if token == "" {
+		data.InvalidToken = true
+		h.Renderer.RenderPage(w, "reset-password.gohtml", data)
+		return
+	}
+
+	if password != confirmPassword {
+		data.Error = "Passwords do not match"
+		h.Renderer.RenderPage(w, "reset-password.gohtml", data)
+		return
+	}
+
+	if err := auth.ValidatePasswordStrength(password); err != nil {
+		data.Error = err.Error()
+		h.Renderer.RenderPage(w, "reset-password.gohtml", data)
+		return
+	}
+
+	// TODO: ValidateAndUseResetToken and ResetPassword should be wrapped in a transaction. the token should be invalidated iff resetting the password is successful
+	userID, err := auth.ValidateAndUseResetToken(ctx, h.AuthStore, token)
+	if err != nil {
+		logging.AddMany(ctx, map[string]any{
+			"action":                   "auth.password_reset.complete",
+			"password_reset.succeeded": false,
+			"password_reset.reason":    "invalid_token",
+		})
+		data.InvalidToken = true
+		h.Renderer.RenderPage(w, "reset-password.gohtml", data)
+		return
+	}
+
+	err = auth.ResetPassword(ctx, h.AuthStore, userID, password)
+	if err != nil {
+		logging.AddError(ctx, err, "Failed to reset password")
+		data.Error = "An error occurred while resetting your password. Please try again."
+		h.Renderer.RenderPage(w, "reset-password.gohtml", data)
+		return
+	}
+
+	logging.AddMany(ctx, map[string]any{
+		"action":                   "auth.password_reset.complete",
+		"password_reset.user_id":   userID,
+		"password_reset.succeeded": true,
+	})
+
+	data.Success = "Your password has been reset successfully. You can now sign in with your new password."
+	h.Renderer.RenderPage(w, "reset-password.gohtml", data)
+}

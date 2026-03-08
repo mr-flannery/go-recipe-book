@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/mr-flannery/go-recipe-book/src/auth"
 	mailmocks "github.com/mr-flannery/go-recipe-book/src/mail/mocks"
@@ -938,5 +939,562 @@ func TestApproveRegistrationHandler_SucceedsEvenWhenEmailFails(t *testing.T) {
 
 	if rec.Code != http.StatusSeeOther {
 		t.Errorf("expected status %d, got %d - registration should succeed even if email fails", http.StatusSeeOther, rec.Code)
+	}
+}
+
+func TestGetForgotPasswordHandler_RendersForgotPasswordPage(t *testing.T) {
+	var capturedTemplate string
+	mockRenderer := &tmocks.MockRenderer{
+		RenderPageFunc: func(w http.ResponseWriter, name string, data any) {
+			capturedTemplate = name
+			w.WriteHeader(http.StatusOK)
+		},
+	}
+
+	h := &Handler{
+		Renderer: mockRenderer,
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/forgot-password", nil)
+	userInfo := &auth.UserInfo{IsLoggedIn: false}
+	req = req.WithContext(auth.ContextWithUserInfo(req.Context(), userInfo))
+	rec := httptest.NewRecorder()
+
+	h.GetForgotPasswordHandler(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Errorf("expected status %d, got %d", http.StatusOK, rec.Code)
+	}
+
+	if capturedTemplate != "forgot-password.gohtml" {
+		t.Errorf("expected template forgot-password.gohtml, got %s", capturedTemplate)
+	}
+}
+
+func TestPostForgotPasswordHandler_ShowsSuccessWhenUserNotFound(t *testing.T) {
+	mockAuthStore := &mocks.MockAuthStore{
+		GetUserByEmailFunc: func(ctx context.Context, email string) (*store.AuthUser, string, error) {
+			return nil, "", errors.New("user not found")
+		},
+	}
+
+	var capturedData any
+	mockRenderer := &tmocks.MockRenderer{
+		RenderPageFunc: func(w http.ResponseWriter, name string, data any) {
+			capturedData = data
+			w.WriteHeader(http.StatusOK)
+		},
+	}
+
+	h := &Handler{
+		AuthStore: mockAuthStore,
+		Renderer:  mockRenderer,
+	}
+
+	form := url.Values{}
+	form.Set("email", "nonexistent@example.com")
+
+	req := httptest.NewRequest(http.MethodPost, "/forgot-password", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	userInfo := &auth.UserInfo{IsLoggedIn: false}
+	req = req.WithContext(auth.ContextWithUserInfo(req.Context(), userInfo))
+	rec := httptest.NewRecorder()
+
+	h.PostForgotPasswordHandler(rec, req)
+
+	forgotData, ok := capturedData.(ForgotPasswordData)
+	if !ok {
+		t.Fatal("expected capturedData to be ForgotPasswordData")
+	}
+
+	if forgotData.Success == "" {
+		t.Error("expected success message to be set even when user not found")
+	}
+
+	if forgotData.Error != "" {
+		t.Error("expected no error message when user not found")
+	}
+}
+
+func TestPostForgotPasswordHandler_SendsEmailWhenUserExists(t *testing.T) {
+	emailSent := false
+	var capturedRecipient string
+
+	mockMailClient := &mailmocks.MockMailClient{
+		SendEmailFunc: func(recipientEmail, recipientName, subject, plainContent string) error {
+			emailSent = true
+			capturedRecipient = recipientEmail
+			return nil
+		},
+	}
+
+	mockAuthStore := &mocks.MockAuthStore{
+		GetUserByEmailFunc: func(ctx context.Context, email string) (*store.AuthUser, string, error) {
+			return &store.AuthUser{
+				ID:       1,
+				Username: "testuser",
+				Email:    email,
+			}, "hashedpassword", nil
+		},
+		CreatePasswordResetTokenFunc: func(ctx context.Context, userID int, tokenHash string, expiresAt time.Time) error {
+			return nil
+		},
+	}
+
+	var capturedData any
+	mockRenderer := &tmocks.MockRenderer{
+		RenderPageFunc: func(w http.ResponseWriter, name string, data any) {
+			capturedData = data
+			w.WriteHeader(http.StatusOK)
+		},
+	}
+
+	h := &Handler{
+		AuthStore:  mockAuthStore,
+		Renderer:   mockRenderer,
+		MailClient: mockMailClient,
+	}
+
+	form := url.Values{}
+	form.Set("email", "test@example.com")
+
+	req := httptest.NewRequest(http.MethodPost, "/forgot-password", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	userInfo := &auth.UserInfo{IsLoggedIn: false}
+	req = req.WithContext(auth.ContextWithUserInfo(req.Context(), userInfo))
+	rec := httptest.NewRecorder()
+
+	h.PostForgotPasswordHandler(rec, req)
+
+	if !emailSent {
+		t.Error("expected password reset email to be sent")
+	}
+
+	if capturedRecipient != "test@example.com" {
+		t.Errorf("expected recipient 'test@example.com', got '%s'", capturedRecipient)
+	}
+
+	forgotData, ok := capturedData.(ForgotPasswordData)
+	if !ok {
+		t.Fatal("expected capturedData to be ForgotPasswordData")
+	}
+
+	if forgotData.Success == "" {
+		t.Error("expected success message to be set")
+	}
+}
+
+func TestPostForgotPasswordHandler_SucceedsEvenWhenEmailFails(t *testing.T) {
+	mockMailClient := &mailmocks.MockMailClient{
+		SendEmailFunc: func(recipientEmail, recipientName, subject, plainContent string) error {
+			return errors.New("email service unavailable")
+		},
+	}
+
+	mockAuthStore := &mocks.MockAuthStore{
+		GetUserByEmailFunc: func(ctx context.Context, email string) (*store.AuthUser, string, error) {
+			return &store.AuthUser{
+				ID:       1,
+				Username: "testuser",
+				Email:    email,
+			}, "hashedpassword", nil
+		},
+		CreatePasswordResetTokenFunc: func(ctx context.Context, userID int, tokenHash string, expiresAt time.Time) error {
+			return nil
+		},
+	}
+
+	var capturedData any
+	mockRenderer := &tmocks.MockRenderer{
+		RenderPageFunc: func(w http.ResponseWriter, name string, data any) {
+			capturedData = data
+			w.WriteHeader(http.StatusOK)
+		},
+	}
+
+	h := &Handler{
+		AuthStore:  mockAuthStore,
+		Renderer:   mockRenderer,
+		MailClient: mockMailClient,
+	}
+
+	form := url.Values{}
+	form.Set("email", "test@example.com")
+
+	req := httptest.NewRequest(http.MethodPost, "/forgot-password", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	userInfo := &auth.UserInfo{IsLoggedIn: false}
+	req = req.WithContext(auth.ContextWithUserInfo(req.Context(), userInfo))
+	rec := httptest.NewRecorder()
+
+	h.PostForgotPasswordHandler(rec, req)
+
+	forgotData, ok := capturedData.(ForgotPasswordData)
+	if !ok {
+		t.Fatal("expected capturedData to be ForgotPasswordData")
+	}
+
+	if forgotData.Success == "" {
+		t.Error("expected success message even when email fails")
+	}
+}
+
+func TestGetResetPasswordHandler_RendersResetPasswordPage(t *testing.T) {
+	mockAuthStore := &mocks.MockAuthStore{
+		GetPasswordResetTokenFunc: func(ctx context.Context, tokenHash string) (*store.PasswordResetToken, error) {
+			return &store.PasswordResetToken{
+				ID:        1,
+				UserID:    1,
+				ExpiresAt: time.Now().Add(time.Hour),
+				UsedAt:    nil,
+			}, nil
+		},
+	}
+
+	var capturedTemplate string
+	var capturedData any
+	mockRenderer := &tmocks.MockRenderer{
+		RenderPageFunc: func(w http.ResponseWriter, name string, data any) {
+			capturedTemplate = name
+			capturedData = data
+			w.WriteHeader(http.StatusOK)
+		},
+	}
+
+	h := &Handler{
+		AuthStore: mockAuthStore,
+		Renderer:  mockRenderer,
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/reset-password?token=validtoken123", nil)
+	userInfo := &auth.UserInfo{IsLoggedIn: false}
+	req = req.WithContext(auth.ContextWithUserInfo(req.Context(), userInfo))
+	rec := httptest.NewRecorder()
+
+	h.GetResetPasswordHandler(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Errorf("expected status %d, got %d", http.StatusOK, rec.Code)
+	}
+
+	if capturedTemplate != "reset-password.gohtml" {
+		t.Errorf("expected template reset-password.gohtml, got %s", capturedTemplate)
+	}
+
+	resetData, ok := capturedData.(ResetPasswordData)
+	if !ok {
+		t.Fatal("expected capturedData to be ResetPasswordData")
+	}
+
+	if resetData.InvalidToken {
+		t.Error("expected token to be valid")
+	}
+
+	if resetData.Token != "validtoken123" {
+		t.Errorf("expected token 'validtoken123', got '%s'", resetData.Token)
+	}
+}
+
+func TestGetResetPasswordHandler_ShowsInvalidTokenWhenMissing(t *testing.T) {
+	var capturedData any
+	mockRenderer := &tmocks.MockRenderer{
+		RenderPageFunc: func(w http.ResponseWriter, name string, data any) {
+			capturedData = data
+			w.WriteHeader(http.StatusOK)
+		},
+	}
+
+	h := &Handler{
+		Renderer: mockRenderer,
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/reset-password", nil)
+	userInfo := &auth.UserInfo{IsLoggedIn: false}
+	req = req.WithContext(auth.ContextWithUserInfo(req.Context(), userInfo))
+	rec := httptest.NewRecorder()
+
+	h.GetResetPasswordHandler(rec, req)
+
+	resetData, ok := capturedData.(ResetPasswordData)
+	if !ok {
+		t.Fatal("expected capturedData to be ResetPasswordData")
+	}
+
+	if !resetData.InvalidToken {
+		t.Error("expected InvalidToken to be true when token is missing")
+	}
+}
+
+func TestGetResetPasswordHandler_ShowsInvalidTokenWhenExpired(t *testing.T) {
+	mockAuthStore := &mocks.MockAuthStore{
+		GetPasswordResetTokenFunc: func(ctx context.Context, tokenHash string) (*store.PasswordResetToken, error) {
+			return &store.PasswordResetToken{
+				ID:        1,
+				UserID:    1,
+				ExpiresAt: time.Now().Add(-time.Hour),
+				UsedAt:    nil,
+			}, nil
+		},
+	}
+
+	var capturedData any
+	mockRenderer := &tmocks.MockRenderer{
+		RenderPageFunc: func(w http.ResponseWriter, name string, data any) {
+			capturedData = data
+			w.WriteHeader(http.StatusOK)
+		},
+	}
+
+	h := &Handler{
+		AuthStore: mockAuthStore,
+		Renderer:  mockRenderer,
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/reset-password?token=expiredtoken", nil)
+	userInfo := &auth.UserInfo{IsLoggedIn: false}
+	req = req.WithContext(auth.ContextWithUserInfo(req.Context(), userInfo))
+	rec := httptest.NewRecorder()
+
+	h.GetResetPasswordHandler(rec, req)
+
+	resetData, ok := capturedData.(ResetPasswordData)
+	if !ok {
+		t.Fatal("expected capturedData to be ResetPasswordData")
+	}
+
+	if !resetData.InvalidToken {
+		t.Error("expected InvalidToken to be true for expired token")
+	}
+}
+
+func TestPostResetPasswordHandler_ResetsPasswordSuccessfully(t *testing.T) {
+	usedAt := time.Time{}
+	mockAuthStore := &mocks.MockAuthStore{
+		GetPasswordResetTokenFunc: func(ctx context.Context, tokenHash string) (*store.PasswordResetToken, error) {
+			return &store.PasswordResetToken{
+				ID:        1,
+				UserID:    1,
+				ExpiresAt: time.Now().Add(time.Hour),
+				UsedAt:    nil,
+			}, nil
+		},
+		MarkPasswordResetTokenUsedFunc: func(ctx context.Context, tokenHash string) error {
+			usedAt = time.Now()
+			return nil
+		},
+		UpdateUserPasswordFunc: func(ctx context.Context, userID int, passwordHash string) error {
+			return nil
+		},
+		DeleteUserSessionsFunc: func(ctx context.Context, userID int) error {
+			return nil
+		},
+	}
+
+	var capturedData any
+	mockRenderer := &tmocks.MockRenderer{
+		RenderPageFunc: func(w http.ResponseWriter, name string, data any) {
+			capturedData = data
+			w.WriteHeader(http.StatusOK)
+		},
+	}
+
+	h := &Handler{
+		AuthStore: mockAuthStore,
+		Renderer:  mockRenderer,
+	}
+
+	form := url.Values{}
+	form.Set("token", "validtoken")
+	form.Set("password", "NewStrongPass123!")
+	form.Set("confirm_password", "NewStrongPass123!")
+
+	req := httptest.NewRequest(http.MethodPost, "/reset-password", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	userInfo := &auth.UserInfo{IsLoggedIn: false}
+	req = req.WithContext(auth.ContextWithUserInfo(req.Context(), userInfo))
+	rec := httptest.NewRecorder()
+
+	h.PostResetPasswordHandler(rec, req)
+
+	resetData, ok := capturedData.(ResetPasswordData)
+	if !ok {
+		t.Fatal("expected capturedData to be ResetPasswordData")
+	}
+
+	if resetData.Success == "" {
+		t.Error("expected success message to be set")
+	}
+
+	if usedAt.IsZero() {
+		t.Error("expected token to be marked as used")
+	}
+}
+
+func TestPostResetPasswordHandler_ShowsErrorWhenPasswordsDontMatch(t *testing.T) {
+	var capturedData any
+	mockRenderer := &tmocks.MockRenderer{
+		RenderPageFunc: func(w http.ResponseWriter, name string, data any) {
+			capturedData = data
+			w.WriteHeader(http.StatusOK)
+		},
+	}
+
+	h := &Handler{
+		Renderer: mockRenderer,
+	}
+
+	form := url.Values{}
+	form.Set("token", "validtoken")
+	form.Set("password", "NewPassword123!")
+	form.Set("confirm_password", "DifferentPassword123!")
+
+	req := httptest.NewRequest(http.MethodPost, "/reset-password", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	userInfo := &auth.UserInfo{IsLoggedIn: false}
+	req = req.WithContext(auth.ContextWithUserInfo(req.Context(), userInfo))
+	rec := httptest.NewRecorder()
+
+	h.PostResetPasswordHandler(rec, req)
+
+	resetData, ok := capturedData.(ResetPasswordData)
+	if !ok {
+		t.Fatal("expected capturedData to be ResetPasswordData")
+	}
+
+	if resetData.Error != "Passwords do not match" {
+		t.Errorf("expected error 'Passwords do not match', got '%s'", resetData.Error)
+	}
+}
+
+func TestPostResetPasswordHandler_ShowsErrorWhenPasswordTooWeak(t *testing.T) {
+	var capturedData any
+	mockRenderer := &tmocks.MockRenderer{
+		RenderPageFunc: func(w http.ResponseWriter, name string, data any) {
+			capturedData = data
+			w.WriteHeader(http.StatusOK)
+		},
+	}
+
+	h := &Handler{
+		Renderer: mockRenderer,
+	}
+
+	form := url.Values{}
+	form.Set("token", "validtoken")
+	form.Set("password", "weak")
+	form.Set("confirm_password", "weak")
+
+	req := httptest.NewRequest(http.MethodPost, "/reset-password", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	userInfo := &auth.UserInfo{IsLoggedIn: false}
+	req = req.WithContext(auth.ContextWithUserInfo(req.Context(), userInfo))
+	rec := httptest.NewRecorder()
+
+	h.PostResetPasswordHandler(rec, req)
+
+	resetData, ok := capturedData.(ResetPasswordData)
+	if !ok {
+		t.Fatal("expected capturedData to be ResetPasswordData")
+	}
+
+	if resetData.Error == "" {
+		t.Error("expected error message for weak password")
+	}
+}
+
+func TestPostResetPasswordHandler_ShowsInvalidTokenWhenTokenExpired(t *testing.T) {
+	mockAuthStore := &mocks.MockAuthStore{
+		GetPasswordResetTokenFunc: func(ctx context.Context, tokenHash string) (*store.PasswordResetToken, error) {
+			return &store.PasswordResetToken{
+				ID:        1,
+				UserID:    1,
+				ExpiresAt: time.Now().Add(-time.Hour),
+				UsedAt:    nil,
+			}, nil
+		},
+	}
+
+	var capturedData any
+	mockRenderer := &tmocks.MockRenderer{
+		RenderPageFunc: func(w http.ResponseWriter, name string, data any) {
+			capturedData = data
+			w.WriteHeader(http.StatusOK)
+		},
+	}
+
+	h := &Handler{
+		AuthStore: mockAuthStore,
+		Renderer:  mockRenderer,
+	}
+
+	form := url.Values{}
+	form.Set("token", "expiredtoken")
+	form.Set("password", "NewStrongPass123!")
+	form.Set("confirm_password", "NewStrongPass123!")
+
+	req := httptest.NewRequest(http.MethodPost, "/reset-password", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	userInfo := &auth.UserInfo{IsLoggedIn: false}
+	req = req.WithContext(auth.ContextWithUserInfo(req.Context(), userInfo))
+	rec := httptest.NewRecorder()
+
+	h.PostResetPasswordHandler(rec, req)
+
+	resetData, ok := capturedData.(ResetPasswordData)
+	if !ok {
+		t.Fatal("expected capturedData to be ResetPasswordData")
+	}
+
+	if !resetData.InvalidToken {
+		t.Error("expected InvalidToken to be true for expired token")
+	}
+}
+
+func TestPostResetPasswordHandler_ShowsInvalidTokenWhenAlreadyUsed(t *testing.T) {
+	usedTime := time.Now().Add(-time.Hour)
+	mockAuthStore := &mocks.MockAuthStore{
+		GetPasswordResetTokenFunc: func(ctx context.Context, tokenHash string) (*store.PasswordResetToken, error) {
+			return &store.PasswordResetToken{
+				ID:        1,
+				UserID:    1,
+				ExpiresAt: time.Now().Add(time.Hour),
+				UsedAt:    &usedTime,
+			}, nil
+		},
+	}
+
+	var capturedData any
+	mockRenderer := &tmocks.MockRenderer{
+		RenderPageFunc: func(w http.ResponseWriter, name string, data any) {
+			capturedData = data
+			w.WriteHeader(http.StatusOK)
+		},
+	}
+
+	h := &Handler{
+		AuthStore: mockAuthStore,
+		Renderer:  mockRenderer,
+	}
+
+	form := url.Values{}
+	form.Set("token", "usedtoken")
+	form.Set("password", "NewStrongPass123!")
+	form.Set("confirm_password", "NewStrongPass123!")
+
+	req := httptest.NewRequest(http.MethodPost, "/reset-password", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	userInfo := &auth.UserInfo{IsLoggedIn: false}
+	req = req.WithContext(auth.ContextWithUserInfo(req.Context(), userInfo))
+	rec := httptest.NewRecorder()
+
+	h.PostResetPasswordHandler(rec, req)
+
+	resetData, ok := capturedData.(ResetPasswordData)
+	if !ok {
+		t.Fatal("expected capturedData to be ResetPasswordData")
+	}
+
+	if !resetData.InvalidToken {
+		t.Error("expected InvalidToken to be true for already used token")
 	}
 }

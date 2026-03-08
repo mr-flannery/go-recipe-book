@@ -73,6 +73,25 @@ Recipe Book Team`, username)
 	return mc.SendEmail(userEmail, username, subject, content)
 }
 
+func SendPasswordResetEmail(mc MailClient, userEmail, username, resetURL string) error {
+	subject := "Password Reset Request - Recipe Book"
+	content := fmt.Sprintf(`Hello %s,
+
+We received a request to reset your password for the Recipe Book application.
+
+Click the link below to set a new password:
+%s
+
+This link will expire in 24 hours.
+
+If you didn't request this, you can safely ignore this email.
+
+Best regards,
+Recipe Book`, username, resetURL)
+
+	return mc.SendEmail(userEmail, username, subject, content)
+}
+
 type loggingMailClient struct{}
 
 func NewLoggingMailClient() MailClient {
@@ -81,5 +100,6 @@ func NewLoggingMailClient() MailClient {
 
 func (l *loggingMailClient) SendEmail(recipientEmail, recipientName, subject, plainContent string) error {
 	fmt.Printf("[DEV] Email not sent - To: %s <%s>, Subject: %s\n", recipientName, recipientEmail, subject)
+	fmt.Printf("[DEV] Email body:\n%s\n", plainContent)
 	return nil
 }

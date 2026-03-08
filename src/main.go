@@ -80,6 +80,9 @@ func main() {
 			if err := auth.CleanupExpiredSessions(context.Background(), authStore); err != nil {
 				slog.Error("Failed to cleanup expired sessions", "error", err)
 			}
+			if err := auth.CleanupExpiredPasswordResetTokens(context.Background(), authStore); err != nil {
+				slog.Error("Failed to cleanup expired password reset tokens", "error", err)
+			}
 		}
 	}()
 
@@ -151,6 +154,10 @@ func main() {
 	mux.HandleFunc("GET /logout", h.LogoutHandler)
 	mux.Handle("GET /register", userContext(http.HandlerFunc(h.GetRegisterHandler)))
 	mux.Handle("POST /register", userContext(http.HandlerFunc(h.PostRegisterHandler)))
+	mux.Handle("GET /forgot-password", userContext(http.HandlerFunc(h.GetForgotPasswordHandler)))
+	mux.Handle("POST /forgot-password", userContext(http.HandlerFunc(h.PostForgotPasswordHandler)))
+	mux.Handle("GET /reset-password", userContext(http.HandlerFunc(h.GetResetPasswordHandler)))
+	mux.Handle("POST /reset-password", userContext(http.HandlerFunc(h.PostResetPasswordHandler)))
 
 	mux.Handle("GET /account",
 		userContext(

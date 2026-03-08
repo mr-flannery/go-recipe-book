@@ -117,3 +117,60 @@ func TestSendRegistrationApprovedNotification_ReturnsErrorWhenSendFails(t *testi
 		t.Error("expected error, got nil")
 	}
 }
+
+func TestSendPasswordResetEmail_SendsCorrectEmailContent(t *testing.T) {
+	var capturedEmail, capturedName, capturedSubject, capturedContent string
+	mockClient := &mocks.MockMailClient{
+		SendEmailFunc: func(recipientEmail, recipientName, subject, plainContent string) error {
+			capturedEmail = recipientEmail
+			capturedName = recipientName
+			capturedSubject = subject
+			capturedContent = plainContent
+			return nil
+		},
+	}
+
+	err := SendPasswordResetEmail(mockClient, "user@test.com", "testuser", "http://example.com/reset?token=abc123")
+
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if capturedEmail != "user@test.com" {
+		t.Errorf("expected recipient email 'user@test.com', got '%s'", capturedEmail)
+	}
+
+	if capturedName != "testuser" {
+		t.Errorf("expected recipient name 'testuser', got '%s'", capturedName)
+	}
+
+	if capturedSubject != "Password Reset Request - Recipe Book" {
+		t.Errorf("expected subject 'Password Reset Request - Recipe Book', got '%s'", capturedSubject)
+	}
+
+	if !strings.Contains(capturedContent, "testuser") {
+		t.Error("expected content to contain username 'testuser'")
+	}
+
+	if !strings.Contains(capturedContent, "http://example.com/reset?token=abc123") {
+		t.Error("expected content to contain reset URL")
+	}
+
+	if !strings.Contains(capturedContent, "24 hours") {
+		t.Error("expected content to mention expiration time")
+	}
+}
+
+func TestSendPasswordResetEmail_ReturnsErrorWhenSendFails(t *testing.T) {
+	mockClient := &mocks.MockMailClient{
+		SendEmailFunc: func(recipientEmail, recipientName, subject, plainContent string) error {
+			return errors.New("send failed")
+		},
+	}
+
+	err := SendPasswordResetEmail(mockClient, "user@test.com", "testuser", "http://example.com/reset")
+
+	if err == nil {
+		t.Error("expected error, got nil")
+	}
+}

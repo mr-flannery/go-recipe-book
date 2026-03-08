@@ -1,4 +1,4 @@
-.PHONY: dev run build test test-unit test-integration test-coverage test-browser test-browser-full test-browser-medium test-browser-minimal test-browser-ui test-browser-full-ui clean db-start migrate ci-local qr help
+.PHONY: dev run build test test-unit test-integration test-coverage test-browser test-browser-full test-browser-medium test-browser-minimal test-browser-ui test-browser-full-ui clean db-start db-connect migrate ci-local qr help
 
 help:
 	@echo "Available commands:"
@@ -16,6 +16,7 @@ help:
 	@echo "  make test-browser-ui      - Run browser tests with UI (requires server running)"
 	@echo "  make test-browser-full-ui    - Run browser tests: all browsers + mobile viewports with UI"
 	@echo "  make clean                - Remove build artifacts"
+	@echo "  make db-connect           - Connect to development database with psql"
 	@echo "  make migrate              - Run database migrations"
 	@echo "  make ci-local             - Run GitHub Actions CI pipeline locally using act"
 	@echo "  make qr                   - Show QR code to access server from mobile"
@@ -46,6 +47,9 @@ test-coverage:
 
 db-start:
 	docker compose --profile dev up
+
+db-connect:
+	docker compose exec db psql -U recipeuser -d recipebook
 
 clean:
 	rm -rf bin/ src/tmp/

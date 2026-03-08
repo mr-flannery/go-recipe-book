@@ -162,6 +162,7 @@ func (td *TestDatabase) ResetAllTables(t *testing.T) {
 		"recipe_tags",
 		"comments",
 		"sessions",
+		"password_reset_tokens",
 		"registration_requests",
 		"recipes",
 		"tags",
@@ -273,6 +274,21 @@ func (td *TestDatabase) SeedSession(t *testing.T, sessionID string, userID int, 
 	if err != nil {
 		t.Fatalf("failed to seed session: %v", err)
 	}
+}
+
+func (td *TestDatabase) SeedPasswordResetToken(t *testing.T, userID int, tokenHash string, expiresAt time.Time, usedAt *time.Time) int {
+	t.Helper()
+
+	var tokenID int
+	err := td.DB.QueryRow(`
+		INSERT INTO password_reset_tokens (user_id, token_hash, expires_at, used_at, created_at)
+		VALUES ($1, $2, $3, $4, NOW())
+		RETURNING id
+	`, userID, tokenHash, expiresAt, usedAt).Scan(&tokenID)
+	if err != nil {
+		t.Fatalf("failed to seed password reset token: %v", err)
+	}
+	return tokenID
 }
 
 func SkipIfShort(t *testing.T) {

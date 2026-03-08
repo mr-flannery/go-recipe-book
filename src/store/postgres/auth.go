@@ -392,3 +392,77 @@ func (s *AuthStore) DeleteUser(ctx context.Context, userID int) error {
 
 	return nil
 }
+
+func (s *AuthStore) CreatePasswordResetToken(ctx context.Context, userID int, tokenHash string, expiresAt time.Time) error {
+	query := `
+		INSERT INTO password_reset_tokens (user_id, token_hash, expires_at)
+		VALUES ($1, $2, $3)`
+
+	_, err := s.db.ExecContext(ctx, query, userID, tokenHash, expiresAt)
+	if err != nil {
+		return fmt.Errorf("failed to create password reset token: %w", err)
+	}
+
+	return nil
+}
+
+func (s *AuthStore) GetPasswordResetToken(ctx context.Context, tokenHash string) (*store.PasswordResetToken, error) {
+	var token store.PasswordResetToken
+	query := `
+		SELECT id, user_id, expires_at, used_at
+		FROM password_reset_tokens
+		WHERE token_hash = $1`
+
+	err := s.db.QueryRowContext(ctx, query, tokenHash).Scan(
+		&token.ID, &token.UserID, &token.ExpiresAt, &token.UsedAt)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, fmt.Errorf("password reset token not found")
+		}
+		return nil, fmt.Errorf("failed to get password reset token: %w", err)
+	}
+
+	return &token, nil
+}
+
+func (s *AuthStore) MarkPasswordResetTokenUsed(ctx context.Context, tokenHash string) error {
+	query := `UPDATE password_reset_tokens SET used_at = NOW() WHERE token_hash = $1`
+	result, err := s.db.ExecContext(ctx, query, tokenHash)
+	if err != nil {
+		return fmt.Errorf("failed to mark password reset token as used: %w", err)
+	}
+
+	rowsAffected, _ := result.RowsAffected()
+	if rowsAffected == 0 {
+		return fmt.Errorf("password reset token not found")
+	}
+
+	return nil
+}
+
+func (s *AuthStore) DeleteExpiredPasswordResetTokens(ctx context.Context) (int64, error) {
+	query := `DELETE FROM password_reset_tokens WHERE expires_at <= NOW() OR used_at IS NOT NULL`
+	result, err := s.db.ExecContext(ctx, query)
+	if err != nil {
+		return 0, fmt.Errorf("failed to cleanup expired password reset tokens: %w", err)
+	}
+
+	rowsAffected, _ := result.RowsAffected()
+	return rowsAffected, nil
+}
+
+func (s *AuthStore) UpdateUserPassword(ctx context.Context, userID int, passwordHash string) error {
+	query := `UPDATE users SET password_hash = $1 WHERE id = $2`
+	result, err := s.db.ExecContext(ctx, query, passwordHash, userID)
+	if err != nil {
+		return fmt.Errorf("failed to update user password: %w", err)
+	}
+
+	rowsAffected, _ := result.RowsAffected()
+	if rowsAffected == 0 {
+		return fmt.Errorf("user not found")
+	}
+
+	return nil
+}
