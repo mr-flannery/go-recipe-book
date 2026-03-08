@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -26,6 +25,8 @@ func (h *Handler) SearchTagsHandler(w http.ResponseWriter, r *http.Request) {
 
 	tags, err := h.TagStore.Search(ctx, query)
 	if err != nil {
+		logging.AddError(ctx, err, "Failed to search tags")
+		logging.Add(ctx, "action", "tag.search")
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(TagResponse{Success: false, Error: "Failed to search tags"})
@@ -36,6 +37,11 @@ func (h *Handler) SearchTagsHandler(w http.ResponseWriter, r *http.Request) {
 	for i, tag := range tags {
 		tagNames[i] = tag.Name
 	}
+
+	logging.AddMany(ctx, map[string]any{
+		"action":       "tag.search",
+		"result.count": len(tagNames),
+	})
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(TagSearchResponse{Tags: tagNames})
@@ -55,11 +61,18 @@ func (h *Handler) SearchUserTagsHandler(w http.ResponseWriter, r *http.Request) 
 
 	tags, err := h.UserTagStore.Search(ctx, user.ID, query)
 	if err != nil {
+		logging.AddError(ctx, err, "Failed to search user tags")
+		logging.Add(ctx, "action", "user_tag.search")
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(TagResponse{Success: false, Error: "Failed to search user tags"})
 		return
 	}
+
+	logging.AddMany(ctx, map[string]any{
+		"action":       "user_tag.search",
+		"result.count": len(tags),
+	})
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(TagSearchResponse{Tags: tags})
@@ -119,7 +132,11 @@ func (h *Handler) AddTagToRecipeHandler(w http.ResponseWriter, r *http.Request) 
 
 	tag, err := h.TagStore.GetOrCreate(ctx, tagName)
 	if err != nil {
-		log.Printf("ERROR: GetOrCreateTag failed for tag '%s': %v", tagName, err)
+		logging.AddError(ctx, err, "Failed to get or create tag")
+		logging.AddMany(ctx, map[string]any{
+			"action":   "tag.add",
+			"tag.name": tagName,
+		})
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(TagResponse{Success: false, Error: "Failed to create tag"})
@@ -128,7 +145,13 @@ func (h *Handler) AddTagToRecipeHandler(w http.ResponseWriter, r *http.Request) 
 
 	err = h.TagStore.AddToRecipe(ctx, recipeIDInt, tag.ID)
 	if err != nil {
-		log.Printf("ERROR: AddTagToRecipe failed for recipe %d, tag %d: %v", recipeIDInt, tag.ID, err)
+		logging.AddError(ctx, err, "Failed to add tag to recipe")
+		logging.AddMany(ctx, map[string]any{
+			"action":    "tag.add",
+			"recipe.id": recipeIDInt,
+			"tag.id":    tag.ID,
+			"tag.name":  tagName,
+		})
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(TagResponse{Success: false, Error: "Failed to add tag to recipe"})
@@ -198,6 +221,12 @@ func (h *Handler) RemoveTagFromRecipeHandler(w http.ResponseWriter, r *http.Requ
 
 	err = h.TagStore.RemoveFromRecipe(ctx, recipeIDInt, tagIDInt)
 	if err != nil {
+		logging.AddError(ctx, err, "Failed to remove tag from recipe")
+		logging.AddMany(ctx, map[string]any{
+			"action":    "tag.remove",
+			"recipe.id": recipeIDInt,
+			"tag.id":    tagIDInt,
+		})
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(TagResponse{Success: false, Error: "Failed to remove tag from recipe"})
@@ -261,6 +290,12 @@ func (h *Handler) AddUserTagToRecipeHandler(w http.ResponseWriter, r *http.Reque
 
 	_, err = h.UserTagStore.GetOrCreate(ctx, user.ID, recipeIDInt, tagName)
 	if err != nil {
+		logging.AddError(ctx, err, "Failed to add user tag")
+		logging.AddMany(ctx, map[string]any{
+			"action":        "user_tag.add",
+			"recipe.id":     recipeIDInt,
+			"user_tag.name": tagName,
+		})
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(TagResponse{Success: false, Error: "Failed to add user tag"})
@@ -305,6 +340,11 @@ func (h *Handler) RemoveUserTagHandler(w http.ResponseWriter, r *http.Request) {
 
 	err = h.UserTagStore.Remove(ctx, user.ID, tagIDInt)
 	if err != nil {
+		logging.AddError(ctx, err, "Failed to remove user tag")
+		logging.AddMany(ctx, map[string]any{
+			"action":      "user_tag.remove",
+			"user_tag.id": tagIDInt,
+		})
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(TagResponse{Success: false, Error: "Failed to remove user tag"})

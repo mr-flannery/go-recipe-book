@@ -130,6 +130,12 @@ func (h *Handler) PostRegisterHandler(w http.ResponseWriter, r *http.Request) {
 		logging.AddError(ctx, err, "Failed to send admin notification email")
 	}
 
+	logging.AddMany(ctx, map[string]any{
+		"action":                "auth.register",
+		"registration.email":    email,
+		"registration.username": username,
+	})
+
 	data.Success = "Registration request submitted successfully! An administrator will review your request and you will receive an email when it's approved."
 	h.Renderer.RenderPage(w, "register.gohtml", data)
 }
@@ -160,6 +166,11 @@ func (h *Handler) GetPendingRegistrationsHandler(w http.ResponseWriter, r *http.
 		h.Renderer.RenderError(w, r, http.StatusInternalServerError, "Failed to load pending registrations. Please try again later.")
 		return
 	}
+
+	logging.AddMany(ctx, map[string]any{
+		"action":       "admin.registrations.list",
+		"result.count": len(registrations),
+	})
 
 	data := PendingRegistrationsData{
 		Registrations: registrations,
@@ -274,6 +285,11 @@ func (h *Handler) GetUsersHandler(w http.ResponseWriter, r *http.Request) {
 		h.Renderer.RenderError(w, r, http.StatusInternalServerError, "Failed to load users. Please try again later.")
 		return
 	}
+
+	logging.AddMany(ctx, map[string]any{
+		"action":       "admin.users.list",
+		"result.count": len(users),
+	})
 
 	data := UsersData{
 		Users:    users,

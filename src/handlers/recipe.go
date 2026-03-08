@@ -236,6 +236,8 @@ func (h *Handler) ListRecipesHandler(w http.ResponseWriter, r *http.Request) {
 
 	recipes, err := h.RecipeStore.GetFiltered(ctx, filterParams)
 	if err != nil {
+		logging.AddError(ctx, err, "Failed to fetch recipes")
+		logging.Add(ctx, "action", "recipe.list")
 		h.Renderer.RenderError(w, r, http.StatusInternalServerError, "Failed to fetch recipes. Please try again later.")
 		return
 	}
@@ -524,6 +526,11 @@ func (h *Handler) ViewRecipeHandler(w http.ResponseWriter, r *http.Request) {
 
 	recipeRes := <-recipeCh
 	if recipeRes.err != nil {
+		logging.AddError(ctx, recipeRes.err, "Recipe not found")
+		logging.AddMany(ctx, map[string]any{
+			"action":    "recipe.view",
+			"recipe.id": recipeIDInt,
+		})
 		h.Renderer.RenderError(w, r, http.StatusNotFound, "The recipe you're looking for doesn't exist or has been removed.")
 		return
 	}
@@ -531,6 +538,11 @@ func (h *Handler) ViewRecipeHandler(w http.ResponseWriter, r *http.Request) {
 
 	commentsRes := <-commentsCh
 	if commentsRes.err != nil {
+		logging.AddError(ctx, commentsRes.err, "Failed to load comments")
+		logging.AddMany(ctx, map[string]any{
+			"action":    "recipe.view",
+			"recipe.id": recipeIDInt,
+		})
 		h.Renderer.RenderError(w, r, http.StatusInternalServerError, "Failed to load comments. Please try again later.")
 		return
 	}
@@ -637,12 +649,22 @@ func (h *Handler) CommentHTMXHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.CommentStore.Save(ctx, comment); err != nil {
+		logging.AddError(ctx, err, "Failed to save comment")
+		logging.AddMany(ctx, map[string]any{
+			"action":    "comment.create",
+			"recipe.id": recipeIDInt,
+		})
 		http.Error(w, fmt.Sprintf("Failed to save comment: %v", err), http.StatusInternalServerError)
 		return
 	}
 
 	savedComment, err := h.CommentStore.GetLatestByUserAndRecipe(ctx, user.ID, recipeIDInt)
 	if err != nil {
+		logging.AddError(ctx, err, "Failed to retrieve saved comment")
+		logging.AddMany(ctx, map[string]any{
+			"action":    "comment.create",
+			"recipe.id": recipeIDInt,
+		})
 		http.Error(w, "Failed to retrieve saved comment", http.StatusInternalServerError)
 		return
 	}
@@ -707,12 +729,22 @@ func (h *Handler) UpdateCommentHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.CommentStore.Update(ctx, commentID, newContent); err != nil {
+		logging.AddError(ctx, err, "Failed to update comment")
+		logging.AddMany(ctx, map[string]any{
+			"action":     "comment.update",
+			"comment.id": commentID,
+		})
 		http.Error(w, "Failed to update comment", http.StatusInternalServerError)
 		return
 	}
 
 	updatedComment, err := h.CommentStore.GetByID(ctx, commentID)
 	if err != nil {
+		logging.AddError(ctx, err, "Failed to retrieve updated comment")
+		logging.AddMany(ctx, map[string]any{
+			"action":     "comment.update",
+			"comment.id": commentID,
+		})
 		http.Error(w, "Failed to retrieve updated comment", http.StatusInternalServerError)
 		return
 	}
@@ -763,6 +795,11 @@ func (h *Handler) DeleteCommentHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.CommentStore.Delete(ctx, commentID); err != nil {
+		logging.AddError(ctx, err, "Failed to delete comment")
+		logging.AddMany(ctx, map[string]any{
+			"action":     "comment.delete",
+			"comment.id": commentID,
+		})
 		http.Error(w, "Failed to delete comment", http.StatusInternalServerError)
 		return
 	}
@@ -848,10 +885,15 @@ func (h *Handler) RandomRecipeHandler(w http.ResponseWriter, r *http.Request) {
 	recipeID, err := h.RecipeStore.GetRandomID(ctx)
 	if err != nil {
 		logging.AddError(ctx, err, "Failed to get random recipe")
+		logging.Add(ctx, "action", "recipe.random")
 		http.Redirect(w, r, "/recipes", http.StatusSeeOther)
 		return
 	}
 
+	logging.AddMany(ctx, map[string]any{
+		"action":    "recipe.random",
+		"recipe.id": recipeID,
+	})
 	http.Redirect(w, r, fmt.Sprintf("/recipes/%d", recipeID), http.StatusSeeOther)
 }
 
@@ -993,6 +1035,13 @@ func (h *Handler) FilterRecipesHTMXHandler(w http.ResponseWriter, r *http.Reques
 
 	pagination := CalculatePagination(totalCount, currentPage, pageSize)
 
+	logging.AddMany(ctx, map[string]any{
+		"action":       "recipe.filter",
+		"result.count": len(recipes),
+		"result.total": totalCount,
+		"filter.page":  currentPage,
+	})
+
 	w.Header().Set("HX-Replace-Url", filterState.ToURLQuery())
 
 	data := struct {
@@ -1030,10 +1079,15 @@ func (h *Handler) SetPageSizeHandler(w http.ResponseWriter, r *http.Request) {
 
 	if err := h.UserPreferencesStore.SetPageSize(ctx, currentUser.ID, pageSize); err != nil {
 		logging.AddError(ctx, err, "Failed to save page size preference")
+		logging.Add(ctx, "action", "preferences.page_size")
 		http.Error(w, "Failed to save preference", http.StatusInternalServerError)
 		return
 	}
 
+	logging.AddMany(ctx, map[string]any{
+		"action":                "preferences.page_size",
+		"preferences.page_size": pageSize,
+	})
 	w.WriteHeader(http.StatusOK)
 }
 
@@ -1054,9 +1108,14 @@ func (h *Handler) SetViewModeHandler(w http.ResponseWriter, r *http.Request) {
 
 	if err := h.UserPreferencesStore.SetViewMode(ctx, currentUser.ID, viewMode); err != nil {
 		logging.AddError(ctx, err, "Failed to save view mode preference")
+		logging.Add(ctx, "action", "preferences.view_mode")
 		http.Error(w, "Failed to save preference", http.StatusInternalServerError)
 		return
 	}
 
+	logging.AddMany(ctx, map[string]any{
+		"action":                "preferences.view_mode",
+		"preferences.view_mode": viewMode,
+	})
 	w.WriteHeader(http.StatusOK)
 }

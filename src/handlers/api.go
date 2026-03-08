@@ -209,6 +209,11 @@ func (h *Handler) APISearchIngredientsHandler(w http.ResponseWriter, r *http.Req
 		results = []string{}
 	}
 
+	logging.AddMany(ctx, map[string]any{
+		"action":       "api.ingredients.search",
+		"result.count": len(results),
+	})
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(results)
 }
@@ -237,6 +242,11 @@ func (h *Handler) APISearchRecipesHandler(w http.ResponseWriter, r *http.Request
 	if results == nil {
 		results = []models.RecipeSearchResult{}
 	}
+
+	logging.AddMany(ctx, map[string]any{
+		"action":       "api.recipes.search",
+		"result.count": len(results),
+	})
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(results)
