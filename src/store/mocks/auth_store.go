@@ -33,6 +33,7 @@ type MockAuthStore struct {
 	MarkPasswordResetTokenUsedFunc       func(ctx context.Context, tokenHash string) error
 	DeleteExpiredPasswordResetTokensFunc func(ctx context.Context) (int64, error)
 	UpdateUserPasswordFunc               func(ctx context.Context, userID int, passwordHash string) error
+	ResetPasswordWithTokenFunc           func(ctx context.Context, tokenHash string, newPasswordHash string) (int, error)
 }
 
 func (m *MockAuthStore) GetUserByEmail(ctx context.Context, email string) (*store.AuthUser, string, error) {
@@ -208,4 +209,11 @@ func (m *MockAuthStore) UpdateUserPassword(ctx context.Context, userID int, pass
 		return m.UpdateUserPasswordFunc(ctx, userID, passwordHash)
 	}
 	return nil
+}
+
+func (m *MockAuthStore) ResetPasswordWithToken(ctx context.Context, tokenHash string, newPasswordHash string) (int, error) {
+	if m.ResetPasswordWithTokenFunc != nil {
+		return m.ResetPasswordWithTokenFunc(ctx, tokenHash, newPasswordHash)
+	}
+	return 0, nil
 }

@@ -466,3 +466,55 @@ func (s *AuthStore) UpdateUserPassword(ctx context.Context, userID int, password
 
 	return nil
 }
+
+func (s *AuthStore) ResetPasswordWithToken(ctx context.Context, tokenHash string, newPasswordHash string) (int, error) {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return 0, fmt.Errorf("failed to start transaction: %w", err)
+	}
+	defer tx.Rollback()
+
+	var token store.PasswordResetToken
+	query := `
+		SELECT id, user_id, expires_at, used_at
+		FROM password_reset_tokens
+		WHERE token_hash = $1`
+
+	err = tx.QueryRowContext(ctx, query, tokenHash).Scan(
+		&token.ID, &token.UserID, &token.ExpiresAt, &token.UsedAt)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return 0, fmt.Errorf("invalid or expired reset token")
+		}
+		return 0, fmt.Errorf("failed to get password reset token: %w", err)
+	}
+
+	if token.UsedAt != nil {
+		return 0, fmt.Errorf("reset token has already been used")
+	}
+
+	if time.Now().After(token.ExpiresAt) {
+		return 0, fmt.Errorf("reset token has expired")
+	}
+
+	_, err = tx.ExecContext(ctx, `UPDATE users SET password_hash = $1 WHERE id = $2`, newPasswordHash, token.UserID)
+	if err != nil {
+		return 0, fmt.Errorf("failed to update password: %w", err)
+	}
+
+	_, err = tx.ExecContext(ctx, `UPDATE password_reset_tokens SET used_at = NOW() WHERE id = $1`, token.ID)
+	if err != nil {
+		return 0, fmt.Errorf("failed to mark token as used: %w", err)
+	}
+
+	_, err = tx.ExecContext(ctx, `DELETE FROM sessions WHERE user_id = $1`, token.UserID)
+	if err != nil {
+		return 0, fmt.Errorf("failed to invalidate sessions: %w", err)
+	}
+
+	if err = tx.Commit(); err != nil {
+		return 0, fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	return token.UserID, nil
+}

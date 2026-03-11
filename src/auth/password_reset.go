@@ -113,6 +113,21 @@ func ResetPassword(ctx context.Context, authStore store.AuthStore, userID int, n
 	return nil
 }
 
+func ResetPasswordWithToken(ctx context.Context, authStore store.AuthStore, token string, newPassword string) (int, error) {
+	passwordHash, err := HashPassword(newPassword)
+	if err != nil {
+		return 0, fmt.Errorf("failed to hash password: %w", err)
+	}
+
+	tokenHash := HashResetToken(token)
+	userID, err := authStore.ResetPasswordWithToken(ctx, tokenHash, passwordHash)
+	if err != nil {
+		return 0, err
+	}
+
+	return userID, nil
+}
+
 func GetResetURL(token string) string {
 	baseURL := getBaseURL()
 	return fmt.Sprintf("%s/reset-password?token=%s", baseURL, token)

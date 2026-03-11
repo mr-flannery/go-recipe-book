@@ -470,23 +470,21 @@ func (h *Handler) PostResetPasswordHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	// TODO: ValidateAndUseResetToken and ResetPassword should be wrapped in a transaction. the token should be invalidated iff resetting the password is successful
-	userID, err := auth.ValidateAndUseResetToken(ctx, h.AuthStore, token)
+	userID, err := auth.ResetPasswordWithToken(ctx, h.AuthStore, token, password)
 	if err != nil {
-		logging.AddMany(ctx, map[string]any{
-			"action":                   "auth.password_reset.complete",
-			"password_reset.succeeded": false,
-			"password_reset.reason":    "invalid_token",
-		})
-		data.InvalidToken = true
-		h.Renderer.RenderPage(w, "reset-password.gohtml", data)
-		return
-	}
-
-	err = auth.ResetPassword(ctx, h.AuthStore, userID, password)
-	if err != nil {
-		logging.AddError(ctx, err, "Failed to reset password")
-		data.Error = "An error occurred while resetting your password. Please try again."
+		if err.Error() == "invalid or expired reset token" ||
+			err.Error() == "reset token has already been used" ||
+			err.Error() == "reset token has expired" {
+			logging.AddMany(ctx, map[string]any{
+				"action":                   "auth.password_reset.complete",
+				"password_reset.succeeded": false,
+				"password_reset.reason":    "invalid_token",
+			})
+			data.InvalidToken = true
+		} else {
+			logging.AddError(ctx, err, "Failed to reset password")
+			data.Error = "An error occurred while resetting your password. Please try again."
+		}
 		h.Renderer.RenderPage(w, "reset-password.gohtml", data)
 		return
 	}

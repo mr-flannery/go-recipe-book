@@ -347,3 +347,55 @@ func TestGetResetURL_ContainsToken(t *testing.T) {
 		t.Errorf("URL doesn't contain expected token parameter: %s", url)
 	}
 }
+
+func TestResetPasswordWithToken_CallsStoreWithHashedTokenAndPassword(t *testing.T) {
+	plainToken := "test-plain-token"
+	expectedTokenHash := HashResetToken(plainToken)
+	var receivedTokenHash, receivedPasswordHash string
+
+	mockStore := &mocks.MockAuthStore{
+		ResetPasswordWithTokenFunc: func(ctx context.Context, tokenHash string, newPasswordHash string) (int, error) {
+			receivedTokenHash = tokenHash
+			receivedPasswordHash = newPasswordHash
+			return 42, nil
+		},
+	}
+
+	userID, err := ResetPasswordWithToken(context.Background(), mockStore, plainToken, "NewSecurePass123!")
+	if err != nil {
+		t.Fatalf("expected no error, got: %v", err)
+	}
+
+	if userID != 42 {
+		t.Errorf("expected user ID 42, got %d", userID)
+	}
+
+	if receivedTokenHash != expectedTokenHash {
+		t.Error("expected token to be hashed before calling store")
+	}
+
+	if receivedPasswordHash == "" {
+		t.Error("expected password hash to be passed to store")
+	}
+
+	if receivedPasswordHash == "NewSecurePass123!" {
+		t.Error("password should be hashed, not stored in plain text")
+	}
+}
+
+func TestResetPasswordWithToken_ReturnsErrorFromStore(t *testing.T) {
+	mockStore := &mocks.MockAuthStore{
+		ResetPasswordWithTokenFunc: func(ctx context.Context, tokenHash string, newPasswordHash string) (int, error) {
+			return 0, errors.New("reset token has expired")
+		},
+	}
+
+	_, err := ResetPasswordWithToken(context.Background(), mockStore, "test-token", "NewSecurePass123!")
+	if err == nil {
+		t.Error("expected error from store")
+	}
+
+	if err.Error() != "reset token has expired" {
+		t.Errorf("expected 'reset token has expired' error, got: %v", err)
+	}
+}

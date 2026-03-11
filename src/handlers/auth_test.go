@@ -1268,25 +1268,11 @@ func TestGetResetPasswordHandler_ShowsInvalidTokenWhenExpired(t *testing.T) {
 }
 
 func TestPostResetPasswordHandler_ResetsPasswordSuccessfully(t *testing.T) {
-	usedAt := time.Time{}
+	resetCalled := false
 	mockAuthStore := &mocks.MockAuthStore{
-		GetPasswordResetTokenFunc: func(ctx context.Context, tokenHash string) (*store.PasswordResetToken, error) {
-			return &store.PasswordResetToken{
-				ID:        1,
-				UserID:    1,
-				ExpiresAt: time.Now().Add(time.Hour),
-				UsedAt:    nil,
-			}, nil
-		},
-		MarkPasswordResetTokenUsedFunc: func(ctx context.Context, tokenHash string) error {
-			usedAt = time.Now()
-			return nil
-		},
-		UpdateUserPasswordFunc: func(ctx context.Context, userID int, passwordHash string) error {
-			return nil
-		},
-		DeleteUserSessionsFunc: func(ctx context.Context, userID int) error {
-			return nil
+		ResetPasswordWithTokenFunc: func(ctx context.Context, tokenHash string, newPasswordHash string) (int, error) {
+			resetCalled = true
+			return 1, nil
 		},
 	}
 
@@ -1325,8 +1311,8 @@ func TestPostResetPasswordHandler_ResetsPasswordSuccessfully(t *testing.T) {
 		t.Error("expected success message to be set")
 	}
 
-	if usedAt.IsZero() {
-		t.Error("expected token to be marked as used")
+	if !resetCalled {
+		t.Error("expected ResetPasswordWithToken to be called")
 	}
 }
 
@@ -1404,13 +1390,8 @@ func TestPostResetPasswordHandler_ShowsErrorWhenPasswordTooWeak(t *testing.T) {
 
 func TestPostResetPasswordHandler_ShowsInvalidTokenWhenTokenExpired(t *testing.T) {
 	mockAuthStore := &mocks.MockAuthStore{
-		GetPasswordResetTokenFunc: func(ctx context.Context, tokenHash string) (*store.PasswordResetToken, error) {
-			return &store.PasswordResetToken{
-				ID:        1,
-				UserID:    1,
-				ExpiresAt: time.Now().Add(-time.Hour),
-				UsedAt:    nil,
-			}, nil
+		ResetPasswordWithTokenFunc: func(ctx context.Context, tokenHash string, newPasswordHash string) (int, error) {
+			return 0, errors.New("reset token has expired")
 		},
 	}
 
@@ -1451,15 +1432,9 @@ func TestPostResetPasswordHandler_ShowsInvalidTokenWhenTokenExpired(t *testing.T
 }
 
 func TestPostResetPasswordHandler_ShowsInvalidTokenWhenAlreadyUsed(t *testing.T) {
-	usedTime := time.Now().Add(-time.Hour)
 	mockAuthStore := &mocks.MockAuthStore{
-		GetPasswordResetTokenFunc: func(ctx context.Context, tokenHash string) (*store.PasswordResetToken, error) {
-			return &store.PasswordResetToken{
-				ID:        1,
-				UserID:    1,
-				ExpiresAt: time.Now().Add(time.Hour),
-				UsedAt:    &usedTime,
-			}, nil
+		ResetPasswordWithTokenFunc: func(ctx context.Context, tokenHash string, newPasswordHash string) (int, error) {
+			return 0, errors.New("reset token has already been used")
 		},
 	}
 

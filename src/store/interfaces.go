@@ -121,6 +121,7 @@ type AuthStore interface {
 	MarkPasswordResetTokenUsed(ctx context.Context, tokenHash string) error
 	DeleteExpiredPasswordResetTokens(ctx context.Context) (int64, error)
 	UpdateUserPassword(ctx context.Context, userID int, passwordHash string) error
+	ResetPasswordWithToken(ctx context.Context, tokenHash string, newPasswordHash string) (int, error)
 }
 
 type UserPreferencesStore interface {
