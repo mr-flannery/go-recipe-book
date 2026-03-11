@@ -728,7 +728,7 @@ func TestPostRegisterHandler_SendsNotificationEmailOnSuccess(t *testing.T) {
 	emailSent := false
 	var capturedRecipient string
 	mockMailClient := &mailmocks.MockMailClient{
-		SendEmailFunc: func(recipientEmail, recipientName, subject, plainContent string) error {
+		SendEmailFunc: func(ctx context.Context, recipientEmail, recipientName, subject, plainContent string) error {
 			emailSent = true
 			capturedRecipient = recipientEmail
 			return nil
@@ -789,7 +789,7 @@ func TestPostRegisterHandler_SendsNotificationEmailOnSuccess(t *testing.T) {
 
 func TestPostRegisterHandler_SucceedsEvenWhenEmailFails(t *testing.T) {
 	mockMailClient := &mailmocks.MockMailClient{
-		SendEmailFunc: func(recipientEmail, recipientName, subject, plainContent string) error {
+		SendEmailFunc: func(ctx context.Context, recipientEmail, recipientName, subject, plainContent string) error {
 			return errors.New("email service unavailable")
 		},
 	}
@@ -842,7 +842,7 @@ func TestApproveRegistrationHandler_SendsApprovalEmailOnSuccess(t *testing.T) {
 	emailSent := false
 	var capturedRecipient string
 	mockMailClient := &mailmocks.MockMailClient{
-		SendEmailFunc: func(recipientEmail, recipientName, subject, plainContent string) error {
+		SendEmailFunc: func(ctx context.Context, recipientEmail, recipientName, subject, plainContent string) error {
 			emailSent = true
 			capturedRecipient = recipientEmail
 			return nil
@@ -898,7 +898,7 @@ func TestApproveRegistrationHandler_SendsApprovalEmailOnSuccess(t *testing.T) {
 
 func TestApproveRegistrationHandler_SucceedsEvenWhenEmailFails(t *testing.T) {
 	mockMailClient := &mailmocks.MockMailClient{
-		SendEmailFunc: func(recipientEmail, recipientName, subject, plainContent string) error {
+		SendEmailFunc: func(ctx context.Context, recipientEmail, recipientName, subject, plainContent string) error {
 			return errors.New("email service unavailable")
 		},
 	}
@@ -1021,7 +1021,7 @@ func TestPostForgotPasswordHandler_SendsEmailWhenUserExists(t *testing.T) {
 	var capturedRecipient string
 
 	mockMailClient := &mailmocks.MockMailClient{
-		SendEmailFunc: func(recipientEmail, recipientName, subject, plainContent string) error {
+		SendEmailFunc: func(ctx context.Context, recipientEmail, recipientName, subject, plainContent string) error {
 			emailSent = true
 			capturedRecipient = recipientEmail
 			return nil
@@ -1086,7 +1086,7 @@ func TestPostForgotPasswordHandler_SendsEmailWhenUserExists(t *testing.T) {
 
 func TestPostForgotPasswordHandler_SucceedsEvenWhenEmailFails(t *testing.T) {
 	mockMailClient := &mailmocks.MockMailClient{
-		SendEmailFunc: func(recipientEmail, recipientName, subject, plainContent string) error {
+		SendEmailFunc: func(ctx context.Context, recipientEmail, recipientName, subject, plainContent string) error {
 			return errors.New("email service unavailable")
 		},
 	}

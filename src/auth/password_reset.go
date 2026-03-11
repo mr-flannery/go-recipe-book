@@ -6,11 +6,10 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-	"os"
 	"time"
 
-	"github.com/mr-flannery/go-recipe-book/src/config"
 	"github.com/mr-flannery/go-recipe-book/src/store"
+	"github.com/mr-flannery/go-recipe-book/src/utils"
 )
 
 const (
@@ -129,26 +128,8 @@ func ResetPasswordWithToken(ctx context.Context, authStore store.AuthStore, toke
 }
 
 func GetResetURL(token string) string {
-	baseURL := getBaseURL()
+	baseURL := utils.GetAppBaseURL()
 	return fmt.Sprintf("%s/reset-password?token=%s", baseURL, token)
-}
-
-func getBaseURL() string {
-	cfg := config.GetConfig()
-
-	if cfg.Environment.Mode == "development" {
-		port := cfg.Server.Port
-		if port == 0 {
-			port = 8080
-		}
-		return fmt.Sprintf("http://localhost:%d", port)
-	}
-
-	if domain := os.Getenv("RAILWAY_PUBLIC_DOMAIN"); domain != "" {
-		return fmt.Sprintf("https://%s", domain)
-	}
-
-	return "http://localhost:8080"
 }
 
 func CleanupExpiredPasswordResetTokens(ctx context.Context, authStore store.AuthStore) error {

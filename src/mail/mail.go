@@ -5,10 +5,16 @@ import (
 	"fmt"
 
 	"github.com/maileroo/maileroo-go-sdk/maileroo"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
 )
 
+var tracer = otel.Tracer("mail")
+
 type MailClient interface {
-	SendEmail(recipientEmail, recipientName, subject, plainContent string) error
+	SendEmail(ctx context.Context, recipientEmail, recipientName, subject, plainContent string) error
 }
 
 type mailerooClient struct {
@@ -24,8 +30,17 @@ func NewMailClient(apiKey, domain string) (MailClient, error) {
 	return &mailerooClient{client: client, domain: domain}, nil
 }
 
-func (m *mailerooClient) SendEmail(recipientEmail, recipientName, subject, plainContent string) error {
-	_, err := m.client.SendBasicEmail(context.Background(), maileroo.BasicEmailData{
+func (m *mailerooClient) SendEmail(ctx context.Context, recipientEmail, recipientName, subject, plainContent string) error {
+	ctx, span := tracer.Start(ctx, "mail.send",
+		trace.WithSpanKind(trace.SpanKindClient),
+		trace.WithAttributes(
+			attribute.String("mail.recipient", recipientEmail),
+			attribute.String("mail.subject", subject),
+		),
+	)
+	defer span.End()
+
+	_, err := m.client.SendBasicEmail(ctx, maileroo.BasicEmailData{
 		From: maileroo.NewEmail("recipe-book@"+m.domain, "Recipe Book"),
 		To: []maileroo.EmailAddress{
 			maileroo.NewEmail(recipientEmail, recipientName),
@@ -35,12 +50,15 @@ func (m *mailerooClient) SendEmail(recipientEmail, recipientName, subject, plain
 	})
 
 	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 		return fmt.Errorf("failed to send email: %w", err)
 	}
+	span.SetStatus(codes.Ok, "email sent")
 	return nil
 }
 
-func SendNewRegistrationNotification(mc MailClient, adminEmail, adminName, username, userEmail, approvalURL string) error {
+func SendNewRegistrationNotification(ctx context.Context, mc MailClient, adminEmail, adminName, username, userEmail, approvalURL string) error {
 	subject := "New Registration Request - Recipe Book"
 	content := fmt.Sprintf(`Hello %s,
 
@@ -56,24 +74,25 @@ Please review and approve or deny this registration request by visiting:
 Best regards,
 Recipe Book System`, adminName, username, userEmail, approvalURL)
 
-	return mc.SendEmail(adminEmail, adminName, subject, content)
+	return mc.SendEmail(ctx, adminEmail, adminName, subject, content)
 }
 
-func SendRegistrationApprovedNotification(mc MailClient, userEmail, username string) error {
+func SendRegistrationApprovedNotification(ctx context.Context, mc MailClient, userEmail, username, loginURL string) error {
 	subject := "Registration Approved - Recipe Book"
 	content := fmt.Sprintf(`Hello %s,
 
 Great news! Your registration request for the Recipe Book application has been approved.
 
-You can now log in to your account and start using the application.
+You can now log in to your account:
+%s
 
 Best regards,
-Recipe Book Team`, username)
+Recipe Book Team`, username, loginURL)
 
-	return mc.SendEmail(userEmail, username, subject, content)
+	return mc.SendEmail(ctx, userEmail, username, subject, content)
 }
 
-func SendPasswordResetEmail(mc MailClient, userEmail, username, resetURL string) error {
+func SendPasswordResetEmail(ctx context.Context, mc MailClient, userEmail, username, resetURL string) error {
 	subject := "Password Reset Request - Recipe Book"
 	content := fmt.Sprintf(`Hello %s,
 
@@ -89,7 +108,7 @@ If you didn't request this, you can safely ignore this email.
 Best regards,
 Recipe Book`, username, resetURL)
 
-	return mc.SendEmail(userEmail, username, subject, content)
+	return mc.SendEmail(ctx, userEmail, username, subject, content)
 }
 
 type loggingMailClient struct{}
@@ -98,8 +117,18 @@ func NewLoggingMailClient() MailClient {
 	return &loggingMailClient{}
 }
 
-func (l *loggingMailClient) SendEmail(recipientEmail, recipientName, subject, plainContent string) error {
+func (l *loggingMailClient) SendEmail(ctx context.Context, recipientEmail, recipientName, subject, plainContent string) error {
+	_, span := tracer.Start(ctx, "mail.send",
+		trace.WithSpanKind(trace.SpanKindClient),
+		trace.WithAttributes(
+			attribute.String("mail.recipient", recipientEmail),
+			attribute.String("mail.subject", subject),
+		),
+	)
+	defer span.End()
+
 	fmt.Printf("[DEV] Email not sent - To: %s <%s>, Subject: %s\n", recipientName, recipientEmail, subject)
 	fmt.Printf("[DEV] Email body:\n%s\n", plainContent)
+	span.SetStatus(codes.Ok, "email logged (dev mode)")
 	return nil
 }

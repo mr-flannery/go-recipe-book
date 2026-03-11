@@ -1,6 +1,7 @@
 package mail
 
 import (
+	"context"
 	"errors"
 	"strings"
 	"testing"
@@ -11,7 +12,7 @@ import (
 func TestSendNewRegistrationNotification_SendsCorrectEmailContent(t *testing.T) {
 	var capturedEmail, capturedName, capturedSubject, capturedContent string
 	mockClient := &mocks.MockMailClient{
-		SendEmailFunc: func(recipientEmail, recipientName, subject, plainContent string) error {
+		SendEmailFunc: func(ctx context.Context, recipientEmail, recipientName, subject, plainContent string) error {
 			capturedEmail = recipientEmail
 			capturedName = recipientName
 			capturedSubject = subject
@@ -20,7 +21,7 @@ func TestSendNewRegistrationNotification_SendsCorrectEmailContent(t *testing.T) 
 		},
 	}
 
-	err := SendNewRegistrationNotification(mockClient, "admin@test.com", "Admin", "newuser", "new@test.com", "http://example.com/approve")
+	err := SendNewRegistrationNotification(context.Background(), mockClient, "admin@test.com", "Admin", "newuser", "new@test.com", "http://example.com/approve")
 
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
@@ -53,12 +54,12 @@ func TestSendNewRegistrationNotification_SendsCorrectEmailContent(t *testing.T) 
 
 func TestSendNewRegistrationNotification_ReturnsErrorWhenSendFails(t *testing.T) {
 	mockClient := &mocks.MockMailClient{
-		SendEmailFunc: func(recipientEmail, recipientName, subject, plainContent string) error {
+		SendEmailFunc: func(ctx context.Context, recipientEmail, recipientName, subject, plainContent string) error {
 			return errors.New("send failed")
 		},
 	}
 
-	err := SendNewRegistrationNotification(mockClient, "admin@test.com", "Admin", "newuser", "new@test.com", "http://example.com/approve")
+	err := SendNewRegistrationNotification(context.Background(), mockClient, "admin@test.com", "Admin", "newuser", "new@test.com", "http://example.com/approve")
 
 	if err == nil {
 		t.Error("expected error, got nil")
@@ -68,7 +69,7 @@ func TestSendNewRegistrationNotification_ReturnsErrorWhenSendFails(t *testing.T)
 func TestSendRegistrationApprovedNotification_SendsCorrectEmailContent(t *testing.T) {
 	var capturedEmail, capturedName, capturedSubject, capturedContent string
 	mockClient := &mocks.MockMailClient{
-		SendEmailFunc: func(recipientEmail, recipientName, subject, plainContent string) error {
+		SendEmailFunc: func(ctx context.Context, recipientEmail, recipientName, subject, plainContent string) error {
 			capturedEmail = recipientEmail
 			capturedName = recipientName
 			capturedSubject = subject
@@ -77,7 +78,7 @@ func TestSendRegistrationApprovedNotification_SendsCorrectEmailContent(t *testin
 		},
 	}
 
-	err := SendRegistrationApprovedNotification(mockClient, "user@test.com", "testuser")
+	err := SendRegistrationApprovedNotification(context.Background(), mockClient, "user@test.com", "testuser", "http://example.com/login")
 
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
@@ -102,16 +103,20 @@ func TestSendRegistrationApprovedNotification_SendsCorrectEmailContent(t *testin
 	if !strings.Contains(capturedContent, "approved") {
 		t.Error("expected content to mention approval")
 	}
+
+	if !strings.Contains(capturedContent, "http://example.com/login") {
+		t.Error("expected content to contain login URL")
+	}
 }
 
 func TestSendRegistrationApprovedNotification_ReturnsErrorWhenSendFails(t *testing.T) {
 	mockClient := &mocks.MockMailClient{
-		SendEmailFunc: func(recipientEmail, recipientName, subject, plainContent string) error {
+		SendEmailFunc: func(ctx context.Context, recipientEmail, recipientName, subject, plainContent string) error {
 			return errors.New("send failed")
 		},
 	}
 
-	err := SendRegistrationApprovedNotification(mockClient, "user@test.com", "testuser")
+	err := SendRegistrationApprovedNotification(context.Background(), mockClient, "user@test.com", "testuser", "http://example.com/login")
 
 	if err == nil {
 		t.Error("expected error, got nil")
@@ -121,7 +126,7 @@ func TestSendRegistrationApprovedNotification_ReturnsErrorWhenSendFails(t *testi
 func TestSendPasswordResetEmail_SendsCorrectEmailContent(t *testing.T) {
 	var capturedEmail, capturedName, capturedSubject, capturedContent string
 	mockClient := &mocks.MockMailClient{
-		SendEmailFunc: func(recipientEmail, recipientName, subject, plainContent string) error {
+		SendEmailFunc: func(ctx context.Context, recipientEmail, recipientName, subject, plainContent string) error {
 			capturedEmail = recipientEmail
 			capturedName = recipientName
 			capturedSubject = subject
@@ -130,7 +135,7 @@ func TestSendPasswordResetEmail_SendsCorrectEmailContent(t *testing.T) {
 		},
 	}
 
-	err := SendPasswordResetEmail(mockClient, "user@test.com", "testuser", "http://example.com/reset?token=abc123")
+	err := SendPasswordResetEmail(context.Background(), mockClient, "user@test.com", "testuser", "http://example.com/reset?token=abc123")
 
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
@@ -163,12 +168,12 @@ func TestSendPasswordResetEmail_SendsCorrectEmailContent(t *testing.T) {
 
 func TestSendPasswordResetEmail_ReturnsErrorWhenSendFails(t *testing.T) {
 	mockClient := &mocks.MockMailClient{
-		SendEmailFunc: func(recipientEmail, recipientName, subject, plainContent string) error {
+		SendEmailFunc: func(ctx context.Context, recipientEmail, recipientName, subject, plainContent string) error {
 			return errors.New("send failed")
 		},
 	}
 
-	err := SendPasswordResetEmail(mockClient, "user@test.com", "testuser", "http://example.com/reset")
+	err := SendPasswordResetEmail(context.Background(), mockClient, "user@test.com", "testuser", "http://example.com/reset")
 
 	if err == nil {
 		t.Error("expected error, got nil")

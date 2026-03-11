@@ -8,6 +8,7 @@ import (
 	"github.com/mr-flannery/go-recipe-book/src/config"
 	"github.com/mr-flannery/go-recipe-book/src/logging"
 	"github.com/mr-flannery/go-recipe-book/src/mail"
+	"github.com/mr-flannery/go-recipe-book/src/utils"
 )
 
 type LoginData struct {
@@ -124,8 +125,8 @@ func (h *Handler) PostRegisterHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	conf := config.GetConfig()
-	approvalURL := "http://localhost:8080/admin/registrations"
-	err = mail.SendNewRegistrationNotification(h.MailClient, conf.DB.Admin.Email, conf.DB.Admin.Username, username, email, approvalURL)
+	approvalURL := utils.GetAppBaseURL() + "/admin/registrations"
+	err = mail.SendNewRegistrationNotification(ctx, h.MailClient, conf.DB.Admin.Email, conf.DB.Admin.Username, username, email, approvalURL)
 	if err != nil {
 		logging.AddError(ctx, err, "Failed to send admin notification email")
 	}
@@ -213,7 +214,8 @@ func (h *Handler) ApproveRegistrationHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	err = mail.SendRegistrationApprovedNotification(h.MailClient, regRequest.Email, regRequest.Username)
+	loginURL := utils.GetAppBaseURL() + "/login"
+	err = mail.SendRegistrationApprovedNotification(ctx, h.MailClient, regRequest.Email, regRequest.Username, loginURL)
 	if err != nil {
 		logging.AddError(ctx, err, "Failed to send approval email")
 	}
@@ -392,8 +394,7 @@ func (h *Handler) PostForgotPasswordHandler(w http.ResponseWriter, r *http.Reque
 	}
 
 	resetURL := auth.GetResetURL(token)
-	err = mail.SendPasswordResetEmail(h.MailClient, user.Email, user.Username, resetURL)
-	// TODO: might be worth to decouple mail sending from request handling and to add some background job for this.
+	err = mail.SendPasswordResetEmail(ctx, h.MailClient, user.Email, user.Username, resetURL)
 	if err != nil {
 		logging.AddError(ctx, err, "Failed to send password reset email")
 	}

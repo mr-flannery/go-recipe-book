@@ -33,3 +33,13 @@ func GetBasePath() string {
 	// This file is at src/utils/paths.go, so go up two levels to get project root
 	return filepath.Dir(filepath.Dir(filepath.Dir(filename)))
 }
+
+// GetAppBaseURL returns the application's public base URL.
+// In production, this is derived from RAILWAY_PUBLIC_DOMAIN.
+// Locally, it defaults to http://localhost:8080.
+func GetAppBaseURL() string {
+	if domain := os.Getenv("RAILWAY_PUBLIC_DOMAIN"); domain != "" {
+		return "https://" + domain
+	}
+	return "http://localhost:8080"
+}

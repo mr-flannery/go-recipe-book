@@ -17,8 +17,6 @@
 
 - the vscode launch/debug setting is kinda annoying right now
 
-- check golsp settings, I think there should be a way to spot unused functions
-
 - openrouter might be a good starting point to compare models for my use cases
 
 - BUG: registrations don't properly show/record the date
