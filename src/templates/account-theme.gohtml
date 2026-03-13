@@ -1,0 +1,52 @@
+{{define "account-theme.gohtml"}}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Theme - Schmecken musset!</title>
+    <link rel="icon" type="image/svg+xml" href="/static/favicons/sm-text.svg">
+    <link rel="stylesheet" href="{{stylesheet .UserInfo.Theme}}">
+</head>
+<body>
+    {{template "navbar" .UserInfo}}
+
+    <main class="main-content">
+        <div class="page-header">
+            <nav style="margin-bottom: 10px;">
+                <a href="/account" style="color: var(--muted);">Account</a> &rsaquo; Theme
+            </nav>
+            <h1>Theme</h1>
+            <p>Choose a visual style</p>
+        </div>
+
+        {{if .Error}}
+        <div class="error" style="margin-bottom: 20px;">{{.Error}}</div>
+        {{end}}
+        {{if .Success}}
+        <div class="success" style="margin-bottom: 20px;">{{.Success}}</div>
+        {{end}}
+
+        <form method="POST" action="/account/theme">
+            <div style="max-width: 700px; margin: 0 auto; display: flex; flex-direction: column; gap: 15px;">
+                {{range .Themes}}
+                <label class="card" style="display: block; cursor: pointer; {{if eq $.CurrentTheme .ID}}border: 2px solid var(--accent);{{end}}">
+                    <div style="display: flex; align-items: flex-start; gap: 15px;">
+                        <input type="radio" name="theme" value="{{.ID}}" {{if eq $.CurrentTheme .ID}}checked{{end}} style="margin-top: 4px;">
+                        <div>
+                            <div style="font-size: 1.1rem; font-weight: 500; margin-bottom: 5px;">{{.Name}}</div>
+                            <div style="color: var(--muted);">{{.Description}}</div>
+                        </div>
+                    </div>
+                </label>
+                {{end}}
+
+                <button type="submit" class="btn primary" style="margin-top: 10px;">Save Theme</button>
+            </div>
+        </form>
+    </main>
+
+    {{template "footer" .UserInfo}}
+</body>
+</html>
+{{end}}

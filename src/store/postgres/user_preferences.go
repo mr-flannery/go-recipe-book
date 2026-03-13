@@ -18,15 +18,16 @@ func NewUserPreferencesStore(db *sql.DB) *UserPreferencesStore {
 func (s *UserPreferencesStore) Get(ctx context.Context, userID int) (*models.UserPreferences, error) {
 	var prefs models.UserPreferences
 	err := s.db.QueryRowContext(ctx,
-		"SELECT user_id, page_size, COALESCE(view_mode, $2) FROM user_preferences WHERE user_id = $1",
-		userID, models.DefaultViewMode,
-	).Scan(&prefs.UserID, &prefs.PageSize, &prefs.ViewMode)
+		"SELECT user_id, page_size, COALESCE(view_mode, $2), COALESCE(theme, $3) FROM user_preferences WHERE user_id = $1",
+		userID, models.DefaultViewMode, models.DefaultTheme,
+	).Scan(&prefs.UserID, &prefs.PageSize, &prefs.ViewMode, &prefs.Theme)
 
 	if err == sql.ErrNoRows {
 		return &models.UserPreferences{
 			UserID:   userID,
 			PageSize: models.DefaultPageSize,
 			ViewMode: models.DefaultViewMode,
+			Theme:    models.DefaultTheme,
 		}, nil
 	}
 	if err != nil {
@@ -51,6 +52,16 @@ func (s *UserPreferencesStore) SetViewMode(ctx context.Context, userID int, view
 		VALUES ($1, $2, $3, NOW())
 		ON CONFLICT (user_id) DO UPDATE SET view_mode = $3, updated_at = NOW()`,
 		userID, models.DefaultPageSize, viewMode,
+	)
+	return err
+}
+
+func (s *UserPreferencesStore) SetTheme(ctx context.Context, userID int, theme string) error {
+	_, err := s.db.ExecContext(ctx,
+		`INSERT INTO user_preferences (user_id, page_size, theme, updated_at)
+		VALUES ($1, $2, $3, NOW())
+		ON CONFLICT (user_id) DO UPDATE SET theme = $3, updated_at = NOW()`,
+		userID, models.DefaultPageSize, theme,
 	)
 	return err
 }

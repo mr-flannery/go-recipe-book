@@ -156,6 +156,7 @@ type UserPreferences struct {
 	UserID   int
 	PageSize int
 	ViewMode string
+	Theme    string
 }
 
 const (
@@ -163,4 +164,7 @@ const (
 	ViewModeGrid    = "grid"
 	ViewModeList    = "list"
 	DefaultViewMode = ViewModeGrid
+	ThemeEditorial  = "editorial"
+	ThemeClassic    = "classic"
+	DefaultTheme    = ThemeEditorial
 )

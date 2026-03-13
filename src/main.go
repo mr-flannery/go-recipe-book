@@ -120,7 +120,7 @@ func main() {
 
 	h := handlers.NewHandler(database, recipeStore, tagStore, userTagStore, commentStore, userStore, authStore, ingredientStore, userPreferencesStore, apiKeyStore, renderer, mailClient, apiEncryptionKey)
 
-	userContext := auth.UserContextMiddleware(authStore)
+	userContext := auth.UserContextMiddleware(authStore, userPreferencesStore)
 	requireAuth := auth.RequireAuth()
 	requireAPIKey := auth.RequireAPIKey(apiKeyStore, authStore)
 
@@ -191,6 +191,14 @@ func main() {
 		userContext(
 			requireAuth(
 				http.HandlerFunc(h.DeleteAPIKeyHandler))))
+	mux.Handle("GET /account/theme",
+		userContext(
+			requireAuth(
+				http.HandlerFunc(h.GetThemeSettingsHandler))))
+	mux.Handle("POST /account/theme",
+		userContext(
+			requireAuth(
+				http.HandlerFunc(h.SetThemeHandler))))
 
 	requireAdminAuth := func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

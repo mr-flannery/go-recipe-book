@@ -397,3 +397,83 @@ func (h *Handler) DeleteAPIKeyHandler(w http.ResponseWriter, r *http.Request) {
 
 	http.Redirect(w, r, "/account/api-keys?success=API key deleted.", http.StatusSeeOther)
 }
+
+type ThemeOption struct {
+	ID          string
+	Name        string
+	Description string
+}
+
+type ThemeSettingsData struct {
+	UserInfo     *auth.UserInfo
+	CurrentTheme string
+	Themes       []ThemeOption
+	Success      string
+	Error        string
+}
+
+var AvailableThemes = []ThemeOption{
+	{ID: models.ThemeEditorial, Name: "Editorial", Description: "Clean, magazine-inspired design"},
+	{ID: models.ThemeClassic, Name: "Classic", Description: "Simple, traditional layout"},
+}
+
+func (h *Handler) GetThemeSettingsHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	userInfo := auth.GetUserInfoFromContext(ctx)
+
+	currentTheme := models.DefaultTheme
+	if prefs, err := h.UserPreferencesStore.Get(ctx, userInfo.UserID); err == nil && prefs.Theme != "" {
+		currentTheme = prefs.Theme
+	}
+
+	data := ThemeSettingsData{
+		UserInfo:     userInfo,
+		CurrentTheme: currentTheme,
+		Themes:       AvailableThemes,
+		Success:      r.URL.Query().Get("success"),
+		Error:        r.URL.Query().Get("error"),
+	}
+	h.Renderer.RenderPage(w, "account-theme.gohtml", data)
+}
+
+func (h *Handler) SetThemeHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	userInfo := auth.GetUserInfoFromContext(ctx)
+	if !userInfo.IsLoggedIn {
+		h.Renderer.RenderError(w, r, http.StatusUnauthorized, "You must be logged in to change theme.")
+		return
+	}
+
+	if err := r.ParseForm(); err != nil {
+		http.Redirect(w, r, "/account/theme?error=Invalid form data.", http.StatusSeeOther)
+		return
+	}
+
+	theme := r.FormValue("theme")
+
+	validTheme := false
+	for _, t := range AvailableThemes {
+		if t.ID == theme {
+			validTheme = true
+			break
+		}
+	}
+	if !validTheme {
+		http.Redirect(w, r, "/account/theme?error=Invalid theme selection.", http.StatusSeeOther)
+		return
+	}
+
+	err := h.UserPreferencesStore.SetTheme(ctx, userInfo.UserID, theme)
+	if err != nil {
+		logging.AddError(ctx, err, "Failed to save theme preference")
+		http.Redirect(w, r, "/account/theme?error=Failed to save theme.", http.StatusSeeOther)
+		return
+	}
+
+	logging.AddMany(ctx, map[string]any{
+		"action": "account.theme.set",
+		"theme":  theme,
+	})
+
+	http.Redirect(w, r, "/account/theme?success=Theme updated.", http.StatusSeeOther)
+}

@@ -22,6 +22,7 @@ type MockUserPreferencesStore struct {
 	GetFunc         func(ctx context.Context, userID int) (*models.UserPreferences, error)
 	SetPageSizeFunc func(ctx context.Context, userID, pageSize int) error
 	SetViewModeFunc func(ctx context.Context, userID int, viewMode string) error
+	SetThemeFunc    func(ctx context.Context, userID int, theme string) error
 }
 
 func (m *MockUserPreferencesStore) Get(ctx context.Context, userID int) (*models.UserPreferences, error) {
@@ -41,6 +42,13 @@ func (m *MockUserPreferencesStore) SetPageSize(ctx context.Context, userID, page
 func (m *MockUserPreferencesStore) SetViewMode(ctx context.Context, userID int, viewMode string) error {
 	if m.SetViewModeFunc != nil {
 		return m.SetViewModeFunc(ctx, userID, viewMode)
+	}
+	return nil
+}
+
+func (m *MockUserPreferencesStore) SetTheme(ctx context.Context, userID int, theme string) error {
+	if m.SetThemeFunc != nil {
+		return m.SetThemeFunc(ctx, userID, theme)
 	}
 	return nil
 }

@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/mr-flannery/go-recipe-book/src/logging"
+	"github.com/mr-flannery/go-recipe-book/src/models"
 	"github.com/mr-flannery/go-recipe-book/src/store"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
@@ -20,9 +21,10 @@ type UserInfo struct {
 	IsAdmin    bool
 	Username   string
 	UserID     int
+	Theme      string
 }
 
-func UserContextMiddleware(authStore store.AuthStore) func(http.Handler) http.Handler {
+func UserContextMiddleware(authStore store.AuthStore, prefsStore store.UserPreferencesStore) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			ctx := r.Context()
@@ -33,16 +35,24 @@ func UserContextMiddleware(authStore store.AuthStore) func(http.Handler) http.Ha
 					IsAdmin:    false,
 					Username:   "",
 					UserID:     0,
+					Theme:      models.DefaultTheme,
 				}
 				ctx = context.WithValue(ctx, userInfoKey, userInfo)
 				r = r.WithContext(ctx)
 			} else {
 				slog.Debug("User context middleware found valid session", "username", user.Username, "userID", user.ID)
+
+				theme := models.DefaultTheme
+				if prefs, prefsErr := prefsStore.Get(ctx, user.ID); prefsErr == nil && prefs.Theme != "" {
+					theme = prefs.Theme
+				}
+
 				userInfo := &UserInfo{
 					IsLoggedIn: true,
 					IsAdmin:    user.IsAdmin,
 					Username:   user.Username,
 					UserID:     user.ID,
+					Theme:      theme,
 				}
 				ctx = context.WithValue(ctx, userInfoKey, userInfo)
 				r = r.WithContext(ctx)
@@ -73,6 +83,7 @@ func GetUserInfoFromContext(ctx context.Context) *UserInfo {
 			IsAdmin:    false,
 			Username:   "",
 			UserID:     0,
+			Theme:      models.DefaultTheme,
 		}
 	}
 	return userInfo

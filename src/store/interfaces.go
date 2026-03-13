@@ -132,6 +132,7 @@ type UserPreferencesStore interface {
 	Get(ctx context.Context, userID int) (*models.UserPreferences, error)
 	SetPageSize(ctx context.Context, userID, pageSize int) error
 	SetViewMode(ctx context.Context, userID int, viewMode string) error
+	SetTheme(ctx context.Context, userID int, theme string) error
 }
 
 type PasswordResetToken struct {

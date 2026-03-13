@@ -7,7 +7,7 @@
     <title>{{.Recipe.Title}} - Schmecken musset!</title>
     <link rel="icon" type="image/svg+xml" href="/static/favicons/sm-text.svg">
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
-    <link rel="stylesheet" href="/static/css/editorial.css">
+    <link rel="stylesheet" href="{{stylesheet .UserInfo.Theme}}">
     <script>
         function deleteRecipe(recipeId) {
             if (confirm('Are you sure you want to delete this recipe? This action cannot be undone.')) {

@@ -13,7 +13,20 @@ import (
 	"github.com/mr-flannery/go-recipe-book/src/utils"
 )
 
+var themeStylesheets = map[string]string{
+	models.ThemeEditorial: "/static/css/editorial.css",
+	models.ThemeClassic:   "/static/css/styles.css",
+}
+
+func stylesheetForTheme(theme string) string {
+	if path, ok := themeStylesheets[theme]; ok {
+		return path
+	}
+	return themeStylesheets[models.DefaultTheme]
+}
+
 var funcMap = template.FuncMap{
+	"stylesheet": stylesheetForTheme,
 	"dict": func(values ...any) map[string]any {
 		if len(values)%2 != 0 {
 			panic("dict requires even number of arguments")
@@ -64,11 +77,10 @@ var funcMap = template.FuncMap{
 	},
 }
 
-func loadTemplatesForTheme(root string, theme string) (*template.Template, error) {
+func loadTemplates(root string) (*template.Template, error) {
 	var files []string
-	themeDir := filepath.Join(root, theme)
 
-	err := filepath.WalkDir(themeDir, func(path string, d fs.DirEntry, err error) error {
+	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
@@ -83,24 +95,7 @@ func loadTemplatesForTheme(root string, theme string) (*template.Template, error
 		return nil, err
 	}
 
-	// Also load shared fragments (not theme-specific)
-	fragmentsDir := filepath.Join(root, "shared")
-	err = filepath.WalkDir(fragmentsDir, func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-
-		if !d.IsDir() && strings.HasSuffix(path, ".gohtml") {
-			files = append(files, path)
-		}
-		return nil
-	})
-
-	if err != nil && !strings.Contains(err.Error(), "no such file") {
-		return nil, err
-	}
-
 	return template.New("").Funcs(funcMap).ParseFiles(files...)
 }
 
-var Templates = template.Must(loadTemplatesForTheme(filepath.Join(utils.GetBasePath(), "src", "templates"), "editorial"))
+var Templates = template.Must(loadTemplates(filepath.Join(utils.GetBasePath(), "src", "templates")))

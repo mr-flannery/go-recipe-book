@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>User Management - Schmecken musset!</title>
     <link rel="icon" type="image/svg+xml" href="/static/favicons/sm-text.svg">
-    <link rel="stylesheet" href="/static/css/editorial.css">
+    <link rel="stylesheet" href="{{stylesheet .UserInfo.Theme}}">
     <script>
         function deleteUser(userId, username) {
             if (confirm('Are you sure you want to delete the user "' + username + '"? This action cannot be undone.')) {

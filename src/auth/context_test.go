@@ -6,12 +6,13 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/mr-flannery/go-recipe-book/src/models"
 	"github.com/mr-flannery/go-recipe-book/src/store"
 	"github.com/mr-flannery/go-recipe-book/src/store/mocks"
 )
 
 func TestUserContextMiddleware_PopulatesContextWhenSessionIsValid(t *testing.T) {
-	mockStore := &mocks.MockAuthStore{
+	mockAuthStore := &mocks.MockAuthStore{
 		GetSessionFunc: func(ctx context.Context, sessionID string) (*store.Session, error) {
 			return &store.Session{ID: sessionID, UserID: 1}, nil
 		},
@@ -25,8 +26,13 @@ func TestUserContextMiddleware_PopulatesContextWhenSessionIsValid(t *testing.T) 
 			}, nil
 		},
 	}
+	mockPrefsStore := &mocks.MockUserPreferencesStore{
+		GetFunc: func(ctx context.Context, userID int) (*models.UserPreferences, error) {
+			return &models.UserPreferences{Theme: models.ThemeClassic}, nil
+		},
+	}
 
-	middleware := UserContextMiddleware(mockStore)
+	middleware := UserContextMiddleware(mockAuthStore, mockPrefsStore)
 	var capturedUserInfo *UserInfo
 
 	handler := middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -55,11 +61,15 @@ func TestUserContextMiddleware_PopulatesContextWhenSessionIsValid(t *testing.T) 
 	if capturedUserInfo.UserID != 1 {
 		t.Errorf("expected UserID 1, got %d", capturedUserInfo.UserID)
 	}
+	if capturedUserInfo.Theme != models.ThemeClassic {
+		t.Errorf("expected theme '%s', got %s", models.ThemeClassic, capturedUserInfo.Theme)
+	}
 }
 
 func TestUserContextMiddleware_SetsGuestInfoWhenNoSessionPresent(t *testing.T) {
-	mockStore := &mocks.MockAuthStore{}
-	middleware := UserContextMiddleware(mockStore)
+	mockAuthStore := &mocks.MockAuthStore{}
+	mockPrefsStore := &mocks.MockUserPreferencesStore{}
+	middleware := UserContextMiddleware(mockAuthStore, mockPrefsStore)
 	var capturedUserInfo *UserInfo
 
 	handler := middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
