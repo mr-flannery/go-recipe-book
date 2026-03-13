@@ -27,23 +27,24 @@
         <div class="success" style="margin-bottom: 20px;">{{.Success}}</div>
         {{end}}
 
-        <form method="POST" action="/account/theme">
-            <div style="max-width: 700px; margin: 0 auto; display: flex; flex-direction: column; gap: 15px;">
-                {{range .Themes}}
-                <label class="card" style="display: block; cursor: pointer; {{if eq $.CurrentTheme .ID}}border: 2px solid var(--accent);{{end}}">
+        <div style="max-width: 700px; margin: 0 auto; display: flex; flex-direction: column; gap: 15px;">
+            {{range .Themes}}
+            <form method="POST" action="/account/theme">
+                <input type="hidden" name="theme" value="{{.ID}}">
+                <button type="submit" class="card" style="display: block; cursor: pointer; width: 100%; text-align: left; border: {{if eq $.CurrentTheme .ID}}2px solid var(--accent){{else}}1px solid var(--border){{end}}; background: var(--card-bg, var(--surface, #fff));">
                     <div style="display: flex; align-items: flex-start; gap: 15px;">
-                        <input type="radio" name="theme" value="{{.ID}}" {{if eq $.CurrentTheme .ID}}checked{{end}} style="margin-top: 4px;">
+                        <div style="margin-top: 4px; width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--accent); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                            {{if eq $.CurrentTheme .ID}}<div style="width: 8px; height: 8px; border-radius: 50%; background: var(--accent);"></div>{{end}}
+                        </div>
                         <div>
                             <div style="font-size: 1.1rem; font-weight: 500; margin-bottom: 5px;">{{.Name}}</div>
                             <div style="color: var(--muted);">{{.Description}}</div>
                         </div>
                     </div>
-                </label>
-                {{end}}
-
-                <button type="submit" class="btn primary" style="margin-top: 10px;">Save Theme</button>
-            </div>
-        </form>
+                </button>
+            </form>
+            {{end}}
+        </div>
     </main>
 
     {{template "footer" .UserInfo}}

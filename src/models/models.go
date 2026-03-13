@@ -160,11 +160,23 @@ type UserPreferences struct {
 }
 
 const (
-	DefaultPageSize = 20
-	ViewModeGrid    = "grid"
-	ViewModeList    = "list"
-	DefaultViewMode = ViewModeGrid
-	ThemeEditorial  = "editorial"
-	ThemeClassic    = "classic"
-	DefaultTheme    = ThemeEditorial
+	DefaultPageSize  = 20
+	ViewModeGrid     = "grid"
+	ViewModeList     = "list"
+	DefaultViewMode  = ViewModeGrid
+	ThemeEditorial   = "editorial"
+	ThemeClassic     = "classic"
+	ThemeDiner       = "diner"
+	ThemeTrattoria   = "trattoria"
+	ThemeKuche       = "kuche"
+	ThemeNightowl    = "nightowl"
+	ThemeMilkbar     = "milkbar"
+	ThemeBodega      = "bodega"
+	ThemeMarket      = "market"
+	ThemeBistro      = "bistro"
+	ThemeComfort     = "comfort"
+	ThemeSpeakeasy   = "speakeasy"
+	ThemeCuchifritos = "cuchifritos"
+	ThemePizzeria    = "pizzeria"
+	DefaultTheme     = ThemeEditorial
 )

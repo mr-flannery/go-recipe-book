@@ -415,6 +415,18 @@ type ThemeSettingsData struct {
 var AvailableThemes = []ThemeOption{
 	{ID: models.ThemeEditorial, Name: "Editorial", Description: "Clean, magazine-inspired design"},
 	{ID: models.ThemeClassic, Name: "Classic", Description: "Simple, traditional layout"},
+	{ID: models.ThemeDiner, Name: "Roadside Diner", Description: "1950s Americana with teal booths and chrome accents"},
+	{ID: models.ThemeTrattoria, Name: "Rustic Trattoria", Description: "Italian countryside warmth with terracotta and olive"},
+	{ID: models.ThemeKuche, Name: "German Farmhouse", Description: "Cozy Alpine kitchen with forest green and natural wood"},
+	{ID: models.ThemeNightowl, Name: "Night Owl Cafe", Description: "Dark theme with amber glow for late-night cooking"},
+	{ID: models.ThemeMilkbar, Name: "Retro Milk Bar", Description: "Cheerful pastels inspired by 1950s soda fountains"},
+	{ID: models.ThemeBodega, Name: "Spanish Bodega", Description: "Wine cellar elegance with deep reds and warm golds"},
+	{ID: models.ThemeMarket, Name: "Farmers Market", Description: "Fresh chalkboard-style with handwritten character"},
+	{ID: models.ThemeBistro, Name: "Parisian Bistro", Description: "Classic French elegance in black, white, and gold"},
+	{ID: models.ThemeComfort, Name: "Grandma's Kitchen", Description: "Nostalgic comfort with gingham and worn recipe cards"},
+	{ID: models.ThemeSpeakeasy, Name: "Art Deco Speakeasy", Description: "1920s glamour with geometric gold and deep black"},
+	{ID: models.ThemeCuchifritos, Name: "NYC Lunch Counter", Description: "Neon signs, pink tiles, and neighborhood warmth"},
+	{ID: models.ThemePizzeria, Name: "NY Slice Shop", Description: "Bold typography on pink with that New York slice energy"},
 }
 
 func (h *Handler) GetThemeSettingsHandler(w http.ResponseWriter, r *http.Request) {
