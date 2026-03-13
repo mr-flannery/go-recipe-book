@@ -4,7 +4,7 @@ test.describe.serial('Navigation', () => {
   test('navigates from landing page to recipe overview', async ({ page }) => {
     await page.goto('/');
 
-    await expect(page).toHaveTitle(/Recipe Book|Taste/);
+    await expect(page).toHaveTitle(/Recipe Book|Schmecken musset!/);
 
     await page.getByRole('link', { name: 'Browse Recipes' }).click();
 

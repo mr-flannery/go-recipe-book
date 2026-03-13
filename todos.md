@@ -1,9 +1,4 @@
-- SORT TODOs
-  - what do I really need to do before deploying
-  - what is nice to have but can be done after going live with the intial version
-
 - UX improvements!!
-  - the admin registration UX could be improved, by listing denied and approved registrations, and also by make the experience more dynamic, showing success messages or something like this.
   - when adding a tag, the focus isn't on the input component any more, but it should
   - also when in the tag filter component, when pressing backspace, it should remove the latest tag
 
@@ -18,9 +13,6 @@
 - the vscode launch/debug setting is kinda annoying right now
 
 - openrouter might be a good starting point to compare models for my use cases
-
-- BUG: registrations don't properly show/record the date
-  ![alt text](image.png)
 
 - email notification on account approval is either missing or not working
   - it's because Maileroo is using a sandbox domain currently, to configure it correctly I need the actual domain, which I first have to buy
@@ -40,8 +32,6 @@
 
 - favicon
 - also get rid of this weird "Taste" branding and come up with a better name
-
-- if a markdown entry in a recipe contains an h2, it's currently rendered as if it's an h2 that's part of the actual website. I need to override css classes and/or forbid some things from being used
 
 - performance testing
 
