@@ -14,20 +14,11 @@ import (
 )
 
 var themeStylesheets = map[string]string{
-	models.ThemeEditorial:   "/static/css/editorial.css",
-	models.ThemeClassic:     "/static/css/styles.css",
-	models.ThemeDiner:       "/static/css/diner.css",
-	models.ThemeTrattoria:   "/static/css/trattoria.css",
-	models.ThemeKuche:       "/static/css/kuche.css",
-	models.ThemeNightowl:    "/static/css/nightowl.css",
-	models.ThemeMilkbar:     "/static/css/milkbar.css",
-	models.ThemeBodega:      "/static/css/bodega.css",
-	models.ThemeMarket:      "/static/css/market.css",
-	models.ThemeBistro:      "/static/css/bistro.css",
-	models.ThemeComfort:     "/static/css/comfort.css",
-	models.ThemeSpeakeasy:   "/static/css/speakeasy.css",
-	models.ThemeCuchifritos: "/static/css/cuchifritos.css",
-	models.ThemePizzeria:    "/static/css/pizzeria.css",
+	models.ThemeEditorial: "/static/css/editorial.css",
+	models.ThemeNightowl:  "/static/css/nightowl.css",
+	models.ThemeBistro:    "/static/css/bistro.css",
+	models.ThemeSpeakeasy: "/static/css/speakeasy.css",
+	models.ThemePizzeria:  "/static/css/pizzeria.css",
 }
 
 func stylesheetForTheme(theme string) string {
