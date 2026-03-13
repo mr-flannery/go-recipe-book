@@ -417,7 +417,11 @@ var AvailableThemes = []ThemeOption{
 	{ID: models.ThemeNightowl, Name: "Night Owl Cafe", Description: "Dark theme with amber glow for late-night cooking"},
 	{ID: models.ThemeBistro, Name: "Parisian Bistro", Description: "Classic French elegance in black, white, and gold"},
 	{ID: models.ThemeSpeakeasy, Name: "Art Deco Speakeasy", Description: "1920s glamour with geometric gold and deep black"},
-	{ID: models.ThemePizzeria, Name: "NY Slice Shop", Description: "Bold typography on pink with that New York slice energy"},
+	{ID: models.ThemePizzeriaV3, Name: "Forest Greens", Description: "Natural green hues with low contrast"},
+	{ID: models.ThemePizzeriaV4, Name: "Sunset Orange", Description: "Warm orange glow with medium contrast"},
+	{ID: models.ThemePizzeriaV8, Name: "Midnight Blue", Description: "Dark mode with cool blue accents"},
+	{ID: models.ThemePizzeriaV9, Name: "Terracotta", Description: "Warm Mediterranean earth tones"},
+	{ID: models.ThemePizzeriaV10, Name: "Lemon Zest", Description: "Bright and cheerful yellow accents"},
 }
 
 func (h *Handler) GetThemeSettingsHandler(w http.ResponseWriter, r *http.Request) {

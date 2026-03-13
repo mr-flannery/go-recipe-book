@@ -1,14 +1,14 @@
-/* Pizzeria Theme - New York Slice Shop */
+/* Pizzeria Theme - Midnight Blue (Dark Mode) */
 @import url('https://fonts.googleapis.com/css2?family=Lilita+One&family=Rubik:wght@400;500;600;700&display=swap');
 
 :root {
-    --ink: #1a237e;
-    --paper: #f8c8c4;
-    --accent: #c62828;
-    --muted: #5c6bc0;
-    --rule: #e57373;
-    --error: #b71c1c;
-    --success: #2e7d32;
+    --ink: #e8e6f0;
+    --paper: #1a1a2e;
+    --accent: #6c9bcf;
+    --muted: #8a8aa0;
+    --rule: #2d2d44;
+    --error: #e57373;
+    --success: #81c784;
 }
 
 * {
