@@ -22,6 +22,9 @@ type MockAuthStore struct {
 	ExtendSessionFunc                    func(ctx context.Context, sessionID string) error
 	CreateRegistrationRequestFunc        func(ctx context.Context, username, email, passwordHash string) error
 	GetPendingRegistrationsFunc          func(ctx context.Context) ([]store.RegistrationRequest, error)
+	GetAllRegistrationsFunc              func(ctx context.Context) ([]store.RegistrationRequest, error)
+	GetAllRegistrationsPaginatedFunc     func(ctx context.Context, limit, offset int) ([]store.RegistrationRequest, error)
+	CountAllRegistrationsFunc            func(ctx context.Context) (int, error)
 	ApproveRegistrationFunc              func(ctx context.Context, requestID, adminID int) error
 	RejectRegistrationFunc               func(ctx context.Context, requestID, adminID int) error
 	CreateUserFunc                       func(ctx context.Context, username, email, passwordHash string, isAdmin bool) error
@@ -132,6 +135,27 @@ func (m *MockAuthStore) GetPendingRegistrations(ctx context.Context) ([]store.Re
 		return m.GetPendingRegistrationsFunc(ctx)
 	}
 	return nil, nil
+}
+
+func (m *MockAuthStore) GetAllRegistrations(ctx context.Context) ([]store.RegistrationRequest, error) {
+	if m.GetAllRegistrationsFunc != nil {
+		return m.GetAllRegistrationsFunc(ctx)
+	}
+	return nil, nil
+}
+
+func (m *MockAuthStore) GetAllRegistrationsPaginated(ctx context.Context, limit, offset int) ([]store.RegistrationRequest, error) {
+	if m.GetAllRegistrationsPaginatedFunc != nil {
+		return m.GetAllRegistrationsPaginatedFunc(ctx, limit, offset)
+	}
+	return nil, nil
+}
+
+func (m *MockAuthStore) CountAllRegistrations(ctx context.Context) (int, error) {
+	if m.CountAllRegistrationsFunc != nil {
+		return m.CountAllRegistrationsFunc(ctx)
+	}
+	return 0, nil
 }
 
 func (m *MockAuthStore) ApproveRegistration(ctx context.Context, requestID, adminID int) error {

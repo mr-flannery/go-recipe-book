@@ -212,7 +212,7 @@ func main() {
 		userContext(
 			requireAuth(
 				requireAdminAuth(
-					http.HandlerFunc(h.GetPendingRegistrationsHandler)))))
+					http.HandlerFunc(h.GetRegistrationsHandler)))))
 	mux.Handle("POST /admin/registrations/{id}/approve",
 		userContext(
 			requireAuth(

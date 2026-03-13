@@ -331,12 +331,15 @@ func TestPostRegisterHandler_ShowsErrorWhenPasswordsDontMatch(t *testing.T) {
 	}
 }
 
-func TestGetPendingRegistrationsHandler_ListsRegistrations(t *testing.T) {
+func TestGetRegistrationsHandler_ListsRegistrations(t *testing.T) {
 	mockAuthStore := &mocks.MockAuthStore{
-		GetPendingRegistrationsFunc: func(ctx context.Context) ([]store.RegistrationRequest, error) {
+		CountAllRegistrationsFunc: func(ctx context.Context) (int, error) {
+			return 2, nil
+		},
+		GetAllRegistrationsPaginatedFunc: func(ctx context.Context, limit, offset int) ([]store.RegistrationRequest, error) {
 			return []store.RegistrationRequest{
 				{ID: 1, Username: "user1", Email: "user1@example.com", Status: "pending"},
-				{ID: 2, Username: "user2", Email: "user2@example.com", Status: "pending"},
+				{ID: 2, Username: "user2", Email: "user2@example.com", Status: "approved"},
 			}, nil
 		},
 	}
@@ -359,15 +362,15 @@ func TestGetPendingRegistrationsHandler_ListsRegistrations(t *testing.T) {
 	req = req.WithContext(auth.ContextWithUserInfo(req.Context(), userInfo))
 	rec := httptest.NewRecorder()
 
-	h.GetPendingRegistrationsHandler(rec, req)
+	h.GetRegistrationsHandler(rec, req)
 
 	if rec.Code != http.StatusOK {
 		t.Errorf("expected status %d, got %d", http.StatusOK, rec.Code)
 	}
 
-	regData, ok := capturedData.(PendingRegistrationsData)
+	regData, ok := capturedData.(RegistrationsData)
 	if !ok {
-		t.Fatal("expected capturedData to be PendingRegistrationsData")
+		t.Fatal("expected capturedData to be RegistrationsData")
 	}
 
 	if len(regData.Registrations) != 2 {
@@ -375,10 +378,10 @@ func TestGetPendingRegistrationsHandler_ListsRegistrations(t *testing.T) {
 	}
 }
 
-func TestGetPendingRegistrationsHandler_ReturnsErrorWhenStoreFails(t *testing.T) {
+func TestGetRegistrationsHandler_ReturnsErrorWhenStoreFails(t *testing.T) {
 	mockAuthStore := &mocks.MockAuthStore{
-		GetPendingRegistrationsFunc: func(ctx context.Context) ([]store.RegistrationRequest, error) {
-			return nil, errors.New("database error")
+		CountAllRegistrationsFunc: func(ctx context.Context) (int, error) {
+			return 0, errors.New("database error")
 		},
 	}
 
@@ -396,7 +399,7 @@ func TestGetPendingRegistrationsHandler_ReturnsErrorWhenStoreFails(t *testing.T)
 	req := httptest.NewRequest(http.MethodGet, "/admin/registrations", nil)
 	rec := httptest.NewRecorder()
 
-	h.GetPendingRegistrationsHandler(rec, req)
+	h.GetRegistrationsHandler(rec, req)
 
 	if rec.Code != http.StatusInternalServerError {
 		t.Errorf("expected status %d, got %d", http.StatusInternalServerError, rec.Code)

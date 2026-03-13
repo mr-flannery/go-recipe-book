@@ -46,10 +46,55 @@ func GetPendingRegistrations(ctx context.Context, authStore store.AuthStore) ([]
 			Username:     r.Username,
 			Email:        r.Email,
 			PasswordHash: r.PasswordHash,
+			RequestedAt:  r.RequestedAt,
 			Status:       r.Status,
 		}
 	}
 	return reqs, nil
+}
+
+func GetAllRegistrations(ctx context.Context, authStore store.AuthStore) ([]RegistrationRequest, error) {
+	storeReqs, err := authStore.GetAllRegistrations(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	reqs := make([]RegistrationRequest, len(storeReqs))
+	for i, r := range storeReqs {
+		reqs[i] = RegistrationRequest{
+			ID:           r.ID,
+			Username:     r.Username,
+			Email:        r.Email,
+			PasswordHash: r.PasswordHash,
+			RequestedAt:  r.RequestedAt,
+			Status:       r.Status,
+		}
+	}
+	return reqs, nil
+}
+
+func GetAllRegistrationsPaginated(ctx context.Context, authStore store.AuthStore, limit, offset int) ([]RegistrationRequest, error) {
+	storeReqs, err := authStore.GetAllRegistrationsPaginated(ctx, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+
+	reqs := make([]RegistrationRequest, len(storeReqs))
+	for i, r := range storeReqs {
+		reqs[i] = RegistrationRequest{
+			ID:           r.ID,
+			Username:     r.Username,
+			Email:        r.Email,
+			PasswordHash: r.PasswordHash,
+			RequestedAt:  r.RequestedAt,
+			Status:       r.Status,
+		}
+	}
+	return reqs, nil
+}
+
+func CountAllRegistrations(ctx context.Context, authStore store.AuthStore) (int, error) {
+	return authStore.CountAllRegistrations(ctx)
 }
 
 func ApproveRegistration(ctx context.Context, authStore store.AuthStore, requestID int, adminID int) error {
@@ -73,6 +118,7 @@ func GetRegistrationRequestByID(ctx context.Context, authStore store.AuthStore, 
 				Username:     r.Username,
 				Email:        r.Email,
 				PasswordHash: r.PasswordHash,
+				RequestedAt:  r.RequestedAt,
 				Status:       r.Status,
 			}, nil
 		}

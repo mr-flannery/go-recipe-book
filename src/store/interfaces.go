@@ -77,6 +77,7 @@ type RegistrationRequest struct {
 	Username     string
 	Email        string
 	PasswordHash string
+	RequestedAt  time.Time
 	Status       string
 }
 
@@ -107,6 +108,9 @@ type AuthStore interface {
 
 	CreateRegistrationRequest(ctx context.Context, username, email, passwordHash string) error
 	GetPendingRegistrations(ctx context.Context) ([]RegistrationRequest, error)
+	GetAllRegistrations(ctx context.Context) ([]RegistrationRequest, error)
+	GetAllRegistrationsPaginated(ctx context.Context, limit, offset int) ([]RegistrationRequest, error)
+	CountAllRegistrations(ctx context.Context) (int, error)
 	ApproveRegistration(ctx context.Context, requestID, adminID int) error
 	RejectRegistration(ctx context.Context, requestID, adminID int) error
 

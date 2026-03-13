@@ -152,32 +152,60 @@ func (h *Handler) GetAdminIndexHandler(w http.ResponseWriter, r *http.Request) {
 	h.Renderer.RenderPage(w, "admin-index.gohtml", data)
 }
 
-type PendingRegistrationsData struct {
+type RegistrationsData struct {
 	Registrations []auth.RegistrationRequest
 	Success       string
 	Error         string
 	UserInfo      *auth.UserInfo
+	PaginationData
 }
 
-func (h *Handler) GetPendingRegistrationsHandler(w http.ResponseWriter, r *http.Request) {
+const registrationsPageSize = 20
+
+func (h *Handler) GetRegistrationsHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	registrations, err := auth.GetPendingRegistrations(ctx, h.AuthStore)
+	query := r.URL.Query()
+
+	currentPage := 1
+	if p := query.Get("page"); p != "" {
+		if parsed, err := strconv.Atoi(p); err == nil && parsed > 0 {
+			currentPage = parsed
+		}
+	}
+
+	pageSize := registrationsPageSize
+	offset := (currentPage - 1) * pageSize
+
+	totalCount, err := auth.CountAllRegistrations(ctx, h.AuthStore)
 	if err != nil {
-		logging.AddError(ctx, err, "Failed to get pending registrations")
-		h.Renderer.RenderError(w, r, http.StatusInternalServerError, "Failed to load pending registrations. Please try again later.")
+		logging.AddError(ctx, err, "Failed to count registrations")
+		h.Renderer.RenderError(w, r, http.StatusInternalServerError, "Failed to load registrations. Please try again later.")
 		return
 	}
+
+	registrations, err := auth.GetAllRegistrationsPaginated(ctx, h.AuthStore, pageSize, offset)
+	if err != nil {
+		logging.AddError(ctx, err, "Failed to get registrations")
+		h.Renderer.RenderError(w, r, http.StatusInternalServerError, "Failed to load registrations. Please try again later.")
+		return
+	}
+
+	pagination := CalculatePagination(totalCount, currentPage, pageSize)
 
 	logging.AddMany(ctx, map[string]any{
 		"action":       "admin.registrations.list",
 		"result.count": len(registrations),
+		"page":         currentPage,
+		"total_count":  totalCount,
 	})
 
-	data := PendingRegistrationsData{
-		Registrations: registrations,
-		UserInfo:      auth.GetUserInfoFromContext(ctx),
+	data := RegistrationsData{
+		Registrations:  registrations,
+		Success:        query.Get("success"),
+		UserInfo:       auth.GetUserInfoFromContext(ctx),
+		PaginationData: pagination,
 	}
-	h.Renderer.RenderPage(w, "pending-registrations.gohtml", data)
+	h.Renderer.RenderPage(w, "registrations.gohtml", data)
 }
 
 func (h *Handler) ApproveRegistrationHandler(w http.ResponseWriter, r *http.Request) {

@@ -237,7 +237,7 @@ func (s *AuthStore) CreateRegistrationRequest(ctx context.Context, username, ema
 
 func (s *AuthStore) GetPendingRegistrations(ctx context.Context) ([]store.RegistrationRequest, error) {
 	query := `
-		SELECT id, username, email, password_hash, status
+		SELECT id, username, email, password_hash, requested_at, status
 		FROM registration_requests 
 		WHERE status = 'pending'
 		ORDER BY requested_at ASC`
@@ -251,7 +251,7 @@ func (s *AuthStore) GetPendingRegistrations(ctx context.Context) ([]store.Regist
 	var requests []store.RegistrationRequest
 	for rows.Next() {
 		var req store.RegistrationRequest
-		err := rows.Scan(&req.ID, &req.Username, &req.Email, &req.PasswordHash, &req.Status)
+		err := rows.Scan(&req.ID, &req.Username, &req.Email, &req.PasswordHash, &req.RequestedAt, &req.Status)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan registration request: %w", err)
 		}
@@ -259,6 +259,67 @@ func (s *AuthStore) GetPendingRegistrations(ctx context.Context) ([]store.Regist
 	}
 
 	return requests, nil
+}
+
+func (s *AuthStore) GetAllRegistrations(ctx context.Context) ([]store.RegistrationRequest, error) {
+	query := `
+		SELECT id, username, email, password_hash, requested_at, status
+		FROM registration_requests 
+		ORDER BY requested_at DESC`
+
+	rows, err := s.db.QueryContext(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query registrations: %w", err)
+	}
+	defer rows.Close()
+
+	var requests []store.RegistrationRequest
+	for rows.Next() {
+		var req store.RegistrationRequest
+		err := rows.Scan(&req.ID, &req.Username, &req.Email, &req.PasswordHash, &req.RequestedAt, &req.Status)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan registration request: %w", err)
+		}
+		requests = append(requests, req)
+	}
+
+	return requests, nil
+}
+
+func (s *AuthStore) GetAllRegistrationsPaginated(ctx context.Context, limit, offset int) ([]store.RegistrationRequest, error) {
+	query := `
+		SELECT id, username, email, password_hash, requested_at, status
+		FROM registration_requests 
+		ORDER BY requested_at DESC
+		LIMIT $1 OFFSET $2`
+
+	rows, err := s.db.QueryContext(ctx, query, limit, offset)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query registrations: %w", err)
+	}
+	defer rows.Close()
+
+	var requests []store.RegistrationRequest
+	for rows.Next() {
+		var req store.RegistrationRequest
+		err := rows.Scan(&req.ID, &req.Username, &req.Email, &req.PasswordHash, &req.RequestedAt, &req.Status)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan registration request: %w", err)
+		}
+		requests = append(requests, req)
+	}
+
+	return requests, nil
+}
+
+func (s *AuthStore) CountAllRegistrations(ctx context.Context) (int, error) {
+	query := `SELECT COUNT(*) FROM registration_requests`
+	var count int
+	err := s.db.QueryRowContext(ctx, query).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("failed to count registrations: %w", err)
+	}
+	return count, nil
 }
 
 func (s *AuthStore) ApproveRegistration(ctx context.Context, requestID, adminID int) error {

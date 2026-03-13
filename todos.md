@@ -23,6 +23,8 @@
   ![alt text](image.png)
 
 - email notification on account approval is either missing or not working
+  - it's because Maileroo is using a sandbox domain currently, to configure it correctly I need the actual domain, which I first have to buy
+  - for which I need to checkout whether Railway supports external domains, and/or whether I just ditch the .de and use whatever is reasonable and cheap from their list
 
 - observability
   - logging
