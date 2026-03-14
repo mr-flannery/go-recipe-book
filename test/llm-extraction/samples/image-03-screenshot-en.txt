@@ -1,0 +1,11 @@
+PLACEHOLDER: Replace this file with an actual image
+
+Expected: A screenshot of a recipe website in English
+
+Example sources:
+- Screenshot from AllRecipes, BBC Good Food, Serious Eats, etc.
+- Full page screenshot showing ingredients and instructions
+- Can include some surrounding content (ads, navigation)
+
+File format: PNG (preferred for screenshots) or JPG
+Rename to: image-03-screenshot-en.png (or .jpg)

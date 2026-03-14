@@ -1,0 +1,16 @@
+{
+  "calories_per_serving": null,
+  "confidence": 0.9,
+  "confidence_notes": "All information extracted is clear, but prep time and calories are not specified.",
+  "cook_time_minutes": 25,
+  "description": "Delicious muffins made with Fanta soda for a unique flavor.",
+  "ingredients_md": "- 100g Frischkäse\n- 165ml Fanta\n- 160g Puderzucker\n- 240g Mehl\n- 1 ½ TL abgeriebene Schale einer unbehandelten Orange\n- 2 TL Backpulver\n- 1 TL Natron\n- 1 Ei\n- 60g Zucker\n- 80ml Pflanzenöl\n- 125ml Buttermilch\n- Fett für das Blech oder 12 Papierförmchen",
+  "instructions_md": "1. Den Backofen auf 180 °C (Umluft 160 °C) vorheizen. Die Vertiefungen eines Muffinblechs einfetten und das Blech in den Gefrierschrank stellen; ersatzweise Papierförmchen in das ungefettete Muffinblech setzen.\n2. Für die Füllung den Frischkäse mit 2 Teelöffel Fanta und 1 Esslöffel Puderzucker gut verrühren; beiseite stellen.\n3. Das Mehl mit ½ Teelöffel abgeriebener Orangenschale, dem Backpulver und dem Natron sorgfältig vermischen.\n4. In einer weiteren Schüssel das Ei leicht verquirlen. Den Zucker, das Pflanzenöl, 125 Milliliter Fanta und die Buttermilch dazugeben und alles gut verrühren. Die Mehlmischung zum Eigemisch geben. Nur so lange rühren, bis die trockenen Zutaten feucht sind.\n5. Die Hälfte des Teiges in den Blech-Vertiefungen verteilen. Je 1 Teelöffel der Füllung darauf geben und mit dem restlichen Teig auffüllen. Im heißen Backofen 20 bis 25 Minuten backen. Die Muffins im Backblech noch 5 Minuten ruhen lassen, dann auf einem Kuchengitter abkühlen lassen.\n6. Den restlichen Puderzucker mit 2 bis 3 Esslöffel Fanta glatt rühren. Die Muffins in den Guss tauchen, abtropfen lassen und mit der restlichen Orangenschale bestreuen.",
+  "prep_time_minutes": null,
+  "suggested_tags": [
+    "muffins",
+    "dessert",
+    "quick-meal"
+  ],
+  "title": "Fanta-Muffins"
+}

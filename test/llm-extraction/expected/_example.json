@@ -1,0 +1,12 @@
+{
+  "title": "Classic Chocolate Chip Cookies",
+  "description": "Crispy on the edges, chewy in the middle. A timeless American cookie recipe perfect for any occasion.",
+  "ingredients_md": "- 225g butter (softened)\n- 200g granulated sugar\n- 100g brown sugar\n- 2 large eggs\n- 1 tsp vanilla extract\n- 280g all-purpose flour\n- 1 tsp baking soda\n- 1 tsp salt\n- 300g chocolate chips",
+  "instructions_md": "1. Preheat oven to 190°C (375°F)\n2. Cream together butter and both sugars until light and fluffy, about 3 minutes\n3. Beat in eggs one at a time, then add vanilla\n4. In a separate bowl, whisk together flour, baking soda, and salt\n5. Gradually mix dry ingredients into wet ingredients\n6. Fold in chocolate chips\n7. Drop rounded tablespoons of dough onto ungreased baking sheets, spacing 5cm apart\n8. Bake for 9-11 minutes until edges are golden but centers still look slightly underdone\n9. Cool on baking sheet for 5 minutes before transferring to wire rack",
+  "prep_time_minutes": 15,
+  "cook_time_minutes": 11,
+  "calories_per_serving": 180,
+  "suggested_tags": ["dessert", "baking", "cookies", "american"],
+  "confidence": 0.95,
+  "confidence_notes": "Calorie count is estimated based on typical serving size of 1 cookie (makes ~36 cookies)"
+}

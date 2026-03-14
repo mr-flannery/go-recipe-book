@@ -1,0 +1,15 @@
+PLACEHOLDER: Replace this file with a video transcript
+
+Expected: Transcript from an English YouTube cooking video
+
+How to get it:
+1. Find a cooking video on YouTube (e.g., Joshua Weissman, Babish, etc.)
+2. Run: ./scripts/extract-transcript.sh "https://www.youtube.com/watch?v=VIDEO_ID"
+3. Or manually copy from YouTube's transcript feature (click ... > Show transcript)
+
+Good test videos:
+- Clear recipe walkthrough
+- Mentions ingredients and quantities
+- 5-15 minutes length
+
+Rename to: video-01-transcript-en.txt (keep as .txt)

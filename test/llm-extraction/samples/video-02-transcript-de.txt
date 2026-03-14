@@ -1,0 +1,15 @@
+PLACEHOLDER: Replace this file with a video transcript
+
+Expected: Transcript from a German YouTube cooking video
+
+How to get it:
+1. Find a German cooking video on YouTube
+2. Run: ./scripts/extract-transcript.sh "https://www.youtube.com/watch?v=VIDEO_ID"
+3. Or manually copy from YouTube's transcript feature
+
+Good sources:
+- German cooking channels
+- Videos with clear spoken instructions
+- Auto-generated German subtitles are usually good enough
+
+Rename to: video-02-transcript-de.txt (keep as .txt)

@@ -1,0 +1,15 @@
+PLACEHOLDER: Replace this file with HTML content
+
+Expected: HTML from a German food blog with an embedded recipe (no schema.org markup)
+
+Example sources:
+- German food blogs without structured data
+- Recipe embedded in a longer blog post with story/photos
+- More challenging extraction due to unstructured format
+
+How to get it:
+1. Find a German recipe blog post
+2. Save the page HTML or copy from dev tools
+3. Or use: curl -s "https://example.de/rezept" > website-02-blog-de.html
+
+Rename to: website-02-blog-de.html

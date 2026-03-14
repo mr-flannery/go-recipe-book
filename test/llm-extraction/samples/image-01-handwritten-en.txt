@@ -1,0 +1,11 @@
+PLACEHOLDER: Replace this file with an actual image
+
+Expected: A photo of a handwritten recipe card in English
+
+Example sources:
+- Your own handwritten recipe card
+- A family recipe card
+- A photo of a recipe written on paper
+
+File format: JPG or PNG
+Rename to: image-01-handwritten-en.jpg (or .png)

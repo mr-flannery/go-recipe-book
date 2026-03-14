@@ -1,0 +1,13 @@
+PLACEHOLDER: Replace this file with HTML content
+
+Expected: HTML from a recipe website that uses schema.org/Recipe markup
+
+How to get it:
+1. Find a recipe on a site like AllRecipes, BBC Good Food, or Serious Eats
+2. Open browser dev tools (F12) and copy the HTML
+3. Or use: curl -s "https://example.com/recipe" > website-01-schema-en.html
+
+Look for sites with structured data - you can test at:
+https://search.google.com/test/rich-results
+
+Rename to: website-01-schema-en.html

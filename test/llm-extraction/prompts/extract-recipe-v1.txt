@@ -1,0 +1,58 @@
+Extract a recipe from the following {source_type}. Return the result as valid JSON only, with no additional text.
+
+## Output Format
+
+{
+  "title": "Recipe title",
+  "description": "1-2 sentence description of the dish",
+  "ingredients_md": "Markdown bullet list of ingredients with quantities",
+  "instructions_md": "Markdown numbered list of steps",
+  "prep_time_minutes": <integer or null if unknown>,
+  "cook_time_minutes": <integer or null if unknown>,
+  "calories_per_serving": <integer or null if unknown>,
+  "suggested_tags": ["tag1", "tag2"],
+  "confidence": <0.0 to 1.0>,
+  "confidence_notes": "Any issues, uncertainties, or assumptions made"
+}
+
+## Rules
+
+### Ingredients (ingredients_md)
+- Use markdown bullet list format: "- 250g flour"
+- Include quantity, unit, and ingredient name
+- Prefer metric units (g, ml, °C) but preserve original if clearly imperial
+- One ingredient per line
+- Include preparation notes in parentheses: "- 2 onions (finely diced)"
+
+### Instructions (instructions_md)
+- Use markdown numbered list: "1. Preheat oven to 180°C"
+- Each step should be a single, clear action
+- Preserve the original order
+- Include temperatures, times, and visual cues where mentioned
+
+### Metadata
+- prep_time_minutes: Time for preparation before cooking starts
+- cook_time_minutes: Active cooking/baking time
+- calories_per_serving: Per single serving, if mentioned or calculable
+- Use null if information is not available or cannot be reasonably inferred
+
+### Tags
+- Suggest 2-5 relevant tags based on the recipe
+- Use lowercase, single words or hyphenated phrases
+- Examples: "vegetarian", "quick-meal", "german", "dessert", "one-pot"
+
+### Confidence
+- 1.0: Perfect extraction, all information clear
+- 0.8-0.9: Minor uncertainties (e.g., portion size unclear)
+- 0.6-0.7: Some information missing or ambiguous
+- Below 0.6: Significant issues, recommend manual review
+- Always explain any uncertainties in confidence_notes
+
+### Language
+- Output in the same language as the source
+- If source is German, output German text
+- If source is English, output English text
+
+## Source Content
+
+{content}

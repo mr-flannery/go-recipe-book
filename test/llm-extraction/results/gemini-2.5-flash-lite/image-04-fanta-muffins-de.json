@@ -1,0 +1,17 @@
+{
+  "calories_per_serving": null,
+  "confidence": 0.9,
+  "confidence_notes": "The recipe is in German, and the output is also in German as requested. The cook time is explicitly stated as 20-25 minutes. Prep time is not mentioned. Calories per serving are not mentioned. The quantity of Fanta for the glaze is a range (2-3 tbsp), which is preserved. The recipe yields 12 standard muffins.",
+  "cook_time_minutes": 25,
+  "description": "Aromatic muffins with a Fanta and cream cheese filling, topped with a Fanta glaze and orange zest.",
+  "ingredients_md": "- 100 g Frischkäse (cream cheese)\n- 165 ml Fanta\n- 160 g Puderzucker (powdered sugar)\n- 240 g Mehl (flour)\n- 1 1/2 TL abgeriebene Schale einer unbehandelten Orange (grated zest of 1 untreated orange)\n- 2 TL Backpulver (baking powder)\n- 1/2 TL Natron (baking soda)\n- 1 Ei (egg)\n- 60 g Zucker (sugar)\n- 80 ml Pflanzenöl (vegetable oil)\n- 125 ml Buttermilch (buttermilk)\n- Fett für das Blech oder 12 Papierförmchen (grease for the tin or 12 paper liners)",
+  "instructions_md": "1. Preheat the oven to 180°C (160°C convection). Grease the wells of a muffin tin and place the tin in the freezer; alternatively, place paper liners in the ungreased muffin tin.\n2. For the filling, mix the cream cheese with 2 teaspoons of Fanta and 1 tablespoon of powdered sugar; set aside.\n3. Carefully mix the flour with 1/2 teaspoon of grated orange zest, baking powder, and baking soda.\n4. In another bowl, lightly whisk the egg. Add the sugar, vegetable oil, 125 milliliters of Fanta, and buttermilk and mix well. Add the flour mixture to the egg mixture. Stir only until the dry ingredients are just moistened.\n5. Distribute half of the batter into the wells of the tin. Add 1 teaspoon of the filling on top and cover with the remaining batter. Bake in the hot oven for 20 to 25 minutes. Let the muffins rest in the baking tin for 5 minutes, then let them cool on a wire rack.\n6. Mix the remaining powdered sugar with 2 to 3 tablespoons of Fanta until smooth. Dip the muffins into the glaze, let them drip off, and sprinkle with the remaining orange zest.",
+  "prep_time_minutes": null,
+  "suggested_tags": [
+    "muffins",
+    "fanta",
+    "orange",
+    "sweet"
+  ],
+  "title": "Fanta-Muffins"
+}
