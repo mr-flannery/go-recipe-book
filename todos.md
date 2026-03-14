@@ -8,6 +8,23 @@
   - if the instructions mention some ingredient twice, there should be some section where everythings summed up, e.g. for the purpose of creating a shopping list. maybe a shopping list button would be the actual thing to do here.
   - also the whole thing really only works well with some integration with an ingredient API that also contains stuff like calorie count etc.
 
+- ok so regarding ingredient databases:
+  - there's the german BLS one, that seems to have the best data, but is German only
+  - I can probably just supplement it with English AI translations for now
+  - the questions is what's the UX for manually adding ingredients in recipes, and how should it work when extracting recipes
+  - when manually adding, we need to show some kind of search bar, that let's users browse what matches their input
+  - then they can select that ingredient
+  - if search sucks, they can add an alias to something
+    - e.g. we can alias "Reis poliert, roh" to "Reis", "Basmati Reis", etc.
+  - when searching, we can prioritize aliases
+  - otherwise, search results should probably be ranked by how much of the search team makes up the match results
+    - e.g. when searching for "Reis", "Reis poliert, roh" should be ranked higher than "Schwein Vordereisbein/Vorderhaxe, gebraten ohne Fett (Ofen)"
+  - search should be fuzzy, i.e. "Reis roh" should match "Reis poliert, roh"
+  - assuming I have all of that, I can make the extracted recipes use the same search and pick the best match
+    - if this turns out to suck, I need to manually tune it, so that searching for things returns the correct results
+    - maybe I should store machine matches somewhere, so that I can review them, and then also backcorrect them somehow
+  - also it might be useful, if a machine match sucks, to store what has initially been input as ingredient, so that I have the OG data that's required to correct it
+
 - OWASP top10 checking would probably also be a good idea
 
 - the vscode launch/debug setting is kinda annoying right now
