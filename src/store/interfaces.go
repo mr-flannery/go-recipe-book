@@ -159,3 +159,56 @@ type APIKeyStore interface {
 	Delete(ctx context.Context, userID int, keyID int) error
 	UpdateLastUsed(ctx context.Context, keyID int) error
 }
+
+type ExtractionJob struct {
+	ID           int
+	UserID       int
+	Username     string
+	JobType      string
+	InputURL     *string
+	InputData    []byte
+	Status       string
+	ErrorMessage *string
+	LLMInput     *string
+	LLMOutput    *string
+	RecipeID     *int
+	RecipeTitle  *string
+	AttemptCount int
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
+	CompletedAt  *time.Time
+}
+
+type ExtractionFeedback struct {
+	ID           int
+	JobID        int
+	UserID       int
+	Username     string
+	Rating       int
+	FeedbackType string
+	Comment      *string
+	CreatedAt    time.Time
+}
+
+type ExtractionJobStore interface {
+	Create(ctx context.Context, userID int, jobType string, inputURL *string, inputData []byte) (int, error)
+	GetByID(ctx context.Context, id int) (*ExtractionJob, error)
+	GetByUserID(ctx context.Context, userID int, limit, offset int) ([]ExtractionJob, error)
+	CountByUserID(ctx context.Context, userID int) (int, error)
+	GetAll(ctx context.Context, limit, offset int) ([]ExtractionJob, error)
+	CountAll(ctx context.Context) (int, error)
+	ClaimPendingJob(ctx context.Context) (*ExtractionJob, error)
+	UpdateStatus(ctx context.Context, id int, status string, errorMessage *string) error
+	UpdateLLMData(ctx context.Context, id int, llmInput, llmOutput string) error
+	SetRecipeID(ctx context.Context, id int, recipeID int) error
+	MarkCompleted(ctx context.Context, id int) error
+	IncrementAttemptCount(ctx context.Context, id int) error
+	ResetForRetry(ctx context.Context, id int) error
+}
+
+type ExtractionFeedbackStore interface {
+	Create(ctx context.Context, jobID, userID int, rating int, feedbackType string, comment *string) error
+	GetByJobID(ctx context.Context, jobID int) (*ExtractionFeedback, error)
+	GetAll(ctx context.Context, limit, offset int) ([]ExtractionFeedback, error)
+	CountAll(ctx context.Context) (int, error)
+}

@@ -69,6 +69,9 @@ var funcMap = template.FuncMap{
 	"subtract": func(a, b int) int {
 		return a - b
 	},
+	"slice": func(items ...any) []any {
+		return items
+	},
 	"hasPrefix": strings.HasPrefix,
 	"renderSource": func(source string) template.HTML {
 		if source == "" {

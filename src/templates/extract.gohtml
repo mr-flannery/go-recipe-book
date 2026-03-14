@@ -1,0 +1,79 @@
+{{define "extract.gohtml"}}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Extract Recipe - Schmecken musset!</title>
+    <link rel="icon" type="image/svg+xml" href="/static/favicons/sm-text.svg">
+    <link rel="stylesheet" href="{{stylesheet .UserInfo.Theme}}">
+</head>
+<body>
+    {{template "navbar" .UserInfo}}
+
+    <main class="main-content">
+        <div class="page-header">
+            <h1>Extract Recipe</h1>
+            <p>Extract a recipe from a website, YouTube video, or image</p>
+        </div>
+
+        {{if .Error}}
+        <div class="error" style="margin-bottom: 20px;">{{.Error}}</div>
+        {{end}}
+        {{if .Success}}
+        <div class="success" style="margin-bottom: 20px;">{{.Success}}</div>
+        {{end}}
+
+        <div style="max-width: 700px; margin: 0 auto; display: flex; flex-direction: column; gap: 30px;">
+            <div class="card">
+                <h2 style="font-size: 1.3rem; margin-bottom: 15px;">From Website</h2>
+                <p style="line-height: 1.7; margin-bottom: 20px; color: var(--muted);">
+                    Paste a URL to a recipe page. The system will extract the recipe content automatically.
+                </p>
+                <form method="POST" action="/extract/website" style="display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap;">
+                    <div class="form-group" style="flex: 1; min-width: 250px; margin-bottom: 0;">
+                        <label for="website-url">Website URL</label>
+                        <input type="url" id="website-url" name="url" placeholder="https://example.com/recipe" required style="height: 44px; box-sizing: border-box;">
+                    </div>
+                    <button type="submit" class="btn primary" style="height: 44px; box-sizing: border-box;">Extract</button>
+                </form>
+            </div>
+
+            <div class="card">
+                <h2 style="font-size: 1.3rem; margin-bottom: 15px;">From YouTube Video</h2>
+                <p style="line-height: 1.7; margin-bottom: 20px; color: var(--muted);">
+                    Paste a YouTube video URL. The system will extract the recipe from the video transcript.
+                </p>
+                <form method="POST" action="/extract/video" style="display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap;">
+                    <div class="form-group" style="flex: 1; min-width: 250px; margin-bottom: 0;">
+                        <label for="video-url">YouTube URL</label>
+                        <input type="url" id="video-url" name="url" placeholder="https://youtube.com/watch?v=..." required style="height: 44px; box-sizing: border-box;">
+                    </div>
+                    <button type="submit" class="btn primary" style="height: 44px; box-sizing: border-box;">Extract</button>
+                </form>
+            </div>
+
+            <div class="card">
+                <h2 style="font-size: 1.3rem; margin-bottom: 15px;">From Image</h2>
+                <p style="line-height: 1.7; margin-bottom: 20px; color: var(--muted);">
+                    Upload an image of a recipe (photo of a cookbook, handwritten recipe, etc.). Max 10MB.
+                </p>
+                <form method="POST" action="/extract/image" enctype="multipart/form-data" style="display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap;">
+                    <div class="form-group" style="flex: 1; min-width: 250px; margin-bottom: 0;">
+                        <label for="image-file">Image File</label>
+                        <input type="file" id="image-file" name="image" accept="image/jpeg,image/png,image/gif,image/webp" required style="height: 44px; box-sizing: border-box;">
+                    </div>
+                    <button type="submit" class="btn primary" style="height: 44px; box-sizing: border-box;">Extract</button>
+                </form>
+            </div>
+
+            <div style="text-align: center; color: var(--muted);">
+                <a href="/account/jobs" style="color: var(--muted);">View your extraction jobs</a>
+            </div>
+        </div>
+    </main>
+
+    {{template "footer" .UserInfo}}
+</body>
+</html>
+{{end}}

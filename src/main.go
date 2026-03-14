@@ -12,6 +12,7 @@ import (
 	"github.com/mr-flannery/go-recipe-book/src/auth"
 	"github.com/mr-flannery/go-recipe-book/src/config"
 	"github.com/mr-flannery/go-recipe-book/src/db"
+	"github.com/mr-flannery/go-recipe-book/src/extraction"
 	"github.com/mr-flannery/go-recipe-book/src/handlers"
 	"github.com/mr-flannery/go-recipe-book/src/logging"
 	"github.com/mr-flannery/go-recipe-book/src/mail"
@@ -94,6 +95,8 @@ func main() {
 	ingredientStore := postgres.NewIngredientStore(database)
 	userPreferencesStore := postgres.NewUserPreferencesStore(database)
 	apiKeyStore := postgres.NewAPIKeyStore(database)
+	extractionJobStore := postgres.NewExtractionJobStore(database)
+	extractionFeedbackStore := postgres.NewExtractionFeedbackStore(database)
 	renderer := templates.NewRenderer(templates.Templates)
 
 	var mailClient mail.MailClient
@@ -118,7 +121,27 @@ func main() {
 		}
 	}
 
-	h := handlers.NewHandler(database, recipeStore, tagStore, userTagStore, commentStore, userStore, authStore, ingredientStore, userPreferencesStore, apiKeyStore, renderer, mailClient, apiEncryptionKey)
+	baseURL := os.Getenv("BASE_URL")
+	if baseURL == "" {
+		baseURL = "http://localhost:8080"
+	}
+
+	h := handlers.NewHandler(database, recipeStore, tagStore, userTagStore, commentStore, userStore, authStore, ingredientStore, userPreferencesStore, apiKeyStore, extractionJobStore, extractionFeedbackStore, renderer, mailClient, apiEncryptionKey, baseURL)
+
+	if config.Extraction.OpenRouterAPIKey != "" {
+		workerConfig := extraction.WorkerConfig{
+			Concurrency:      2,
+			PollInterval:     5 * time.Second,
+			OpenRouterAPIKey: config.Extraction.OpenRouterAPIKey,
+			BaseURL:          baseURL,
+		}
+		extractionWorker := extraction.NewWorker(workerConfig, extractionJobStore, recipeStore, tagStore, authStore, mailClient)
+		extractionWorker.Start()
+		defer extractionWorker.Stop()
+		slog.Info("Extraction worker started")
+	} else {
+		slog.Warn("OPENROUTER_API_KEY not set, extraction worker disabled")
+	}
 
 	userContext := auth.UserContextMiddleware(authStore, userPreferencesStore)
 	requireAuth := auth.RequireAuth()
@@ -199,6 +222,39 @@ func main() {
 		userContext(
 			requireAuth(
 				http.HandlerFunc(h.SetThemeHandler))))
+	mux.Handle("GET /account/jobs",
+		userContext(
+			requireAuth(
+				http.HandlerFunc(h.GetAccountJobsHandler))))
+	mux.Handle("GET /account/jobs/{id}",
+		userContext(
+			requireAuth(
+				http.HandlerFunc(h.GetAccountJobDetailHandler))))
+	mux.Handle("POST /account/jobs/{id}/feedback",
+		userContext(
+			requireAuth(
+				http.HandlerFunc(h.PostJobFeedbackHandler))))
+	mux.Handle("POST /account/jobs/{id}/retry",
+		userContext(
+			requireAuth(
+				http.HandlerFunc(h.PostJobRetryHandler))))
+
+	mux.Handle("GET /extract",
+		userContext(
+			requireAuth(
+				http.HandlerFunc(h.GetExtractHandler))))
+	mux.Handle("POST /extract/website",
+		userContext(
+			requireAuth(
+				http.HandlerFunc(h.PostExtractWebsiteHandler))))
+	mux.Handle("POST /extract/video",
+		userContext(
+			requireAuth(
+				http.HandlerFunc(h.PostExtractVideoHandler))))
+	mux.Handle("POST /extract/image",
+		userContext(
+			requireAuth(
+				http.HandlerFunc(h.PostExtractImageHandler))))
 
 	requireAdminAuth := func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -241,6 +297,16 @@ func main() {
 			requireAuth(
 				requireAdminAuth(
 					http.HandlerFunc(h.DeleteUserHandler)))))
+	mux.Handle("GET /admin/jobs",
+		userContext(
+			requireAuth(
+				requireAdminAuth(
+					http.HandlerFunc(h.GetAdminJobsHandler)))))
+	mux.Handle("GET /admin/feedback",
+		userContext(
+			requireAuth(
+				requireAdminAuth(
+					http.HandlerFunc(h.GetAdminFeedbackHandler)))))
 
 	mux.Handle("GET /recipes/create",
 		userContext(

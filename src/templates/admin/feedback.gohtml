@@ -1,0 +1,115 @@
+{​{define "admin-feedback.gohtml"}}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin: Extraction Feedback - Schmecken musset!</title>
+    <link rel="icon" type="image/svg+xml" href="/static/favicons/sm-text.svg">
+    <link rel="stylesheet" href="{​{stylesheet .UserInfo.Theme}}">
+    <style>
+        .feedback-type {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 0.75rem;
+            background: var(--rule);
+            color: var(--muted);
+        }
+        .feedback-type.good { background: #d4edda; color: #155724; }
+        .feedback-type.missing_info { background: #fef3cd; color: #856404; }
+        .feedback-type.inaccurate { background: #f8d7da; color: #721c24; }
+        .rating {
+            font-weight: 600;
+        }
+        .rating.high { color: #155724; }
+        .rating.medium { color: #856404; }
+        .rating.low { color: #721c24; }
+    </style>
+</head>
+<body>
+    {​{template "navbar" .UserInfo}}
+
+    <main class="main-content">
+        <div class="page-header">
+            <nav style="margin-bottom: 10px;">
+                <a href="/admin" style="color: var(--muted);">Admin</a> &rsaquo; Extraction Feedback
+            </nav>
+            <h1>Extraction Feedback</h1>
+            <p>User feedback on extraction quality</p>
+        </div>
+
+        <div style="max-width: 1000px; margin: 0 auto;">
+            <div style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
+                <span style="color: var(--muted);">Total: {​{.TotalCount}} feedback entries</span>
+                <a href="/admin/jobs" class="btn">View Jobs</a>
+            </div>
+
+            {​{if .Feedback}}
+            <div class="card" style="padding: 0; overflow: hidden;">
+                <div style="overflow-x: auto;">
+                    <table style="width: 100%; border-collapse: collapse; min-width: 700px;">
+                        <thead>
+                            <tr style="border-bottom: 2px solid var(--rule); text-align: left;">
+                                <th style="padding: 12px 16px;">Job</th>
+                                <th style="padding: 12px 16px;">User</th>
+                                <th style="padding: 12px 16px;">Rating</th>
+                                <th style="padding: 12px 16px;">Type</th>
+                                <th style="padding: 12px 16px;">Comment</th>
+                                <th style="padding: 12px 16px;">Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {​{range .Feedback}}
+                            <tr style="border-bottom: 1px solid var(--rule);">
+                                <td style="padding: 12px 16px;">
+                                    <a href="/account/jobs/{​{.JobID}}" style="color: var(--link);">#{​{.JobID}}</a>
+                                </td>
+                                <td style="padding: 12px 16px;">{​{.Username}}</td>
+                                <td style="padding: 12px 16px;">
+                                    <span class="rating {​{if ge .Rating 4}}high{​{else if ge .Rating 3}}medium{​{else}}low{​{end}}">{​{.Rating}}/5</span>
+                                </td>
+                                <td style="padding: 12px 16px;">
+                                    <span class="feedback-type {​{.FeedbackType}}">{​{.FeedbackType}}</span>
+                                </td>
+                                <td style="padding: 12px 16px; max-width: 300px;">
+                                    {​{if .Comment}}
+                                        <span style="font-size: 0.9rem;">{​{.Comment}}</span>
+                                    {​{else}}
+                                        <span style="color: var(--muted);">-</span>
+                                    {​{end}}
+                                </td>
+                                <td style="padding: 12px 16px; color: var(--muted); white-space: nowrap; font-size: 0.85rem;">
+                                    {​{.CreatedAt.Format "Jan 2, 2006"}}
+                                </td>
+                            </tr>
+                            {​{end}}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            {​{if gt .TotalPages 1}}
+            <div style="margin-top: 20px; display: flex; justify-content: center; gap: 10px;">
+                {​{if gt .Page 1}}
+                <a href="/admin/feedback?page={​{subtract .Page 1}}" class="btn">Previous</a>
+                {​{end}}
+                <span style="padding: 8px 12px; color: var(--muted);">Page {​{.Page}} of {​{.TotalPages}}</span>
+                {​{if lt .Page .TotalPages}}
+                <a href="/admin/feedback?page={​{add .Page 1}}" class="btn">Next</a>
+                {​{end}}
+            </div>
+            {​{end}}
+
+            {​{else}}
+            <div class="card" style="text-align: center; padding: 40px;">
+                <p style="color: var(--muted);">No feedback submitted yet.</p>
+            </div>
+            {​{end}}
+        </div>
+    </main>
+
+    {​{template "footer" .UserInfo}}
+</body>
+</html>
+{​{end}}

@@ -8,6 +8,8 @@
   - if the instructions mention some ingredient twice, there should be some section where everythings summed up, e.g. for the purpose of creating a shopping list. maybe a shopping list button would be the actual thing to do here.
   - also the whole thing really only works well with some integration with an ingredient API that also contains stuff like calorie count etc.
 
+- recipe extraction for videos only works if there are subtitles, since this is where the transcript comes from. meaning that if I manage to find videos that fail due to this error, I need to figure out if I can feed the actual video to an LLM, though this be way more expensive.
+
 - ok so regarding ingredient databases:
   - there's the german BLS one, that seems to have the best data, but is German only
   - I can probably just supplement it with English AI translations for now

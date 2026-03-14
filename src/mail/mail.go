@@ -132,3 +132,35 @@ func (l *loggingMailClient) SendEmail(ctx context.Context, recipientEmail, recip
 	span.SetStatus(codes.Ok, "email logged (dev mode)")
 	return nil
 }
+
+func SendExtractionSuccessNotification(ctx context.Context, mc MailClient, userEmail, username, recipeTitle, recipeURL string) error {
+	subject := fmt.Sprintf("Recipe extracted: %s", recipeTitle)
+	content := fmt.Sprintf(`Hello %s,
+
+Your recipe has been extracted and published:
+%s
+
+If something doesn't look right, you can edit the recipe or leave feedback on the extraction job.
+
+Best regards,
+Recipe Book`, username, recipeURL)
+
+	return mc.SendEmail(ctx, userEmail, username, subject, content)
+}
+
+func SendExtractionFailureNotification(ctx context.Context, mc MailClient, userEmail, username, errorMessage, jobURL string) error {
+	subject := "Recipe extraction failed"
+	content := fmt.Sprintf(`Hello %s,
+
+We couldn't extract a recipe from your submission.
+
+Error: %s
+
+You can retry or try with different input:
+%s
+
+Best regards,
+Recipe Book`, username, errorMessage, jobURL)
+
+	return mc.SendEmail(ctx, userEmail, username, subject, content)
+}

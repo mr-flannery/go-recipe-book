@@ -1,0 +1,225 @@
+{{define "account-job-detail.gohtml"}}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Job Details - Schmecken musset!</title>
+    <link rel="icon" type="image/svg+xml" href="/static/favicons/sm-text.svg">
+    <link rel="stylesheet" href="{{stylesheet .UserInfo.Theme}}">
+    <style>
+        .job-status {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+        .job-status.pending { background: #fef3cd; color: #856404; }
+        .job-status.processing { background: #cce5ff; color: #004085; }
+        .job-status.completed { background: #d4edda; color: #155724; }
+        .job-status.failed { background: #f8d7da; color: #721c24; }
+        .detail-row {
+            display: flex;
+            border-bottom: 1px solid var(--rule);
+            padding: 12px 0;
+        }
+        .detail-label {
+            flex: 0 0 120px;
+            font-weight: 500;
+            color: var(--muted);
+        }
+        .detail-value {
+            flex: 1;
+            word-break: break-word;
+        }
+        .rating-group {
+            display: flex;
+            gap: 8px;
+        }
+        .rating-group label {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            border: 2px solid var(--rule);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .rating-group input:checked + label {
+            border-color: var(--link);
+            background: var(--link);
+            color: white;
+        }
+        .rating-group input {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    {{template "navbar" .UserInfo}}
+
+    <main class="main-content">
+        <div class="page-header">
+            <nav style="margin-bottom: 10px;">
+                <a href="/account" style="color: var(--muted);">Account</a> &rsaquo;
+                <a href="/account/jobs" style="color: var(--muted);">Jobs</a> &rsaquo; Job #{{.Job.ID}}
+            </nav>
+            <h1>Extraction Job #{{.Job.ID}}</h1>
+        </div>
+
+        {{if .Error}}
+        <div class="error" style="margin-bottom: 20px;">{{.Error}}</div>
+        {{end}}
+        {{if .Success}}
+        <div class="success" style="margin-bottom: 20px;">{{.Success}}</div>
+        {{end}}
+
+        <div style="max-width: 700px; margin: 0 auto;">
+            <div class="card" style="margin-bottom: 30px;">
+                <h2 style="font-size: 1.3rem; margin-bottom: 20px;">Job Details</h2>
+                
+                <div class="detail-row">
+                    <span class="detail-label">Status</span>
+                    <span class="detail-value">
+                        <span class="job-status {{.Job.Status}}">{{.Job.Status}}</span>
+                        {{if eq .Job.Status "pending"}}
+                        <span style="color: var(--muted); font-size: 0.85rem; margin-left: 10px;">Waiting in queue...</span>
+                        {{else if eq .Job.Status "processing"}}
+                        <span style="color: var(--muted); font-size: 0.85rem; margin-left: 10px;">Being processed...</span>
+                        {{end}}
+                    </span>
+                </div>
+
+                <div class="detail-row">
+                    <span class="detail-label">Type</span>
+                    <span class="detail-value">{{.Job.JobType}}</span>
+                </div>
+
+                <div class="detail-row">
+                    <span class="detail-label">Source</span>
+                    <span class="detail-value">
+                        {{if .Job.InputURL}}
+                            <a href="{{.Job.InputURL}}" target="_blank" rel="noopener" style="color: var(--link);">{{.Job.InputURL}}</a>
+                        {{else}}
+                            <span style="color: var(--muted);">[uploaded image]</span>
+                        {{end}}
+                    </span>
+                </div>
+
+                <div class="detail-row">
+                    <span class="detail-label">Attempts</span>
+                    <span class="detail-value">{{.Job.AttemptCount}}</span>
+                </div>
+
+                <div class="detail-row">
+                    <span class="detail-label">Created</span>
+                    <span class="detail-value">{{.Job.CreatedAt.Format "Jan 2, 2006 15:04:05"}}</span>
+                </div>
+
+                {{if .Job.CompletedAt}}
+                <div class="detail-row">
+                    <span class="detail-label">Completed</span>
+                    <span class="detail-value">{{.Job.CompletedAt.Format "Jan 2, 2006 15:04:05"}}</span>
+                </div>
+                {{end}}
+
+                {{if eq .Job.Status "completed"}}
+                {{if .Job.RecipeID}}
+                <div class="detail-row" style="border-bottom: none;">
+                    <span class="detail-label">Recipe</span>
+                    <span class="detail-value">
+                        <a href="/recipes/{{.Job.RecipeID}}" class="btn primary" style="display: inline-block;">
+                            {{if .Job.RecipeTitle}}View: {{.Job.RecipeTitle}}{{else}}View Recipe{{end}}
+                        </a>
+                    </span>
+                </div>
+                {{end}}
+                {{end}}
+
+                {{if eq .Job.Status "failed"}}
+                <div class="detail-row" style="border-bottom: none;">
+                    <span class="detail-label">Error</span>
+                    <span class="detail-value" style="color: #c53030;">
+                        {{if .Job.ErrorMessage}}{{.Job.ErrorMessage}}{{else}}Unknown error{{end}}
+                    </span>
+                </div>
+                {{end}}
+            </div>
+
+            {{if eq .Job.Status "failed"}}
+            <div class="card" style="margin-bottom: 30px;">
+                <h2 style="font-size: 1.3rem; margin-bottom: 15px;">Retry Job</h2>
+                <p style="line-height: 1.7; margin-bottom: 20px; color: var(--muted);">
+                    This job failed. You can retry it to attempt extraction again.
+                </p>
+                <form method="POST" action="/account/jobs/{{.Job.ID}}/retry">
+                    <button type="submit" class="btn primary">Retry Extraction</button>
+                </form>
+            </div>
+            {{end}}
+
+            {{if eq .Job.Status "completed"}}
+            <div class="card">
+                <h2 style="font-size: 1.3rem; margin-bottom: 15px;">Feedback</h2>
+                {{if .Feedback}}
+                <p style="color: var(--muted); margin-bottom: 15px;">You already submitted feedback for this job.</p>
+                <div class="detail-row">
+                    <span class="detail-label">Rating</span>
+                    <span class="detail-value">{{.Feedback.Rating}}/5</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Type</span>
+                    <span class="detail-value">{{.Feedback.FeedbackType}}</span>
+                </div>
+                {{if .Feedback.Comment}}
+                <div class="detail-row" style="border-bottom: none;">
+                    <span class="detail-label">Comment</span>
+                    <span class="detail-value">{{.Feedback.Comment}}</span>
+                </div>
+                {{end}}
+                {{else}}
+                <p style="line-height: 1.7; margin-bottom: 20px; color: var(--muted);">
+                    How did the extraction work? Your feedback helps improve the system.
+                </p>
+                <form method="POST" action="/account/jobs/{{.Job.ID}}/feedback">
+                    <div class="form-group" style="margin-bottom: 20px;">
+                        <label>Rating</label>
+                        <div class="rating-group">
+                            {{range $i := slice 1 2 3 4 5}}
+                            <input type="radio" name="rating" id="rating-{{$i}}" value="{{$i}}" required>
+                            <label for="rating-{{$i}}">{{$i}}</label>
+                            {{end}}
+                        </div>
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 20px;">
+                        <label for="feedback-type">Feedback Type</label>
+                        <select name="feedback_type" id="feedback-type" required style="height: 44px;">
+                            <option value="">Select...</option>
+                            <option value="good">Good - Extraction was accurate</option>
+                            <option value="missing_info">Missing Info - Some details were missing</option>
+                            <option value="inaccurate">Inaccurate - Information was wrong</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 20px;">
+                        <label for="comment">Comment (optional)</label>
+                        <textarea name="comment" id="comment" rows="3" placeholder="Any additional details..."></textarea>
+                    </div>
+
+                    <button type="submit" class="btn primary">Submit Feedback</button>
+                </form>
+                {{end}}
+            </div>
+            {{end}}
+        </div>
+    </main>
+
+    {{template "footer" .UserInfo}}
+</body>
+</html>
+{{end}}

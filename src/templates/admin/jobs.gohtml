@@ -1,0 +1,135 @@
+{​{define "admin-jobs.gohtml"}}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin: Extraction Jobs - Schmecken musset!</title>
+    <link rel="icon" type="image/svg+xml" href="/static/favicons/sm-text.svg">
+    <link rel="stylesheet" href="{​{stylesheet .UserInfo.Theme}}">
+    <style>
+        .job-status {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+        .job-status.pending { background: #fef3cd; color: #856404; }
+        .job-status.processing { background: #cce5ff; color: #004085; }
+        .job-status.completed { background: #d4edda; color: #155724; }
+        .job-status.failed { background: #f8d7da; color: #721c24; }
+        .job-type {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 0.75rem;
+            background: var(--rule);
+            color: var(--muted);
+        }
+    </style>
+</head>
+<body>
+    {​{template "navbar" .UserInfo}}
+
+    <main class="main-content">
+        <div class="page-header">
+            <nav style="margin-bottom: 10px;">
+                <a href="/admin" style="color: var(--muted);">Admin</a> &rsaquo; Extraction Jobs
+            </nav>
+            <h1>Extraction Jobs</h1>
+            <p>All user extraction jobs across the system</p>
+        </div>
+
+        <div style="max-width: 1100px; margin: 0 auto;">
+            <div style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
+                <span style="color: var(--muted);">Total: {​{.TotalCount}} jobs</span>
+                <a href="/admin/feedback" class="btn">View Feedback</a>
+            </div>
+
+            {​{if .Jobs}}
+            <div class="card" style="padding: 0; overflow: hidden;">
+                <div style="overflow-x: auto;">
+                    <table style="width: 100%; border-collapse: collapse; min-width: 800px;">
+                        <thead>
+                            <tr style="border-bottom: 2px solid var(--rule); text-align: left;">
+                                <th style="padding: 12px 16px;">ID</th>
+                                <th style="padding: 12px 16px;">User</th>
+                                <th style="padding: 12px 16px;">Type</th>
+                                <th style="padding: 12px 16px;">Source</th>
+                                <th style="padding: 12px 16px;">Status</th>
+                                <th style="padding: 12px 16px;">Attempts</th>
+                                <th style="padding: 12px 16px;">Result</th>
+                                <th style="padding: 12px 16px;">Created</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {​{range .Jobs}}
+                            <tr style="border-bottom: 1px solid var(--rule);">
+                                <td style="padding: 12px 16px;">
+                                    <a href="/account/jobs/{​{.ID}}" style="color: var(--link);">#{​{.ID}}</a>
+                                </td>
+                                <td style="padding: 12px 16px;">{​{.Username}}</td>
+                                <td style="padding: 12px 16px;">
+                                    <span class="job-type">{​{.JobType}}</span>
+                                </td>
+                                <td style="padding: 12px 16px; max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                    {​{if .InputURL}}
+                                        <a href="{​{.InputURL}}" target="_blank" rel="noopener" title="{​{.InputURL}}" style="color: var(--link);">{​{.InputURL}}</a>
+                                    {​{else}}
+                                        <span style="color: var(--muted);">[image]</span>
+                                    {​{end}}
+                                </td>
+                                <td style="padding: 12px 16px;">
+                                    <span class="job-status {​{.Status}}">{​{.Status}}</span>
+                                </td>
+                                <td style="padding: 12px 16px; text-align: center;">{​{.AttemptCount}}</td>
+                                <td style="padding: 12px 16px;">
+                                    {​{if eq .Status "completed"}}
+                                        {​{if .RecipeID}}
+                                            <a href="/recipes/{​{.RecipeID}}" style="color: var(--link);">Recipe #{​{.RecipeID}}</a>
+                                        {​{else}}
+                                            <span style="color: var(--muted);">-</span>
+                                        {​{end}}
+                                    {​{else if eq .Status "failed"}}
+                                        <span style="color: #c53030; font-size: 0.85rem;" title="{​{.ErrorMessage}}">
+                                            {​{if .ErrorMessage}}Error{​{else}}Failed{​{end}}
+                                        </span>
+                                    {​{else}}
+                                        <span style="color: var(--muted);">-</span>
+                                    {​{end}}
+                                </td>
+                                <td style="padding: 12px 16px; color: var(--muted); white-space: nowrap; font-size: 0.85rem;">
+                                    {​{.CreatedAt.Format "Jan 2 15:04"}}
+                                </td>
+                            </tr>
+                            {​{end}}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            {​{if gt .TotalPages 1}}
+            <div style="margin-top: 20px; display: flex; justify-content: center; gap: 10px;">
+                {​{if gt .Page 1}}
+                <a href="/admin/jobs?page={​{subtract .Page 1}}" class="btn">Previous</a>
+                {​{end}}
+                <span style="padding: 8px 12px; color: var(--muted);">Page {​{.Page}} of {​{.TotalPages}}</span>
+                {​{if lt .Page .TotalPages}}
+                <a href="/admin/jobs?page={​{add .Page 1}}" class="btn">Next</a>
+                {​{end}}
+            </div>
+            {​{end}}
+
+            {​{else}}
+            <div class="card" style="text-align: center; padding: 40px;">
+                <p style="color: var(--muted);">No extraction jobs in the system yet.</p>
+            </div>
+            {​{end}}
+        </div>
+    </main>
+
+    {​{template "footer" .UserInfo}}
+</body>
+</html>
+{​{end}}

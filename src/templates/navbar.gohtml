@@ -6,6 +6,7 @@
             <a href="/recipes" class="nav-link">Recipes</a>
             <a href="/recipes/random" class="nav-link">Random</a>
             {{if .IsLoggedIn}}
+                <a href="/extract" class="nav-link">Extract</a>
                 {{if .IsAdmin}}
                     <a href="/admin" class="nav-link">Admin</a>
                 {{end}}

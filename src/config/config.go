@@ -46,6 +46,9 @@ type Config struct {
 		Email   string `yaml:"email"`
 		Phone   string `yaml:"phone"`
 	} `yaml:"imprint"`
+	Extraction struct {
+		OpenRouterAPIKey string `yaml:"openrouter_api_key"`
+	} `yaml:"extraction"`
 }
 
 var (
@@ -137,5 +140,8 @@ func applyEnvOverrides(cfg *Config) {
 	}
 	if v := os.Getenv("IMPRINT_PHONE"); v != "" {
 		cfg.Imprint.Phone = v
+	}
+	if v := os.Getenv("OPENROUTER_API_KEY"); v != "" {
+		cfg.Extraction.OpenRouterAPIKey = v
 	}
 }
