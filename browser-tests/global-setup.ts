@@ -24,9 +24,9 @@ async function registerUser(page: Page, user: { username: string; email: string;
 
 async function approveUser(page: Page, username: string) {
   await page.goto(`${BASE_URL}/admin/registrations`);
-  const userCard = page.locator('.registration-card', { hasText: username });
-  if (await userCard.count() > 0) {
-    await userCard.getByRole('button', { name: 'Approve' }).click();
+  const userRow = page.getByRole('row', { name: new RegExp(username) });
+  if (await userRow.count() > 0) {
+    await userRow.getByRole('button', { name: 'Approve' }).click();
   }
 }
 

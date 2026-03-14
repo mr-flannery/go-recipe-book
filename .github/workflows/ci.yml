@@ -98,7 +98,7 @@ jobs:
       - name: Run Playwright tests
         working-directory: browser-tests
         env:
-          BROWSER_TEST_MODE: minimal
+          BROWSER_TEST_MODE: full
         run: npx playwright test
 
       - name: Stop services

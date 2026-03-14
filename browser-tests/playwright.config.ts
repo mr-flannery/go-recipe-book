@@ -29,7 +29,7 @@ function getProjects() {
 export default defineConfig({
   globalSetup: require.resolve('./global-setup'),
   testDir: '.',
-  testMatch: '**/[0-9][0-9]-*.spec.ts',
+  testMatch: '**/*.spec.ts',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: 0,

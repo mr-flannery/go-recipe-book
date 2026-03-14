@@ -42,8 +42,8 @@ test.describe.serial('User Registration', () => {
 
     await loginUser(page, ADMIN_USER.email, ADMIN_USER.password);
     await page.goto('/admin/registrations');
-    const rejectedCard = page.locator('.registration-card', { hasText: rejectedUser.username });
-    await rejectedCard.getByRole('button', { name: 'Deny' }).click();
+    const userRow = page.getByRole('row', { name: new RegExp(rejectedUser.username) });
+    await userRow.getByRole('button', { name: 'Deny' }).click();
     await page.getByRole('link', { name: 'Logout' }).click();
 
     await loginUser(page, rejectedUser.email, rejectedUser.password);
