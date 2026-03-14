@@ -28,7 +28,7 @@ func TestUserContextMiddleware_PopulatesContextWhenSessionIsValid(t *testing.T) 
 	}
 	mockPrefsStore := &mocks.MockUserPreferencesStore{
 		GetFunc: func(ctx context.Context, userID int) (*models.UserPreferences, error) {
-			return &models.UserPreferences{Theme: models.ThemeClassic}, nil
+			return &models.UserPreferences{Theme: models.ThemeEditorial}, nil
 		},
 	}
 
@@ -61,8 +61,8 @@ func TestUserContextMiddleware_PopulatesContextWhenSessionIsValid(t *testing.T) 
 	if capturedUserInfo.UserID != 1 {
 		t.Errorf("expected UserID 1, got %d", capturedUserInfo.UserID)
 	}
-	if capturedUserInfo.Theme != models.ThemeClassic {
-		t.Errorf("expected theme '%s', got %s", models.ThemeClassic, capturedUserInfo.Theme)
+	if capturedUserInfo.Theme != models.ThemeEditorial{
+		t.Errorf("expected theme '%s', got %s", models.ThemeEditorial, capturedUserInfo.Theme)
 	}
 }
 

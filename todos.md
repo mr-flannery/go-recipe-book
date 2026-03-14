@@ -18,20 +18,11 @@
   - it's because Maileroo is using a sandbox domain currently, to configure it correctly I need the actual domain, which I first have to buy
   - for which I need to checkout whether Railway supports external domains, and/or whether I just ditch the .de and use whatever is reasonable and cheap from their list
 
-- observability
-  - logging
-  - metrics
-  - alerts
-  - traces?
-
 - I should take a close look at how many DB queries I currently need per read, given that the recipe read is rather inefficient
   - use concurrency as much as possible
   - try to unify queries of the result of one query depends on the result of a different one
 
 - low prio: consider decoupling email sending via some async job/transactional outbox thing
-
-- favicon
-- also get rid of this weird "Taste" branding and come up with a better name
 
 - performance testing
 
@@ -41,18 +32,14 @@
 - login should work with both username and email address
   - which requires username to be unique
 
-
 - cmd enter doesnt' seem to work any more since reworking the action buttons
   - the fuck. it has created the recipe 3 times.
   - either the redirecting doesn't work, or it's a problem with not blocking the button once the request has been sent already
   - probably I should do both: lock the button, show a loading indicator
 
-
-
 - performance testing
 
 - localization
-
 - automated depenendcy updates
 
 - integration tests with test container are currently serial
@@ -66,10 +53,7 @@
     - pages `/recipe/`
     - htmx, which will probably be `/htmx/`, gotta think about whether I can make them match the pages or whether they should rather be grouped with models or something
     - API `/api/`, i.e. those endpoints that are actually used either from interactive components or from API clients
-- deploy
-  - nginx https stuff
-  - buy domain
-  - register domain with Maileroo
+
 - thhink about transaction handling for various operations, e.g. recipes and tags are separate tables
 - SQL prepared statements? is this code vulnerable to SQL injection right now?
 - there are a lot of inline structs, also a lot of duplicated ones
@@ -82,7 +66,7 @@
 - extract recipes from youtube videos or websites using llms
 - add api endpoints for creating recipes
 - calculate calorie information from ingredients
-  - though this would need to be adjusted for ingredentis that are missing precise quantities
+  - though this would need to be adjusted for ingredentis that are missing precise quantitieg
 - add a collection feature
   - recipes can be added to collections
   - collections are owned by a user
