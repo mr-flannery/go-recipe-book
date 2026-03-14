@@ -44,13 +44,19 @@ type chatMessage struct {
 }
 
 type contentPart struct {
-	Type     string    `json:"type"`
-	Text     string    `json:"text,omitempty"`
-	ImageURL *imageURL `json:"image_url,omitempty"`
+	Type       string      `json:"type"`
+	Text       string      `json:"text,omitempty"`
+	ImageURL   *imageURL   `json:"image_url,omitempty"`
+	InputAudio *inputAudio `json:"input_audio,omitempty"`
 }
 
 type imageURL struct {
 	URL string `json:"url"`
+}
+
+type inputAudio struct {
+	Data   string `json:"data"`
+	Format string `json:"format"`
 }
 
 type chatResponse struct {
@@ -121,6 +127,33 @@ func (c *LLMClient) ExtractRecipeFromImage(ctx context.Context, imageData []byte
 	return prompt, recipe, err
 }
 
+func (c *LLMClient) ExtractRecipeFromAudio(ctx context.Context, audioData []byte, additionalContext string) (string, *ExtractedRecipe, error) {
+	base64Audio := base64.StdEncoding.EncodeToString(audioData)
+
+	prompt := buildAudioPrompt(additionalContext)
+
+	request := chatRequest{
+		Model: c.model,
+		Messages: []chatMessage{
+			{
+				Role: "user",
+				Content: []contentPart{
+					{Type: "text", Text: prompt},
+					{Type: "input_audio", InputAudio: &inputAudio{Data: base64Audio, Format: "mp3"}},
+				},
+			},
+		},
+	}
+
+	responseText, err := c.sendRequest(ctx, request)
+	if err != nil {
+		return prompt, nil, err
+	}
+
+	recipe, err := parseRecipeResponse(responseText)
+	return prompt, recipe, err
+}
+
 func (c *LLMClient) sendRequest(ctx context.Context, request chatRequest) (string, error) {
 	jsonBody, err := json.Marshal(request)
 	if err != nil {
@@ -166,6 +199,69 @@ func (c *LLMClient) sendRequest(ctx context.Context, request chatRequest) (strin
 	}
 
 	return chatResp.Choices[0].Message.Content, nil
+}
+
+func buildAudioPrompt(additionalContext string) string {
+	prompt := `Extract a recipe from the attached audio of a cooking video. Listen carefully to identify all ingredients, quantities, and cooking steps. Return the result as valid JSON only, with no additional text.
+
+## Output Format
+
+{
+  "title": "Recipe title",
+  "description": "1-2 sentence description of the dish",
+  "ingredients_md": "Markdown bullet list of ingredients with quantities",
+  "instructions_md": "Markdown numbered list of steps",
+  "prep_time_minutes": <integer or null if unknown>,
+  "cook_time_minutes": <integer or null if unknown>,
+  "calories_per_serving": <integer or null if unknown>,
+  "suggested_tags": ["tag1", "tag2"],
+  "confidence": <0.0 to 1.0>,
+  "confidence_notes": "Any issues, uncertainties, or assumptions made"
+}
+
+## Rules
+
+### Ingredients (ingredients_md)
+- Use markdown bullet list format: "- 250g flour"
+- Include quantity, unit, and ingredient name
+- Prefer metric units (g, ml, °C) but preserve original if clearly imperial
+- One ingredient per line
+- Include preparation notes in parentheses: "- 2 onions (finely diced)"
+
+### Instructions (instructions_md)
+- Use markdown numbered list: "1. Preheat oven to 180°C"
+- Each step should be a single, clear action
+- Preserve the original order
+- Include temperatures, times, and visual cues where mentioned
+
+### Metadata
+- prep_time_minutes: Time for preparation before cooking starts
+- cook_time_minutes: Active cooking/baking time
+- calories_per_serving: Per single serving, if mentioned or calculable
+- Use null if information is not available or cannot be reasonably inferred
+
+### Tags
+- Suggest 2-5 relevant tags based on the recipe
+- Use lowercase, single words or hyphenated phrases
+- Examples: "vegetarian", "quick-meal", "german", "dessert", "one-pot"
+
+### Confidence
+- 1.0: Perfect extraction, all information clear
+- 0.8-0.9: Minor uncertainties (e.g., portion size unclear)
+- 0.6-0.7: Some information missing or ambiguous
+- Below 0.6: Significant issues, recommend manual review
+- Always explain any uncertainties in confidence_notes
+
+### Language
+- Output in the same language as the audio
+- If source is German, output German text
+- If source is English, output English text`
+
+	if additionalContext != "" {
+		prompt += fmt.Sprintf("\n\n## Additional Context from Video Description\n\n%s", additionalContext)
+	}
+
+	return prompt
 }
 
 func buildPrompt(sourceType, content string) string {

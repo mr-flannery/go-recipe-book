@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -142,14 +144,34 @@ func (w *Worker) processJob(ctx context.Context, job *store.ExtractionJob) error
 		if job.InputURL == nil {
 			return errors.New("video job missing input URL")
 		}
+
+		metadata, metaErr := FetchVideoMetadata(*job.InputURL)
+		if metaErr != nil && !errors.Is(metaErr, ErrVideoUnavailable) {
+			slog.Warn("Failed to fetch video metadata", "job_id", job.ID, "error", metaErr)
+		}
+
+		var additionalContext string
+		if metadata != nil {
+			additionalContext = w.buildVideoContext(ctx, metadata)
+		}
+
 		content, err = FetchYouTubeTranscript(*job.InputURL, []string{"en", "de"})
 		if err != nil {
 			if errors.Is(err, ErrNoCaptions) {
-				return fmt.Errorf("this video does not have captions/subtitles available. Recipe extraction requires a transcript")
+				slog.Info("No captions available, falling back to audio extraction", "job_id", job.ID)
+				llmInput, recipe, err = w.extractFromAudio(ctx, job, additionalContext)
+				if err != nil {
+					return fmt.Errorf("audio extraction failed: %w", err)
+				}
+			} else {
+				return fmt.Errorf("failed to fetch transcript: %w", err)
 			}
-			return fmt.Errorf("failed to fetch transcript: %w", err)
+		} else {
+			if additionalContext != "" {
+				content = content + "\n\n---\n\nAdditional context from video description:\n" + additionalContext
+			}
+			llmInput, recipe, err = w.llmClient.ExtractRecipeFromText(ctx, "transcript", content)
 		}
-		llmInput, recipe, err = w.llmClient.ExtractRecipeFromText(ctx, "transcript", content)
 
 	case "image":
 		if len(job.InputData) == 0 {
@@ -269,4 +291,44 @@ func (w *Worker) sendFailureNotification(ctx context.Context, job *store.Extract
 	if err := mail.SendExtractionFailureNotification(ctx, w.mailClient, user.Email, user.Username, errorMessage, jobURL); err != nil {
 		slog.Error("Failed to send failure notification", "job_id", job.ID, "error", err)
 	}
+}
+
+func (w *Worker) buildVideoContext(ctx context.Context, metadata *VideoMetadata) string {
+	var parts []string
+
+	if metadata.Description != "" {
+		parts = append(parts, "Video description:\n"+metadata.Description)
+	}
+
+	if len(metadata.RecipeLinks) > 0 {
+		for _, link := range metadata.RecipeLinks {
+			html, err := FetchWebsiteContent(link)
+			if err != nil {
+				slog.Warn("Failed to fetch recipe link", "url", link, "error", err)
+				continue
+			}
+			parts = append(parts, fmt.Sprintf("Recipe from linked page (%s):\n%s", link, html))
+		}
+	}
+
+	return strings.Join(parts, "\n\n---\n\n")
+}
+
+func (w *Worker) extractFromAudio(ctx context.Context, job *store.ExtractionJob, additionalContext string) (string, *ExtractedRecipe, error) {
+	audioResult, err := DownloadYouTubeAudio(*job.InputURL)
+	if err != nil {
+		return "", nil, fmt.Errorf("failed to download audio: %w", err)
+	}
+	defer func() {
+		if cleanupErr := audioResult.Cleanup(); cleanupErr != nil {
+			slog.Warn("Failed to cleanup audio file", "job_id", job.ID, "error", cleanupErr)
+		}
+	}()
+
+	audioData, err := os.ReadFile(audioResult.FilePath)
+	if err != nil {
+		return "", nil, fmt.Errorf("failed to read audio file: %w", err)
+	}
+
+	return w.llmClient.ExtractRecipeFromAudio(ctx, audioData, additionalContext)
 }

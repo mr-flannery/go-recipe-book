@@ -7,6 +7,11 @@ RUN CGO_ENABLED=0 go build -o recipe-book ./src/main.go
 
 FROM alpine:latest
 WORKDIR /app
+
+# Install ffmpeg and python/pip for yt-dlp (needed for video audio extraction)
+RUN apk add --no-cache ffmpeg python3 py3-pip && \
+    pip3 install --no-cache-dir --break-system-packages yt-dlp
+
 COPY --from=builder /app/recipe-book .
 COPY src/templates ./src/templates
 COPY src/static ./src/static

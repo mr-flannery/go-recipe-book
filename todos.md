@@ -10,6 +10,11 @@
 
 - recipe extraction for videos only works if there are subtitles, since this is where the transcript comes from. meaning that if I manage to find videos that fail due to this error, I need to figure out if I can feed the actual video to an LLM, though this be way more expensive.
 
+- redo readme, it's completely outdated.
+  - also make srue to include local deps (yt-dlp, ffmpeg) that are not covered by go deps management
+
+- add websocket connections for notifications and updates to extraction job status and stuff like that
+
 - ok so regarding ingredient databases:
   - there's the german BLS one, that seems to have the best data, but is German only
   - I can probably just supplement it with English AI translations for now

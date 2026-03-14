@@ -1,0 +1,18 @@
+{
+  "calories_per_serving": null,
+  "confidence": 0.7,
+  "confidence_notes": "The exact quantities for sugar, cornstarch, egg yolks, salt, milk, brown butter, maple syrup, and soy sauce were not explicitly stated in the audio. The cooking time for each side of the pancake is an estimation based on the visual cues and descriptions provided. The preparation time and calorie information were not mentioned.",
+  "cook_time_minutes": null,
+  "description": "Achieve the lightest, fluffiest pancakes that hold their structure without getting soggy. This recipe uses a unique method inspired by Michelin-star restaurants.",
+  "ingredients_md": "- 8 cold egg whites\n- Lemon juice\n- 150g caster sugar\n- Cornstarch\n- 5 egg yolks\n- Pinch of salt\n- Milk\n- Brown butter\n- Reduced maple syrup\n- Light soy sauce",
+  "instructions_md": "1. Whisk 8 cold egg whites with lemon juice until soft peaks form. The acid helps stabilize them.\n2. Gradually add 150g caster sugar while whisking until stiff, glossy peaks form. This process can take around 8 minutes by hand.\n3. Add cornstarch to the meringue and continue to whisk until firm peaks are achieved.\n4. Gently fold in 5 egg yolks and a pinch of salt.\n5. Lightly fold in milk to loosen the mixture slightly.\n6. Prepare the glaze by caramelizing brown butter until it reaches a 'beurre noir' stage (black butter).\n7. Add reduced maple syrup to the black butter and stir to combine.\n8. Add light soy sauce to the maple syrup mixture and stir to emulsify.\n9. Heat a non-stick pan over medium-low heat. Do not over-oil or grease the pan.\n10. Pour batter into the pan, being careful not to spread it too thin.\n11. Cover the pan with a lid or bowl to create a steaming effect.\n12. Cook for approximately 3-4 minutes on the first side, checking for setting around the edges.\n13. Flip the pancake and cook for another 5-6 minutes until golden brown and cooked through.\n14. Serve pancakes with the prepared maple glaze.",
+  "prep_time_minutes": null,
+  "suggested_tags": [
+    "pancakes",
+    "fluffy",
+    "breakfast",
+    "dessert",
+    "gourmet"
+  ],
+  "title": "Michelin-Inspired Fluffy Pancakes"
+}

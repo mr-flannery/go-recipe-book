@@ -12,7 +12,8 @@ test/llm-extraction/
 ├── results/           # Model outputs organized by model
 │   ├── gpt-4o-mini/
 │   ├── claude-3.5-sonnet/
-│   └── gemini-1.5-flash/
+│   ├── gemini-2.5-flash/
+│   └── gemini-2.5-flash-lite/
 └── scripts/           # Automation scripts
 ```
 
@@ -83,7 +84,24 @@ Replace placeholder files in `samples/` with real test data:
 ./scripts/extract-transcript.sh "https://www.youtube.com/watch?v=VIDEO_ID" > samples/video-01-transcript-en.txt
 ```
 
-### 3. Create Ground Truth
+### 3. Download YouTube Audio (for videos without captions)
+
+For videos that don't have captions, you can download the audio and use Gemini's audio processing:
+
+```bash
+# Install yt-dlp if not already installed
+pip install yt-dlp
+
+# Download audio (MP3 format, 128kbps)
+python scripts/download-video.py "https://www.youtube.com/watch?v=VIDEO_ID"
+
+# Download with custom name
+python scripts/download-video.py "https://www.youtube.com/watch?v=VIDEO_ID" video-03-cookies-en
+```
+
+Audio files are saved to `samples/` as MP3 files (typically 2-5MB vs 50-100MB for video). Gemini 2.5 Flash can process audio directly for transcription and recipe extraction.
+
+### 4. Create Ground Truth
 
 For each sample, create the expected JSON output in `expected/`:
 
@@ -93,7 +111,7 @@ cp expected/_template.json expected/image-01-handwritten-en.json
 # Edit with correct values
 ```
 
-### 4. Run Extraction Tests
+### 5. Run Extraction Tests
 
 ```bash
 cd test/llm-extraction
@@ -105,7 +123,7 @@ go run ./scripts/run-extraction
 go run ./scripts/run-extraction -sample image-01-handwritten-en -model gpt-4o-mini
 ```
 
-### 5. Compare Results
+### 6. Compare Results
 
 ```bash
 cd test/llm-extraction
@@ -158,13 +176,15 @@ Key features:
 |-------|----------|--------|-------|-------------------|
 | GPT-4o-mini | OpenAI | Yes | No | ~$0.01-0.03 |
 | Claude 3.5 Sonnet | Anthropic | Yes | No | ~$0.02-0.05 |
-| Gemini 1.5 Flash | Google | Yes | Yes | ~$0.01-0.02 |
+| Gemini 2.5 Flash | Google | Yes | Yes | ~$0.02-0.05 |
+| Gemini 2.5 Flash Lite | Google | Yes | Yes | ~$0.01-0.02 |
 | Pixtral 12B | Mistral | Yes | No | ~$0.01-0.02 |
 | Mistral Small | Mistral | No | No | ~$0.01 |
 | Mistral Large | Mistral | No | No | ~$0.02-0.04 |
 
 ## Notes
 
-- For video extraction, we use transcripts only (not native video input)
+- For video extraction, we prefer transcripts when available (faster, cheaper)
+- For videos without captions, Gemini 2.5 Flash can process video files directly
 - Low volume expected (~10 recipes/month), so cost is not a major concern
 - Focus on accuracy and trustworthiness of extractions

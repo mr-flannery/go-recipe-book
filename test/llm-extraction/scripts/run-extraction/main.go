@@ -45,7 +45,7 @@ type Model struct {
 
 func getModels() []Model {
 	models := []Model{}
-	
+
 	if key := os.Getenv("OPENROUTER_API_KEY"); key != "" && len(models) == 0 {
 		models = append(models,
 			Model{
@@ -68,6 +68,13 @@ func getModels() []Model {
 				Endpoint: "https://openrouter.ai/api/v1/chat/completions",
 				APIKey:   key,
 				Model:    "google/gemini-2.5-flash-lite",
+			},
+			Model{
+				Name:     "gemini-2.5-flash",
+				Provider: "openrouter",
+				Endpoint: "https://openrouter.ai/api/v1/chat/completions",
+				APIKey:   key,
+				Model:    "google/gemini-2.5-flash-preview-04-17",
 			},
 			Model{
 				Name:     "pixtral-12b",
@@ -98,7 +105,7 @@ func getModels() []Model {
 
 type Sample struct {
 	ID         string
-	Type       string // image, website, video
+	Type       string // image, website, video, audio
 	Path       string
 	SourceType string // for prompt template
 }
@@ -113,7 +120,7 @@ func getSamples() ([]Sample, error) {
 	var samples []Sample
 	for _, e := range entries {
 		name := e.Name()
-	
+
 		var sampleType, sourceType string
 		switch {
 		case strings.HasPrefix(name, "image-"):
@@ -122,6 +129,9 @@ func getSamples() ([]Sample, error) {
 		case strings.HasPrefix(name, "website-"):
 			sampleType = "website"
 			sourceType = "website HTML"
+		case strings.HasPrefix(name, "video-") && strings.HasSuffix(name, ".mp3"):
+			sampleType = "audio"
+			sourceType = "audio from cooking video"
 		case strings.HasPrefix(name, "video-"):
 			sampleType = "video"
 			sourceType = "video transcript"
@@ -151,56 +161,87 @@ func loadPromptTemplate() (string, error) {
 	return string(data), nil
 }
 
-func buildPrompt(template string, sample Sample) (string, []byte, error) {
+type MediaData struct {
+	Data     []byte
+	MimeType string
+}
+
+func buildPrompt(template string, sample Sample) (string, *MediaData, error) {
 	content, err := os.ReadFile(sample.Path)
 	if err != nil {
 		return "", nil, err
 	}
 
-	// For images, we'll pass the content separately
-	var imageData []byte
+	// For images and audio, we'll pass the content separately
+	var media *MediaData
 	var textContent string
 
-	if sample.Type == "image" {
-		imageData = content
+	switch sample.Type {
+	case "image":
+		mimeType := "image/jpeg"
+		if bytes.HasPrefix(content, []byte{0x89, 0x50, 0x4E, 0x47}) {
+			mimeType = "image/png"
+		}
+		media = &MediaData{Data: content, MimeType: mimeType}
 		textContent = "[Image attached]"
-	} else {
+	case "audio":
+		media = &MediaData{Data: content, MimeType: "audio/mpeg"}
+		textContent = "[Audio attached]"
+	default:
 		textContent = string(content)
 	}
 
 	prompt := strings.ReplaceAll(template, "{source_type}", sample.SourceType)
 	prompt = strings.ReplaceAll(prompt, "{content}", textContent)
 
-	return prompt, imageData, nil
+	return prompt, media, nil
 }
 
-func callOpenAI(model Model, prompt string, imageData []byte) (string, error) {
+func callOpenAI(model Model, prompt string, media *MediaData) (string, error) {
 	var messages []map[string]interface{}
 
-	if len(imageData) > 0 {
-		// Vision request with image
-		base64Image := base64.StdEncoding.EncodeToString(imageData)
-		mimeType := "image/jpeg"
-		if bytes.HasPrefix(imageData, []byte{0x89, 0x50, 0x4E, 0x47}) {
-			mimeType = "image/png"
-		}
+	if media != nil {
+		base64Data := base64.StdEncoding.EncodeToString(media.Data)
 
-		messages = []map[string]interface{}{
-			{
-				"role": "user",
-				"content": []map[string]interface{}{
-					{
-						"type": "text",
-						"text": prompt,
-					},
-					{
-						"type": "image_url",
-						"image_url": map[string]string{
-							"url": fmt.Sprintf("data:%s;base64,%s", mimeType, base64Image),
+		if strings.HasPrefix(media.MimeType, "audio/") {
+			// Audio request - use input_audio format for OpenAI-compatible APIs
+			messages = []map[string]interface{}{
+				{
+					"role": "user",
+					"content": []map[string]interface{}{
+						{
+							"type": "text",
+							"text": prompt,
+						},
+						{
+							"type": "input_audio",
+							"input_audio": map[string]string{
+								"data":   base64Data,
+								"format": "mp3",
+							},
 						},
 					},
 				},
-			},
+			}
+		} else {
+			// Vision request with image
+			messages = []map[string]interface{}{
+				{
+					"role": "user",
+					"content": []map[string]interface{}{
+						{
+							"type": "text",
+							"text": prompt,
+						},
+						{
+							"type": "image_url",
+							"image_url": map[string]string{
+								"url": fmt.Sprintf("data:%s;base64,%s", media.MimeType, base64Data),
+							},
+						},
+					},
+				},
+			}
 		}
 	} else {
 		messages = []map[string]interface{}{
@@ -218,22 +259,18 @@ func callOpenAI(model Model, prompt string, imageData []byte) (string, error) {
 	return makeRequest(model.Endpoint, model.APIKey, "Bearer", reqBody)
 }
 
-func callAnthropic(model Model, prompt string, imageData []byte) (string, error) {
+func callAnthropic(model Model, prompt string, media *MediaData) (string, error) {
 	var content []map[string]interface{}
 
-	if len(imageData) > 0 {
-		base64Image := base64.StdEncoding.EncodeToString(imageData)
-		mimeType := "image/jpeg"
-		if bytes.HasPrefix(imageData, []byte{0x89, 0x50, 0x4E, 0x47}) {
-			mimeType = "image/png"
-		}
+	if media != nil && strings.HasPrefix(media.MimeType, "image/") {
+		base64Image := base64.StdEncoding.EncodeToString(media.Data)
 
 		content = []map[string]interface{}{
 			{
 				"type": "image",
 				"source": map[string]string{
 					"type":       "base64",
-					"media_type": mimeType,
+					"media_type": media.MimeType,
 					"data":       base64Image,
 				},
 			},
@@ -243,6 +280,7 @@ func callAnthropic(model Model, prompt string, imageData []byte) (string, error)
 			},
 		}
 	} else {
+		// Anthropic doesn't support audio - just send the prompt
 		content = []map[string]interface{}{
 			{"type": "text", "text": prompt},
 		}
@@ -289,24 +327,20 @@ func callAnthropic(model Model, prompt string, imageData []byte) (string, error)
 	return "", fmt.Errorf("unexpected response format: %s", string(body))
 }
 
-func callGoogle(model Model, prompt string, imageData []byte) (string, error) {
+func callGoogle(model Model, prompt string, media *MediaData) (string, error) {
 	var parts []map[string]interface{}
 
 	parts = append(parts, map[string]interface{}{
 		"text": prompt,
 	})
 
-	if len(imageData) > 0 {
-		base64Image := base64.StdEncoding.EncodeToString(imageData)
-		mimeType := "image/jpeg"
-		if bytes.HasPrefix(imageData, []byte{0x89, 0x50, 0x4E, 0x47}) {
-			mimeType = "image/png"
-		}
+	if media != nil {
+		base64Data := base64.StdEncoding.EncodeToString(media.Data)
 
 		parts = append(parts, map[string]interface{}{
 			"inline_data": map[string]string{
-				"mime_type": mimeType,
-				"data":      base64Image,
+				"mime_type": media.MimeType,
+				"data":      base64Data,
 			},
 		})
 	}
@@ -359,14 +393,14 @@ func callGoogle(model Model, prompt string, imageData []byte) (string, error) {
 	return "", fmt.Errorf("unexpected response format: %s", string(body))
 }
 
-func callOpenRouter(model Model, prompt string, imageData []byte) (string, error) {
+func callOpenRouter(model Model, prompt string, media *MediaData) (string, error) {
 	// OpenRouter uses OpenAI-compatible format
-	return callOpenAI(model, prompt, imageData)
+	return callOpenAI(model, prompt, media)
 }
 
-func callMistral(model Model, prompt string, imageData []byte) (string, error) {
+func callMistral(model Model, prompt string, media *MediaData) (string, error) {
 	// Mistral uses OpenAI-compatible format
-	return callOpenAI(model, prompt, imageData)
+	return callOpenAI(model, prompt, media)
 }
 
 func makeRequest(endpoint, apiKey, authType string, reqBody map[string]interface{}) (string, error) {
@@ -404,18 +438,18 @@ func makeRequest(endpoint, apiKey, authType string, reqBody map[string]interface
 	return "", fmt.Errorf("unexpected response format: %s", string(body))
 }
 
-func callModel(model Model, prompt string, imageData []byte) (string, error) {
+func callModel(model Model, prompt string, media *MediaData) (string, error) {
 	switch model.Provider {
 	case "openai":
-		return callOpenAI(model, prompt, imageData)
+		return callOpenAI(model, prompt, media)
 	case "anthropic":
-		return callAnthropic(model, prompt, imageData)
+		return callAnthropic(model, prompt, media)
 	case "google":
-		return callGoogle(model, prompt, imageData)
+		return callGoogle(model, prompt, media)
 	case "mistral":
-		return callMistral(model, prompt, imageData)
+		return callMistral(model, prompt, media)
 	case "openrouter":
-		return callOpenRouter(model, prompt, imageData)
+		return callOpenRouter(model, prompt, media)
 	default:
 		return "", fmt.Errorf("unknown provider: %s", model.Provider)
 	}
@@ -444,13 +478,13 @@ func extractJSON(response string) string {
 func runExtraction(model Model, sample Sample, promptTemplate string) error {
 	fmt.Printf("  Running %s on %s...\n", model.Name, sample.ID)
 
-	prompt, imageData, err := buildPrompt(promptTemplate, sample)
-	
+	prompt, media, err := buildPrompt(promptTemplate, sample)
+
 	if err != nil {
 		return fmt.Errorf("failed to build prompt: %w", err)
 	}
 
-	response, err := callModel(model, prompt, imageData)
+	response, err := callModel(model, prompt, media)
 	if err != nil {
 		return fmt.Errorf("API call failed: %w", err)
 	}

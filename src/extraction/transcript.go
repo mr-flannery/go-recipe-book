@@ -20,6 +20,12 @@ var (
 	ErrInvalidYouTubeURL = errors.New("invalid YouTube URL")
 )
 
+type VideoMetadata struct {
+	Title       string
+	Description string
+	RecipeLinks []string
+}
+
 type TranscriptSegment struct {
 	Text     string
 	Start    float64
@@ -260,4 +266,99 @@ func formatTranscriptAsText(segments []TranscriptSegment) string {
 	}
 
 	return builder.String()
+}
+
+func FetchVideoMetadata(videoURL string) (*VideoMetadata, error) {
+	videoID, err := ExtractVideoID(videoURL)
+	if err != nil {
+		return nil, err
+	}
+
+	client := &http.Client{Timeout: 30 * time.Second}
+
+	watchURL := fmt.Sprintf("https://www.youtube.com/watch?v=%s", videoID)
+	req, err := http.NewRequest("GET", watchURL, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+	req.Header.Set("Accept-Language", "en-US,en;q=0.9")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch video page: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("video page returned status %d", resp.StatusCode)
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read video page: %w", err)
+	}
+
+	pageContent := string(body)
+
+	if strings.Contains(pageContent, "Video unavailable") ||
+		strings.Contains(pageContent, "This video isn't available") {
+		return nil, ErrVideoUnavailable
+	}
+
+	return extractMetadataFromPage(pageContent)
+}
+
+func extractMetadataFromPage(pageContent string) (*VideoMetadata, error) {
+	metadata := &VideoMetadata{}
+
+	titleRegexp := regexp.MustCompile(`"title"\s*:\s*"([^"]*)"`)
+	if matches := titleRegexp.FindStringSubmatch(pageContent); len(matches) > 1 {
+		metadata.Title = unescapeJSONString(matches[1])
+	}
+
+	descRegexp := regexp.MustCompile(`"shortDescription"\s*:\s*"([^"]*)"`)
+	if matches := descRegexp.FindStringSubmatch(pageContent); len(matches) > 1 {
+		metadata.Description = unescapeJSONString(matches[1])
+	}
+
+	if metadata.Description != "" {
+		metadata.RecipeLinks = extractRecipeLinks(metadata.Description)
+	}
+
+	return metadata, nil
+}
+
+func unescapeJSONString(s string) string {
+	s = strings.ReplaceAll(s, "\\n", "\n")
+	s = strings.ReplaceAll(s, "\\r", "\r")
+	s = strings.ReplaceAll(s, "\\t", "\t")
+	s = strings.ReplaceAll(s, "\\\"", "\"")
+	s = strings.ReplaceAll(s, "\\/", "/")
+	s = strings.ReplaceAll(s, "\\\\", "\\")
+	return s
+}
+
+var recipeURLPatterns = []*regexp.Regexp{
+	regexp.MustCompile(`https?://[^\s<>"]+(?:recipe|rezept)[^\s<>"]*`),
+	regexp.MustCompile(`https?://[^\s<>"]*(?:allrecipes|food\.com|epicurious|seriouseats|bonappetit|delish|tasty|cookpad|chefkoch|kitchen)[^\s<>"]*`),
+}
+
+func extractRecipeLinks(description string) []string {
+	seen := make(map[string]bool)
+	var links []string
+
+	for _, pattern := range recipeURLPatterns {
+		matches := pattern.FindAllString(description, -1)
+		for _, match := range matches {
+			match = strings.TrimRight(match, ".,;:!?)")
+			if !seen[match] {
+				seen[match] = true
+				links = append(links, match)
+			}
+		}
+	}
+
+	return links
 }
