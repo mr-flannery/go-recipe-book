@@ -190,10 +190,11 @@ test.describe.serial('Pagination Controls', () => {
 
       // Change page size to 50
       // This should calculate: offset = (3-1) * 20 = 40, newPage = floor(40/50) + 1 = 1
-      await page.locator('#page-size-select').selectOption('50');
-      await page.waitForResponse(response => 
+      const responsePromise = page.waitForResponse(response => 
         response.url().includes('/recipes/filter') && response.status() === 200
       );
+      await page.locator('#page-size-select').selectOption('50');
+      await responsePromise;
       await page.waitForFunction(() => {
         return document.querySelectorAll('.htmx-request').length === 0 &&
                document.querySelectorAll('.htmx-settling').length === 0;
@@ -215,10 +216,11 @@ test.describe.serial('Pagination Controls', () => {
       expect(headerPageBefore).toBe(1);
 
       // Change page size to 50
-      await page.locator('#page-size-select').selectOption('50');
-      await page.waitForResponse(response => 
+      const responsePromise = page.waitForResponse(response => 
         response.url().includes('/recipes/filter') && response.status() === 200
       );
+      await page.locator('#page-size-select').selectOption('50');
+      await responsePromise;
       await page.waitForFunction(() => {
         return document.querySelectorAll('.htmx-request').length === 0 &&
                document.querySelectorAll('.htmx-settling').length === 0;
