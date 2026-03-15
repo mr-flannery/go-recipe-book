@@ -120,17 +120,40 @@ jobs:
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
         run: |
-          railway variables set MAIL_API_KEY="${{ secrets.MAIL_API_KEY }}" --service ${{ vars.RAILWAY_SERVICE_NAME }}
-          railway variables set MAIL_DOMAIN="${{ secrets.MAIL_DOMAIN }}" --service ${{ vars.RAILWAY_SERVICE_NAME }}
-          railway variables set DB_ADMIN_USERNAME="${{ secrets.INITIAL_ADMIN_USERNAME }}" --service ${{ vars.RAILWAY_SERVICE_NAME }}
-          railway variables set DB_ADMIN_EMAIL="${{ secrets.INITIAL_ADMIN_EMAIL }}" --service ${{ vars.RAILWAY_SERVICE_NAME }}
-          railway variables set DB_ADMIN_PASSWORD="${{ secrets.INITIAL_ADMIN_PASSWORD }}" --service ${{ vars.RAILWAY_SERVICE_NAME }}
-          railway variables set OTEL_SERVICE_NAME="recipe-book" --service ${{ vars.RAILWAY_SERVICE_NAME }}
-          railway variables set OTEL_EXPORTER_OTLP_PROTOCOL="http/protobuf" --service ${{ vars.RAILWAY_SERVICE_NAME }}
-          railway variables set OTEL_EXPORTER_OTLP_ENDPOINT="https://api.eu1.honeycomb.io" --service ${{ vars.RAILWAY_SERVICE_NAME }}
-          railway variables set OTEL_EXPORTER_OTLP_HEADERS="x-honeycomb-team=${{ secrets.HONEYCOMB_API_KEY }}" --service ${{ vars.RAILWAY_SERVICE_NAME }}
-          railway variables set API_ENCRYPTION_KEY="${{ secrets.API_ENCRYPTION_KEY }}" --service ${{ vars.RAILWAY_SERVICE_NAME }}
-          railway variables set OPENROUTER_API_KEY="${{ secrets.OPENROUTER_API_KEY }}" --service ${{ vars.RAILWAY_SERVICE_NAME }}
+          set_variables() {
+            railway variables set MAIL_API_KEY="${{ secrets.MAIL_API_KEY }}" --service ${{ vars.RAILWAY_SERVICE_NAME }} && \
+            railway variables set MAIL_DOMAIN="${{ secrets.MAIL_DOMAIN }}" --service ${{ vars.RAILWAY_SERVICE_NAME }} && \
+            railway variables set DB_ADMIN_USERNAME="${{ secrets.INITIAL_ADMIN_USERNAME }}" --service ${{ vars.RAILWAY_SERVICE_NAME }} && \
+            railway variables set DB_ADMIN_EMAIL="${{ secrets.INITIAL_ADMIN_EMAIL }}" --service ${{ vars.RAILWAY_SERVICE_NAME }} && \
+            railway variables set DB_ADMIN_PASSWORD="${{ secrets.INITIAL_ADMIN_PASSWORD }}" --service ${{ vars.RAILWAY_SERVICE_NAME }} && \
+            railway variables set OTEL_SERVICE_NAME="recipe-book" --service ${{ vars.RAILWAY_SERVICE_NAME }} && \
+            railway variables set OTEL_EXPORTER_OTLP_PROTOCOL="http/protobuf" --service ${{ vars.RAILWAY_SERVICE_NAME }} && \
+            railway variables set OTEL_EXPORTER_OTLP_ENDPOINT="https://api.eu1.honeycomb.io" --service ${{ vars.RAILWAY_SERVICE_NAME }} && \
+            railway variables set OTEL_EXPORTER_OTLP_HEADERS="x-honeycomb-team=${{ secrets.HONEYCOMB_API_KEY }}" --service ${{ vars.RAILWAY_SERVICE_NAME }} && \
+            railway variables set API_ENCRYPTION_KEY="${{ secrets.API_ENCRYPTION_KEY }}" --service ${{ vars.RAILWAY_SERVICE_NAME }} && \
+            railway variables set OPENROUTER_API_KEY="${{ secrets.OPENROUTER_API_KEY }}" --service ${{ vars.RAILWAY_SERVICE_NAME }}
+          }
+          
+          MAX_ATTEMPTS=3
+          DELAY=10
+          
+          for attempt in $(seq 1 $MAX_ATTEMPTS); do
+            echo "Setting variables attempt $attempt of $MAX_ATTEMPTS"
+            
+            if set_variables; then
+              echo "Variables set successfully"
+              exit 0
+            fi
+            
+            if [ $attempt -lt $MAX_ATTEMPTS ]; then
+              echo "Failed to set variables. Waiting ${DELAY}s before retry..."
+              sleep $DELAY
+              DELAY=$((DELAY * 2))
+            fi
+          done
+          
+          echo "Failed to set variables after $MAX_ATTEMPTS attempts"
+          exit 1
 
       - name: Deploy to Railway
         env:

@@ -1,4 +1,4 @@
-{​{define "admin-feedback.gohtml"}}
+{{define "admin-feedback.gohtml"}}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin: Extraction Feedback - Schmecken musset!</title>
     <link rel="icon" type="image/svg+xml" href="/static/favicons/sm-text.svg">
-    <link rel="stylesheet" href="{​{stylesheet .UserInfo.Theme}}">
+    <link rel="stylesheet" href="{{stylesheet .UserInfo.Theme}}">
     <style>
         .feedback-type {
             display: inline-block;
@@ -28,7 +28,7 @@
     </style>
 </head>
 <body>
-    {​{template "navbar" .UserInfo}}
+    {{template "navbar" .UserInfo}}
 
     <main class="main-content">
         <div class="page-header">
@@ -41,11 +41,11 @@
 
         <div style="max-width: 1000px; margin: 0 auto;">
             <div style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
-                <span style="color: var(--muted);">Total: {​{.TotalCount}} feedback entries</span>
+                <span style="color: var(--muted);">Total: {{.TotalCount}} feedback entries</span>
                 <a href="/admin/jobs" class="btn">View Jobs</a>
             </div>
 
-            {​{if .Feedback}}
+            {{if .Feedback}}
             <div class="card" style="padding: 0; overflow: hidden;">
                 <div style="overflow-x: auto;">
                     <table style="width: 100%; border-collapse: collapse; min-width: 700px;">
@@ -60,56 +60,56 @@
                             </tr>
                         </thead>
                         <tbody>
-                            {​{range .Feedback}}
+                            {{range .Feedback}}
                             <tr style="border-bottom: 1px solid var(--rule);">
                                 <td style="padding: 12px 16px;">
-                                    <a href="/account/jobs/{​{.JobID}}" style="color: var(--link);">#{​{.JobID}}</a>
+                                    <a href="/account/jobs/{{.JobID}}" style="color: var(--link);">#{{.JobID}}</a>
                                 </td>
-                                <td style="padding: 12px 16px;">{​{.Username}}</td>
+                                <td style="padding: 12px 16px;">{{.Username}}</td>
                                 <td style="padding: 12px 16px;">
-                                    <span class="rating {​{if ge .Rating 4}}high{​{else if ge .Rating 3}}medium{​{else}}low{​{end}}">{​{.Rating}}/5</span>
+                                    <span class="rating {{if ge .Rating 4}}high{{else if ge .Rating 3}}medium{{else}}low{{end}}">{{.Rating}}/5</span>
                                 </td>
                                 <td style="padding: 12px 16px;">
-                                    <span class="feedback-type {​{.FeedbackType}}">{​{.FeedbackType}}</span>
+                                    <span class="feedback-type {{.FeedbackType}}">{{.FeedbackType}}</span>
                                 </td>
                                 <td style="padding: 12px 16px; max-width: 300px;">
-                                    {​{if .Comment}}
-                                        <span style="font-size: 0.9rem;">{​{.Comment}}</span>
-                                    {​{else}}
+                                    {{if .Comment}}
+                                        <span style="font-size: 0.9rem;">{{.Comment}}</span>
+                                    {{else}}
                                         <span style="color: var(--muted);">-</span>
-                                    {​{end}}
+                                    {{end}}
                                 </td>
                                 <td style="padding: 12px 16px; color: var(--muted); white-space: nowrap; font-size: 0.85rem;">
-                                    {​{.CreatedAt.Format "Jan 2, 2006"}}
+                                    {{.CreatedAt.Format "Jan 2, 2006"}}
                                 </td>
                             </tr>
-                            {​{end}}
+                            {{end}}
                         </tbody>
                     </table>
                 </div>
             </div>
 
-            {​{if gt .TotalPages 1}}
+            {{if gt .TotalPages 1}}
             <div style="margin-top: 20px; display: flex; justify-content: center; gap: 10px;">
-                {​{if gt .Page 1}}
-                <a href="/admin/feedback?page={​{subtract .Page 1}}" class="btn">Previous</a>
-                {​{end}}
-                <span style="padding: 8px 12px; color: var(--muted);">Page {​{.Page}} of {​{.TotalPages}}</span>
-                {​{if lt .Page .TotalPages}}
-                <a href="/admin/feedback?page={​{add .Page 1}}" class="btn">Next</a>
-                {​{end}}
+                {{if gt .Page 1}}
+                <a href="/admin/feedback?page={{subtract .Page 1}}" class="btn">Previous</a>
+                {{end}}
+                <span style="padding: 8px 12px; color: var(--muted);">Page {{.Page}} of {{.TotalPages}}</span>
+                {{if lt .Page .TotalPages}}
+                <a href="/admin/feedback?page={{add .Page 1}}" class="btn">Next</a>
+                {{end}}
             </div>
-            {​{end}}
+            {{end}}
 
-            {​{else}}
+            {{else}}
             <div class="card" style="text-align: center; padding: 40px;">
                 <p style="color: var(--muted);">No feedback submitted yet.</p>
             </div>
-            {​{end}}
+            {{end}}
         </div>
     </main>
 
-    {​{template "footer" .UserInfo}}
+    {{template "footer" .UserInfo}}
 </body>
 </html>
-{​{end}}
+{{end}}
