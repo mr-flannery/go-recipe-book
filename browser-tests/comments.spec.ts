@@ -15,8 +15,10 @@ const test = base.extend<AuthFixtures>({
     await page.goto('/login');
     await page.locator('input[name="email"]').fill(user.email);
     await page.locator('input[name="password"]').fill(user.password);
-    await page.getByRole('button', { name: 'Sign In' }).click();
-    await page.waitForURL('/');
+    await Promise.all([
+      page.waitForURL('/'),
+      page.getByRole('button', { name: 'Sign In' }).click(),
+    ]);
     await use(page);
     await context.close();
   },
@@ -27,8 +29,10 @@ const test = base.extend<AuthFixtures>({
     await page.goto('/login');
     await page.locator('input[name="email"]').fill(user.email);
     await page.locator('input[name="password"]').fill(user.password);
-    await page.getByRole('button', { name: 'Sign In' }).click();
-    await page.waitForURL('/');
+    await Promise.all([
+      page.waitForURL('/'),
+      page.getByRole('button', { name: 'Sign In' }).click(),
+    ]);
     await use(page);
     await context.close();
   },
@@ -44,8 +48,10 @@ async function createRecipe(page: Page, title: string): Promise<string> {
   await page.locator('#calories').fill('300');
   await fillToastEditor(page, 'ingredients-editor', '- 1 cup rice');
   await fillToastEditor(page, 'instructions-editor', '1. Cook rice');
-  await page.getByRole('button', { name: /Create Recipe|Submit/i }).click();
-  await page.waitForURL(/\/recipes\/\d+/);
+  await Promise.all([
+    page.waitForURL(/\/recipes\/\d+/),
+    page.getByRole('button', { name: /Create Recipe|Submit/i }).click(),
+  ]);
   return page.url().match(/\/recipes\/(\d+)/)?.[1] || '';
 }
 

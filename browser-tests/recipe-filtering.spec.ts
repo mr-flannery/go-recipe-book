@@ -33,8 +33,10 @@ const test = base.extend<AuthFixtures>({
     await page.goto('/login');
     await page.locator('input[name="email"]').fill(user.email);
     await page.locator('input[name="password"]').fill(user.password);
-    await page.getByRole('button', { name: 'Sign In' }).click();
-    await page.waitForURL('/');
+    await Promise.all([
+      page.waitForURL('/'),
+      page.getByRole('button', { name: 'Sign In' }).click(),
+    ]);
     await use(page);
     await context.close();
   },
@@ -45,8 +47,10 @@ const test = base.extend<AuthFixtures>({
     await page.goto('/login');
     await page.locator('input[name="email"]').fill(user.email);
     await page.locator('input[name="password"]').fill(user.password);
-    await page.getByRole('button', { name: 'Sign In' }).click();
-    await page.waitForURL('/');
+    await Promise.all([
+      page.waitForURL('/'),
+      page.getByRole('button', { name: 'Sign In' }).click(),
+    ]);
     await use(page);
     await context.close();
   },
@@ -99,8 +103,10 @@ test.describe.serial('Recipe Filtering', () => {
       await page.locator('#tags-input').press('Enter');
     }
 
-    await page.getByRole('button', { name: /Create Recipe|Submit/i }).click();
-    await page.waitForURL(/\/recipes\/\d+/);
+    await Promise.all([
+      page.waitForURL(/\/recipes\/\d+/),
+      page.getByRole('button', { name: /Create Recipe|Submit/i }).click(),
+    ]);
   }
 
   async function getVisibleRecipeTitles(page: Page): Promise<string[]> {
@@ -128,8 +134,10 @@ test.describe.serial('Recipe Filtering', () => {
     await page.locator('#calories').fill('300');
     await fillToastEditor(page, 'ingredients-editor', '- 1 ingredient');
     await fillToastEditor(page, 'instructions-editor', '1. Do something');
-    await page.getByRole('button', { name: /Create Recipe|Submit/i }).click();
-    await page.waitForURL(/\/recipes\/\d+/);
+    await Promise.all([
+      page.waitForURL(/\/recipes\/\d+/),
+      page.getByRole('button', { name: /Create Recipe|Submit/i }).click(),
+    ]);
   }
 
   async function ensureMinimumRecipes(page: Page, minCount: number): Promise<void> {
@@ -152,8 +160,10 @@ test.describe.serial('Recipe Filtering', () => {
     await page.goto('/login');
     await page.locator('input[name="email"]').fill(user.email);
     await page.locator('input[name="password"]').fill(user.password);
-    await page.getByRole('button', { name: 'Sign In' }).click();
-    await page.waitForURL('/');
+    await Promise.all([
+      page.waitForURL('/'),
+      page.getByRole('button', { name: 'Sign In' }).click(),
+    ]);
 
     for (const recipe of Object.values(testRecipes)) {
       await createRecipe(page, recipe);
@@ -282,8 +292,10 @@ test.describe.serial('Recipe Filtering', () => {
       await triggerFilterAndWait(page, () => page.locator('#search').fill(`Veggie Quick ${uniqueId}`));
       
       const veggieCard = page.locator('.recipe-card').filter({ hasText: `Veggie Quick ${uniqueId}` }).first();
-      await veggieCard.click();
-      await page.waitForURL(/\/recipes\/\d+/);
+      await Promise.all([
+        page.waitForURL(/\/recipes\/\d+/),
+        veggieCard.click(),
+      ]);
 
       await clickTagAddButton(page, 'user-tags');
       await page.locator('#user-tags-input').fill('my-favorite');
@@ -322,8 +334,10 @@ test.describe.serial('Recipe Filtering', () => {
       await triggerFilterAndWait(user1Page, () => user1Page.locator('#search').fill(`Meat Slow ${uniqueId}`));
       
       const meatCard = user1Page.locator('.recipe-card').filter({ hasText: `Meat Slow ${uniqueId}` }).first();
-      await meatCard.click();
-      await user1Page.waitForURL(/\/recipes\/\d+/);
+      await Promise.all([
+        user1Page.waitForURL(/\/recipes\/\d+/),
+        meatCard.click(),
+      ]);
 
       await clickTagAddButton(user1Page, 'user-tags');
       await user1Page.locator('#user-tags-input').fill('user1-filter-test');
@@ -430,8 +444,10 @@ test.describe.serial('Recipe Filtering', () => {
       await page1.goto('/login');
       await page1.locator('input[name="email"]').fill(TEST_USERS.approved1.email);
       await page1.locator('input[name="password"]').fill(TEST_USERS.approved1.password);
-      await page1.getByRole('button', { name: 'Sign In' }).click();
-      await page1.waitForURL('/');
+      await Promise.all([
+        page1.waitForURL('/'),
+        page1.getByRole('button', { name: 'Sign In' }).click(),
+      ]);
 
       await page1.goto('/recipes/create');
       await page1.getByRole('textbox', { name: 'Title' }).fill(`User1 Recipe ${authorFilterId}`);
@@ -440,8 +456,10 @@ test.describe.serial('Recipe Filtering', () => {
       await page1.locator('#calories').fill('300');
       await fillToastEditor(page1, 'ingredients-editor', '- test ingredient');
       await fillToastEditor(page1, 'instructions-editor', '1. test instruction');
-      await page1.getByRole('button', { name: /Create Recipe|Submit/i }).click();
-      await page1.waitForURL(/\/recipes\/\d+/);
+      await Promise.all([
+        page1.waitForURL(/\/recipes\/\d+/),
+        page1.getByRole('button', { name: /Create Recipe|Submit/i }).click(),
+      ]);
       await context1.close();
 
       const context2 = await browser.newContext();
@@ -449,8 +467,10 @@ test.describe.serial('Recipe Filtering', () => {
       await page2.goto('/login');
       await page2.locator('input[name="email"]').fill(TEST_USERS.approved2.email);
       await page2.locator('input[name="password"]').fill(TEST_USERS.approved2.password);
-      await page2.getByRole('button', { name: 'Sign In' }).click();
-      await page2.waitForURL('/');
+      await Promise.all([
+        page2.waitForURL('/'),
+        page2.getByRole('button', { name: 'Sign In' }).click(),
+      ]);
 
       await page2.goto('/recipes/create');
       await page2.getByRole('textbox', { name: 'Title' }).fill(`User2 Recipe ${authorFilterId}`);
@@ -459,8 +479,10 @@ test.describe.serial('Recipe Filtering', () => {
       await page2.locator('#calories').fill('400');
       await fillToastEditor(page2, 'ingredients-editor', '- another ingredient');
       await fillToastEditor(page2, 'instructions-editor', '1. another instruction');
-      await page2.getByRole('button', { name: /Create Recipe|Submit/i }).click();
-      await page2.waitForURL(/\/recipes\/\d+/);
+      await Promise.all([
+        page2.waitForURL(/\/recipes\/\d+/),
+        page2.getByRole('button', { name: /Create Recipe|Submit/i }).click(),
+      ]);
       await context2.close();
     });
 

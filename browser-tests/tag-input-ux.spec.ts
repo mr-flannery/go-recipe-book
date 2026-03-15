@@ -20,8 +20,10 @@ const test = base.extend<AuthFixtures>({
     await page.goto('/login');
     await page.locator('input[name="email"]').fill(user.email);
     await page.locator('input[name="password"]').fill(user.password);
-    await page.getByRole('button', { name: 'Sign In' }).click();
-    await page.waitForURL('/');
+    await Promise.all([
+      page.waitForURL('/'),
+      page.getByRole('button', { name: 'Sign In' }).click(),
+    ]);
     await use(page);
     await context.close();
   },
@@ -38,8 +40,10 @@ test.describe.serial('Tag Input UX', () => {
     await page.locator('#calories').fill('100');
     await fillToastEditor(page, 'ingredients-editor', '- 1 item');
     await fillToastEditor(page, 'instructions-editor', '1. Do something');
-    await page.getByRole('button', { name: /Create Recipe|Submit/i }).click();
-    await page.waitForURL(/\/recipes\/\d+/);
+    await Promise.all([
+      page.waitForURL(/\/recipes\/\d+/),
+      page.getByRole('button', { name: /Create Recipe|Submit/i }).click(),
+    ]);
   }
 
   test.describe('Suggestions Visibility', () => {

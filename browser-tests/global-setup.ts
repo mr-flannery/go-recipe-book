@@ -7,8 +7,10 @@ async function tryLogin(page: Page, email: string, password: string): Promise<bo
   await page.goto(`${BASE_URL}/login`);
   await page.locator('input[name="email"]').fill(email);
   await page.locator('input[name="password"]').fill(password);
-  await page.getByRole('button', { name: 'Sign in' }).click();
-  await page.waitForURL(url => url.pathname === '/' || url.pathname === '/login');
+  await Promise.all([
+    page.waitForURL(url => url.pathname === '/' || url.pathname === '/login'),
+    page.getByRole('button', { name: 'Sign in' }).click(),
+  ]);
   return page.url() === `${BASE_URL}/`;
 }
 

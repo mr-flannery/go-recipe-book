@@ -21,8 +21,10 @@ const test = base.extend<AuthFixtures>({
     await page.goto('/login');
     await page.locator('input[name="email"]').fill(user.email);
     await page.locator('input[name="password"]').fill(user.password);
-    await page.getByRole('button', { name: 'Sign In' }).click();
-    await page.waitForURL('/');
+    await Promise.all([
+      page.waitForURL('/'),
+      page.getByRole('button', { name: 'Sign In' }).click(),
+    ]);
     await use(page);
     await context.close();
   },
@@ -33,8 +35,10 @@ const test = base.extend<AuthFixtures>({
     await page.goto('/login');
     await page.locator('input[name="email"]').fill(user.email);
     await page.locator('input[name="password"]').fill(user.password);
-    await page.getByRole('button', { name: 'Sign In' }).click();
-    await page.waitForURL('/');
+    await Promise.all([
+      page.waitForURL('/'),
+      page.getByRole('button', { name: 'Sign In' }).click(),
+    ]);
     await use(page);
     await context.close();
   },
@@ -73,8 +77,10 @@ test.describe.serial('Tagging', () => {
       await expect(user1Page.locator('#tags-container .tag').getByText('vegetarian')).toBeVisible();
       await expect(user1Page.locator('#tags-container .tag').getByText('easy')).toBeVisible();
 
-      await user1Page.getByRole('button', { name: /Create Recipe|Submit/i }).click();
-      await user1Page.waitForURL(/\/recipes\/\d+/);
+      await Promise.all([
+        user1Page.waitForURL(/\/recipes\/\d+/),
+        user1Page.getByRole('button', { name: /Create Recipe|Submit/i }).click(),
+      ]);
 
       await expect(user1Page.locator('#author-tags-container .tag').getByText('vegetarian')).toBeVisible();
       await expect(user1Page.locator('#author-tags-container .tag').getByText('easy')).toBeVisible();
@@ -102,8 +108,10 @@ test.describe.serial('Tagging', () => {
       await user1Page.locator('#tags-input').fill(testRecipe.initialTag);
       await user1Page.locator('#tags-input').press('Enter');
 
-      await user1Page.getByRole('button', { name: /Create Recipe|Submit/i }).click();
-      await user1Page.waitForURL(/\/recipes\/\d+/);
+      await Promise.all([
+        user1Page.waitForURL(/\/recipes\/\d+/),
+        user1Page.getByRole('button', { name: /Create Recipe|Submit/i }).click(),
+      ]);
 
       const recipeUrl = user1Page.url();
 
@@ -146,8 +154,10 @@ test.describe.serial('Tagging', () => {
       await fillToastEditor(user1Page, 'instructions-editor', testRecipe.instructions);
       await user1Page.locator('#tags-input').fill(testRecipe.tag);
       await user1Page.locator('#tags-input').press('Enter');
-      await user1Page.getByRole('button', { name: /Create Recipe|Submit/i }).click();
-      await user1Page.waitForURL(/\/recipes\/\d+/);
+      await Promise.all([
+        user1Page.waitForURL(/\/recipes\/\d+/),
+        user1Page.getByRole('button', { name: /Create Recipe|Submit/i }).click(),
+      ]);
 
       const url = user1Page.url();
       const recipeId = url.match(/\/recipes\/(\d+)/)?.[1] || '';
@@ -182,8 +192,10 @@ test.describe.serial('Tagging', () => {
       await user1Page.locator('#calories').fill(testRecipe.calories);
       await fillToastEditor(user1Page, 'ingredients-editor', testRecipe.ingredients);
       await fillToastEditor(user1Page, 'instructions-editor', testRecipe.instructions);
-      await user1Page.getByRole('button', { name: /Create Recipe|Submit/i }).click();
-      await user1Page.waitForURL(/\/recipes\/\d+/);
+      await Promise.all([
+        user1Page.waitForURL(/\/recipes\/\d+/),
+        user1Page.getByRole('button', { name: /Create Recipe|Submit/i }).click(),
+      ]);
 
       const recipeUrl = user1Page.url();
 
@@ -228,8 +240,10 @@ test.describe.serial('Tagging', () => {
       await user1Page.locator('#calories').fill(testRecipe.calories);
       await fillToastEditor(user1Page, 'ingredients-editor', testRecipe.ingredients);
       await fillToastEditor(user1Page, 'instructions-editor', testRecipe.instructions);
-      await user1Page.getByRole('button', { name: /Create Recipe|Submit/i }).click();
-      await user1Page.waitForURL(/\/recipes\/\d+/);
+      await Promise.all([
+        user1Page.waitForURL(/\/recipes\/\d+/),
+        user1Page.getByRole('button', { name: /Create Recipe|Submit/i }).click(),
+      ]);
 
       const url = user1Page.url();
       const recipeId = url.match(/\/recipes\/(\d+)/)?.[1] || '';
@@ -283,14 +297,18 @@ test.describe.serial('Tagging', () => {
         await user1Page.locator('#tags-input').press('Enter');
       }
 
-      await user1Page.getByRole('button', { name: /Create Recipe|Submit/i }).click();
-      await user1Page.waitForURL(/\/recipes\/\d+/);
+      await Promise.all([
+        user1Page.waitForURL(/\/recipes\/\d+/),
+        user1Page.getByRole('button', { name: /Create Recipe|Submit/i }).click(),
+      ]);
 
       const url = user1Page.url();
       const recipeId = url.match(/\/recipes\/(\d+)/)?.[1] || '';
 
-      await user1Page.getByRole('link', { name: 'Edit' }).click();
-      await user1Page.waitForURL(`/recipes/${recipeId}/update`);
+      await Promise.all([
+        user1Page.waitForURL(`/recipes/${recipeId}/update`),
+        user1Page.getByRole('link', { name: 'Edit' }).click(),
+      ]);
 
       await expect(user1Page.locator('#tags-container .tag').getByText('tropical')).toBeVisible();
       await expect(user1Page.locator('#tags-container .tag').getByText('sweet')).toBeVisible();
@@ -305,8 +323,10 @@ test.describe.serial('Tagging', () => {
       await expect(user1Page.locator('#tags-container .tag').getByText('sweet')).toBeVisible();
       await expect(user1Page.locator('#tags-container .tag').getByText('dessert')).toBeVisible();
 
-      await user1Page.getByRole('button', { name: 'Update' }).click();
-      await user1Page.waitForURL(`/recipes/${recipeId}`);
+      await Promise.all([
+        user1Page.waitForURL(`/recipes/${recipeId}`),
+        user1Page.getByRole('button', { name: 'Update' }).click(),
+      ]);
 
       await expect(user1Page.locator('#author-tags-container .tag').getByText('tropical')).not.toBeVisible();
       await expect(user1Page.locator('#author-tags-container .tag').getByText('sweet')).toBeVisible();

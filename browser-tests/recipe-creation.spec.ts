@@ -19,8 +19,10 @@ test.describe.serial('Recipe Creation', () => {
     await expect(page.getByRole('heading', { name: 'Recipe Collection', level: 1 })).toBeVisible();
 
     // Navigate to create recipe page
-    await page.getByRole('link', { name: 'Submit A Recipe' }).click();
-    await page.waitForURL('/recipes/create');
+    await Promise.all([
+      page.waitForURL('/recipes/create'),
+      page.getByRole('link', { name: 'Submit A Recipe' }).click(),
+    ]);
     await expect(page.getByRole('heading', { name: /Submit.*Recipe/i, level: 1 })).toBeVisible();
 
     // Fill in the recipe form
@@ -59,8 +61,10 @@ test.describe.serial('Recipe Creation', () => {
     await expect(page.getByText(testRecipe.title, { exact: true })).toBeVisible();
 
     // Click on the recipe to navigate to its detail page
-    await page.getByText(testRecipe.title, { exact: true }).click();
-    await page.waitForURL(/\/recipes\/\d+/);
+    await Promise.all([
+      page.waitForURL(/\/recipes\/\d+/),
+      page.getByText(testRecipe.title, { exact: true }).click(),
+    ]);
 
     // Verify the recipe details again
     await expect(page.getByRole('heading', { name: testRecipe.title, level: 1 })).toBeVisible();

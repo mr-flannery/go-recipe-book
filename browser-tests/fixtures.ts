@@ -11,9 +11,10 @@ export const test = base.extend<AuthFixtures>({
     await page.goto('/login');
     await page.locator('input[name="email"]').fill(user.email);
     await page.locator('input[name="password"]').fill(user.password);
-    await page.getByRole('button', { name: 'Sign In' }).click();
-    
-    await page.waitForURL('/');
+    await Promise.all([
+      page.waitForURL('/'),
+      page.getByRole('button', { name: 'Sign In' }).click(),
+    ]);
     
     await use(page);
   },

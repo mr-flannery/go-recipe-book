@@ -15,8 +15,10 @@ const test = base.extend<AuthFixtures>({
     await page.goto('/login');
     await page.locator('input[name="email"]').fill(user.email);
     await page.locator('input[name="password"]').fill(user.password);
-    await page.getByRole('button', { name: 'Sign In' }).click();
-    await page.waitForURL('/');
+    await Promise.all([
+      page.waitForURL('/'),
+      page.getByRole('button', { name: 'Sign In' }).click(),
+    ]);
     await use(page);
     await context.close();
   },
@@ -27,8 +29,10 @@ const test = base.extend<AuthFixtures>({
     await page.goto('/login');
     await page.locator('input[name="email"]').fill(user.email);
     await page.locator('input[name="password"]').fill(user.password);
-    await page.getByRole('button', { name: 'Sign In' }).click();
-    await page.waitForURL('/');
+    await Promise.all([
+      page.waitForURL('/'),
+      page.getByRole('button', { name: 'Sign In' }).click(),
+    ]);
     await use(page);
     await context.close();
   },
@@ -56,8 +60,10 @@ test.describe.serial('Recipe Deletion', () => {
     await fillToastEditor(user1Page, 'ingredients-editor', testRecipe.ingredients);
     await fillToastEditor(user1Page, 'instructions-editor', testRecipe.instructions);
 
-    await user1Page.getByRole('button', { name: /Create Recipe|Submit/i }).click();
-    await user1Page.waitForURL(/\/recipes\/\d+/);
+    await Promise.all([
+      user1Page.waitForURL(/\/recipes\/\d+/),
+      user1Page.getByRole('button', { name: /Create Recipe|Submit/i }).click(),
+    ]);
 
     const url = user1Page.url();
     const recipeId = url.match(/\/recipes\/(\d+)/)?.[1] || '';
@@ -83,10 +89,10 @@ test.describe.serial('Recipe Deletion', () => {
 
     // Author deletes the recipe
     user1Page.on('dialog', dialog => dialog.accept());
-    await user1Page.getByRole('button', { name: 'Delete' }).click();
-
-    // Should redirect to recipes list
-    await user1Page.waitForURL('/recipes');
+    await Promise.all([
+      user1Page.waitForURL('/recipes'),
+      user1Page.getByRole('button', { name: 'Delete' }).click(),
+    ]);
 
     // Verify recipe is no longer on the overview page
     await expect(user1Page.getByText(testRecipe.title)).not.toBeVisible();

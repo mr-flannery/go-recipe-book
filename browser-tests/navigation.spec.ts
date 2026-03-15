@@ -6,9 +6,10 @@ test.describe.serial('Navigation', () => {
 
     await expect(page).toHaveTitle(/Recipe Book|Schmecken musset!/);
 
-    await page.getByRole('link', { name: 'Browse Recipes' }).click();
-
-    await page.waitForURL('/recipes');
+    await Promise.all([
+      page.waitForURL('/recipes'),
+      page.getByRole('link', { name: 'Browse Recipes' }).click(),
+    ]);
     await expect(page.getByRole('heading', { name: 'Recipe Collection', level: 1 })).toBeVisible();
   });
 });

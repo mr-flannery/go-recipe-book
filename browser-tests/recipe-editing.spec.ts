@@ -15,8 +15,10 @@ const test = base.extend<AuthFixtures>({
     await page.goto('/login');
     await page.locator('input[name="email"]').fill(user.email);
     await page.locator('input[name="password"]').fill(user.password);
-    await page.getByRole('button', { name: 'Sign In' }).click();
-    await page.waitForURL('/');
+    await Promise.all([
+      page.waitForURL('/'),
+      page.getByRole('button', { name: 'Sign In' }).click(),
+    ]);
     await use(page);
     await context.close();
   },
@@ -27,8 +29,10 @@ const test = base.extend<AuthFixtures>({
     await page.goto('/login');
     await page.locator('input[name="email"]').fill(user.email);
     await page.locator('input[name="password"]').fill(user.password);
-    await page.getByRole('button', { name: 'Sign In' }).click();
-    await page.waitForURL('/');
+    await Promise.all([
+      page.waitForURL('/'),
+      page.getByRole('button', { name: 'Sign In' }).click(),
+    ]);
     await use(page);
     await context.close();
   },
@@ -68,8 +72,10 @@ test.describe.serial('Recipe Editing', () => {
       await user1Page.locator('#tags-input').press('Enter');
     }
 
-    await user1Page.getByRole('button', { name: /Create Recipe|Submit/i }).click();
-    await user1Page.waitForURL(/\/recipes\/\d+/);
+    await Promise.all([
+      user1Page.waitForURL(/\/recipes\/\d+/),
+      user1Page.getByRole('button', { name: /Create Recipe|Submit/i }).click(),
+    ]);
 
     // Extract recipe ID from URL
     const url = user1Page.url();
@@ -133,8 +139,10 @@ test.describe.serial('Recipe Editing', () => {
     await user1Page.locator('#tags-input').press('Enter');
 
     // Save changes
-    await user1Page.getByRole('button', { name: 'Update' }).click();
-    await user1Page.waitForURL(`/recipes/${recipeId}`);
+    await Promise.all([
+      user1Page.waitForURL(`/recipes/${recipeId}`),
+      user1Page.getByRole('button', { name: 'Update' }).click(),
+    ]);
 
     // Verify all changes are persisted
     await expect(user1Page.getByRole('heading', { name: updatedRecipe.title, level: 1 })).toBeVisible();
@@ -183,15 +191,19 @@ test.describe.serial('Recipe Editing', () => {
       await user1Page.locator('#tags-input').press('Enter');
     }
 
-    await user1Page.getByRole('button', { name: /Create Recipe|Submit/i }).click();
-    await user1Page.waitForURL(/\/recipes\/\d+/);
+    await Promise.all([
+      user1Page.waitForURL(/\/recipes\/\d+/),
+      user1Page.getByRole('button', { name: /Create Recipe|Submit/i }).click(),
+    ]);
 
     const cancelRecipeUrl = user1Page.url();
     const cancelRecipeId = cancelRecipeUrl.match(/\/recipes\/(\d+)/)?.[1] || '';
 
     // Go to edit page
-    await user1Page.getByRole('link', { name: 'Edit' }).click();
-    await user1Page.waitForURL(`/recipes/${cancelRecipeId}/update`);
+    await Promise.all([
+      user1Page.waitForURL(`/recipes/${cancelRecipeId}/update`),
+      user1Page.getByRole('link', { name: 'Edit' }).click(),
+    ]);
 
     // Make changes to all fields
     await user1Page.locator('#title').clear();
@@ -221,8 +233,10 @@ test.describe.serial('Recipe Editing', () => {
     await user1Page.locator('#tags-input').press('Enter');
 
     // Cancel instead of saving
-    await user1Page.getByRole('link', { name: 'Cancel' }).click();
-    await user1Page.waitForURL(`/recipes/${cancelRecipeId}`);
+    await Promise.all([
+      user1Page.waitForURL(`/recipes/${cancelRecipeId}`),
+      user1Page.getByRole('link', { name: 'Cancel' }).click(),
+    ]);
 
     // Verify original data is still intact
     await expect(user1Page.getByRole('heading', { name: cancelTestRecipe.title, level: 1 })).toBeVisible();
