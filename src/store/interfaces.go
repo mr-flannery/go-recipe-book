@@ -177,6 +177,7 @@ type ExtractionJob struct {
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
 	CompletedAt  *time.Time
+	RetryAfter   *time.Time
 }
 
 type ExtractionFeedback struct {
@@ -204,6 +205,7 @@ type ExtractionJobStore interface {
 	MarkCompleted(ctx context.Context, id int) error
 	IncrementAttemptCount(ctx context.Context, id int) error
 	ResetForRetry(ctx context.Context, id int) error
+	ScheduleRetry(ctx context.Context, id int, retryAfter time.Time) error
 }
 
 type ExtractionFeedbackStore interface {

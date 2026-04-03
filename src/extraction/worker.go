@@ -23,8 +23,23 @@ import (
 var tracer = otel.Tracer("extraction")
 
 const (
-	maxAutoRetries = 1
+	maxAutoRetries  = 1
+	technicalRetry  = 1 * time.Hour
 )
+
+// TechnicalError wraps errors that are caused by transient infrastructure
+// issues (e.g. model unavailable, API down). Jobs that fail with a
+// TechnicalError are automatically rescheduled rather than permanently failed.
+type TechnicalError struct {
+	cause error
+}
+
+func (e *TechnicalError) Error() string { return e.cause.Error() }
+func (e *TechnicalError) Unwrap() error { return e.cause }
+
+func technicalErrorf(format string, args ...any) error {
+	return &TechnicalError{cause: fmt.Errorf(format, args...)}
+}
 
 type WorkerConfig struct {
 	Concurrency      int
@@ -295,6 +310,19 @@ func (w *Worker) handleJobFailure(ctx context.Context, job *store.ExtractionJob,
 		"error", jobErr,
 	)
 
+	var techErr *TechnicalError
+	if errors.As(jobErr, &techErr) {
+		retryAt := time.Now().Add(technicalRetry)
+		slog.Info("Technical failure, scheduling hourly retry",
+			"job_id", job.ID,
+			"retry_at", retryAt,
+		)
+		if err := w.jobStore.ScheduleRetry(ctx, job.ID, retryAt); err != nil {
+			slog.Error("Failed to schedule retry", "job_id", job.ID, "error", err)
+		}
+		return
+	}
+
 	currentAttempt := job.AttemptCount + 1
 
 	if currentAttempt <= maxAutoRetries {
@@ -373,7 +401,7 @@ func (w *Worker) extractFromAudio(ctx context.Context, job *store.ExtractionJob,
 
 	audioData, err := os.ReadFile(audioResult.FilePath)
 	if err != nil {
-		return "", nil, fmt.Errorf("failed to read audio file: %w", err)
+		return "", nil, technicalErrorf("failed to read audio file: %w", err)
 	}
 
 	return w.llmClient.ExtractRecipeFromAudio(ctx, audioData, additionalContext)

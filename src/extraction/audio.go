@@ -1,7 +1,6 @@
 package extraction
 
 import (
-	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -20,7 +19,7 @@ func DownloadYouTubeAudio(videoURL string) (*AudioDownloadResult, error) {
 
 	tempDir, err := os.MkdirTemp("", "yt-audio-*")
 	if err != nil {
-		return nil, fmt.Errorf("failed to create temp directory: %w", err)
+		return nil, technicalErrorf("failed to create temp directory: %w", err)
 	}
 
 	outputPath := filepath.Join(tempDir, videoID+".mp3")
@@ -39,12 +38,12 @@ func DownloadYouTubeAudio(videoURL string) (*AudioDownloadResult, error) {
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		os.RemoveAll(tempDir)
-		return nil, fmt.Errorf("yt-dlp failed: %w, output: %s", err, string(output))
+		return nil, technicalErrorf("yt-dlp failed: %w, output: %s", err, string(output))
 	}
 
 	if _, err := os.Stat(outputPath); os.IsNotExist(err) {
 		os.RemoveAll(tempDir)
-		return nil, fmt.Errorf("audio file was not created")
+		return nil, technicalErrorf("audio file was not created")
 	}
 
 	return &AudioDownloadResult{

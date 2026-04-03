@@ -54,12 +54,16 @@ func FetchWebsiteContent(websiteURL string) (string, error) {
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return "", fmt.Errorf("%w: %v", ErrFetchFailed, err)
+		return "", technicalErrorf("%w: %v", ErrFetchFailed, err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("%w: status %d", ErrFetchFailed, resp.StatusCode)
+		if resp.StatusCode >= 400 && resp.StatusCode < 500 {
+			return "", fmt.Errorf("%w: status %d", ErrFetchFailed, resp.StatusCode)
+		} else {
+			return "", technicalErrorf("%w: status %d", ErrFetchFailed, resp.StatusCode)
+		}
 	}
 
 	contentType := resp.Header.Get("Content-Type")
@@ -70,7 +74,7 @@ func FetchWebsiteContent(websiteURL string) (string, error) {
 	limitedReader := io.LimitReader(resp.Body, maxContentSize+1)
 	body, err := io.ReadAll(limitedReader)
 	if err != nil {
-		return "", fmt.Errorf("%w: %v", ErrFetchFailed, err)
+		return "", technicalErrorf("%w: %v", ErrFetchFailed, err)
 	}
 
 	if len(body) > maxContentSize {

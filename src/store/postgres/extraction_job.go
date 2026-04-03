@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"time"
 
 	"github.com/mr-flannery/go-recipe-book/src/store"
 )
@@ -128,18 +129,19 @@ func (s *ExtractionJobStore) ClaimPendingJob(ctx context.Context) (*store.Extrac
 		WHERE id = (
 			SELECT id FROM extraction_jobs
 			WHERE status = 'pending'
+			  AND (retry_after IS NULL OR retry_after <= NOW())
 			ORDER BY created_at ASC
 			LIMIT 1
 			FOR UPDATE SKIP LOCKED
 		)
-		RETURNING id, user_id, job_type, input_url, input_data, status, error_message, 
-		          llm_input, llm_output, recipe_id, attempt_count, created_at, updated_at, completed_at`
+		RETURNING id, user_id, job_type, input_url, input_data, status, error_message,
+		          llm_input, llm_output, recipe_id, attempt_count, created_at, updated_at, completed_at, retry_after`
 
 	var job store.ExtractionJob
 	err := s.db.QueryRowContext(ctx, query).Scan(
 		&job.ID, &job.UserID, &job.JobType, &job.InputURL, &job.InputData,
 		&job.Status, &job.ErrorMessage, &job.LLMInput, &job.LLMOutput,
-		&job.RecipeID, &job.AttemptCount, &job.CreatedAt, &job.UpdatedAt, &job.CompletedAt,
+		&job.RecipeID, &job.AttemptCount, &job.CreatedAt, &job.UpdatedAt, &job.CompletedAt, &job.RetryAfter,
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -197,10 +199,19 @@ func (s *ExtractionJobStore) IncrementAttemptCount(ctx context.Context, id int) 
 }
 
 func (s *ExtractionJobStore) ResetForRetry(ctx context.Context, id int) error {
-	query := `UPDATE extraction_jobs SET status = 'pending', error_message = NULL, updated_at = NOW() WHERE id = $1`
+	query := `UPDATE extraction_jobs SET status = 'pending', error_message = NULL, retry_after = NULL, updated_at = NOW() WHERE id = $1`
 	_, err := s.db.ExecContext(ctx, query, id)
 	if err != nil {
 		return fmt.Errorf("failed to reset job for retry: %w", err)
+	}
+	return nil
+}
+
+func (s *ExtractionJobStore) ScheduleRetry(ctx context.Context, id int, retryAfter time.Time) error {
+	query := `UPDATE extraction_jobs SET status = 'pending', error_message = NULL, retry_after = $2, updated_at = NOW() WHERE id = $1`
+	_, err := s.db.ExecContext(ctx, query, id, retryAfter)
+	if err != nil {
+		return fmt.Errorf("failed to schedule job retry: %w", err)
 	}
 	return nil
 }

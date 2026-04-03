@@ -84,12 +84,12 @@ func getCaptionTrackURL(videoID string, preferredLangs []string) (string, error)
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return "", fmt.Errorf("failed to fetch video page: %w", err)
+		return "", technicalErrorf("failed to fetch video page: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("video page returned status %d", resp.StatusCode)
+		return "", technicalErrorf("video page returned status %d", resp.StatusCode)
 	}
 
 	body, err := io.ReadAll(resp.Body)
@@ -211,12 +211,12 @@ func fetchAndParseTranscript(captionURL string) ([]TranscriptSegment, error) {
 	client := &http.Client{Timeout: 30 * time.Second}
 	resp, err := client.Get(parsedURL.String())
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch transcript: %w", err)
+		return nil, technicalErrorf("failed to fetch transcript: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("transcript fetch returned status %d", resp.StatusCode)
+		return nil, technicalErrorf("transcript fetch returned status %d", resp.StatusCode)
 	}
 
 	body, err := io.ReadAll(resp.Body)
@@ -286,12 +286,12 @@ func FetchVideoMetadata(videoURL string) (*VideoMetadata, error) {
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch video page: %w", err)
+		return nil, technicalErrorf("failed to fetch video page: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("video page returned status %d", resp.StatusCode)
+		return nil, technicalErrorf("video page returned status %d", resp.StatusCode)
 	}
 
 	body, err := io.ReadAll(resp.Body)

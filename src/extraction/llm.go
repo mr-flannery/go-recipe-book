@@ -178,7 +178,7 @@ func (c *LLMClient) sendRequest(ctx context.Context, request chatRequest) (strin
 		var err error
 		resp, err = c.httpClient.Do(req)
 		if err != nil {
-			return "", fmt.Errorf("request failed: %w", err)
+			return "", technicalErrorf("request failed: %w", err)
 		}
 		defer resp.Body.Close()
 
@@ -193,12 +193,12 @@ func (c *LLMClient) sendRequest(ctx context.Context, request chatRequest) (strin
 		}
 
 		body, _ := io.ReadAll(resp.Body)
-		return "", fmt.Errorf("OpenRouter API returned status %d: %s", resp.StatusCode, string(body))
+		return "", technicalErrorf("OpenRouter API returned status %d: %s", resp.StatusCode, string(body))
 	}
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return "", fmt.Errorf("failed to read response: %w", err)
+		return "", technicalErrorf("failed to read response: %w", err)
 	}
 
 	var chatResp chatResponse
@@ -207,11 +207,11 @@ func (c *LLMClient) sendRequest(ctx context.Context, request chatRequest) (strin
 	}
 
 	if chatResp.Error != nil {
-		return "", fmt.Errorf("API error: %s", chatResp.Error.Message)
+		return "", technicalErrorf("API error: %s", chatResp.Error.Message)
 	}
 
 	if len(chatResp.Choices) == 0 {
-		return "", fmt.Errorf("no response choices returned")
+		return "", technicalErrorf("no response choices returned")
 	}
 
 	return chatResp.Choices[0].Message.Content, nil
