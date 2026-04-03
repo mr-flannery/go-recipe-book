@@ -10,10 +10,17 @@ import (
 	"sync"
 	"time"
 
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
+
+	"github.com/mr-flannery/go-recipe-book/src/logging"
 	"github.com/mr-flannery/go-recipe-book/src/mail"
 	"github.com/mr-flannery/go-recipe-book/src/models"
 	"github.com/mr-flannery/go-recipe-book/src/store"
 )
+
+var tracer = otel.Tracer("extraction")
 
 const (
 	maxAutoRetries = 1
@@ -103,6 +110,16 @@ func (w *Worker) processNextJob(workerID int) {
 		return
 	}
 
+	ctx, span := tracer.Start(ctx, "extraction.process_job")
+	defer span.End()
+
+	span.SetAttributes(
+		attribute.Int("job.id", job.ID),
+		attribute.String("job.type", job.JobType),
+		attribute.Int("job.attempt", job.AttemptCount+1),
+		attribute.Int("worker.id", workerID),
+	)
+
 	slog.Info("Processing extraction job",
 		"worker", workerID,
 		"job_id", job.ID,
@@ -116,10 +133,13 @@ func (w *Worker) processNextJob(workerID int) {
 
 	err = w.processJob(ctx, job)
 	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 		w.handleJobFailure(ctx, job, err)
 		return
 	}
 
+	span.SetStatus(codes.Ok, "")
 	slog.Info("Job completed successfully", "job_id", job.ID)
 }
 
@@ -134,18 +154,27 @@ func (w *Worker) processJob(ctx context.Context, job *store.ExtractionJob) error
 		if job.InputURL == nil {
 			return errors.New("website job missing input URL")
 		}
+
+		_, fetchSpan := tracer.Start(ctx, "extraction.fetch_website")
 		content, err = FetchWebsiteContent(*job.InputURL)
+		fetchSpan.End()
 		if err != nil {
 			return fmt.Errorf("failed to fetch website: %w", err)
 		}
-		llmInput, recipe, err = w.llmClient.ExtractRecipeFromText(ctx, "website", content)
+
+		llmCtx, llmSpan := tracer.Start(ctx, "extraction.llm_extract")
+		llmSpan.SetAttributes(attribute.String("extraction.source", "website"))
+		llmInput, recipe, err = w.llmClient.ExtractRecipeFromText(llmCtx, "website", content)
+		llmSpan.End()
 
 	case "video":
 		if job.InputURL == nil {
 			return errors.New("video job missing input URL")
 		}
 
+		_, metaSpan := tracer.Start(ctx, "extraction.fetch_video_metadata")
 		metadata, metaErr := FetchVideoMetadata(*job.InputURL)
+		metaSpan.End()
 		if metaErr != nil && !errors.Is(metaErr, ErrVideoUnavailable) {
 			slog.Warn("Failed to fetch video metadata", "job_id", job.ID, "error", metaErr)
 		}
@@ -155,11 +184,16 @@ func (w *Worker) processJob(ctx context.Context, job *store.ExtractionJob) error
 			additionalContext = w.buildVideoContext(ctx, metadata)
 		}
 
+		_, transcriptSpan := tracer.Start(ctx, "extraction.fetch_transcript")
 		content, err = FetchYouTubeTranscript(*job.InputURL, []string{"en", "de"})
+		transcriptSpan.End()
 		if err != nil {
 			if errors.Is(err, ErrNoCaptions) {
 				slog.Info("No captions available, falling back to audio extraction", "job_id", job.ID)
-				llmInput, recipe, err = w.extractFromAudio(ctx, job, additionalContext)
+
+				audioCtx, audioSpan := tracer.Start(ctx, "extraction.audio_extract")
+				llmInput, recipe, err = w.extractFromAudio(audioCtx, job, additionalContext)
+				audioSpan.End()
 				if err != nil {
 					return fmt.Errorf("audio extraction failed: %w", err)
 				}
@@ -170,14 +204,20 @@ func (w *Worker) processJob(ctx context.Context, job *store.ExtractionJob) error
 			if additionalContext != "" {
 				content = content + "\n\n---\n\nAdditional context from video description:\n" + additionalContext
 			}
-			llmInput, recipe, err = w.llmClient.ExtractRecipeFromText(ctx, "transcript", content)
+			llmCtx, llmSpan := tracer.Start(ctx, "extraction.llm_extract")
+			llmSpan.SetAttributes(attribute.String("extraction.source", "transcript"))
+			llmInput, recipe, err = w.llmClient.ExtractRecipeFromText(llmCtx, "transcript", content)
+			llmSpan.End()
 		}
 
 	case "image":
 		if len(job.InputData) == 0 {
 			return errors.New("image job missing input data")
 		}
-		llmInput, recipe, err = w.llmClient.ExtractRecipeFromImage(ctx, job.InputData, "")
+		llmCtx, llmSpan := tracer.Start(ctx, "extraction.llm_extract")
+		llmSpan.SetAttributes(attribute.String("extraction.source", "image"))
+		llmInput, recipe, err = w.llmClient.ExtractRecipeFromImage(llmCtx, job.InputData, "")
+		llmSpan.End()
 
 	default:
 		return fmt.Errorf("unknown job type: %s", job.JobType)
@@ -218,10 +258,16 @@ func (w *Worker) processJob(ctx context.Context, job *store.ExtractionJob) error
 		recipeModel.Calories = *recipe.CaloriesPerServing
 	}
 
-	recipeID, err := w.recipeStore.Save(ctx, recipeModel)
+	saveCtx, saveSpan := tracer.Start(ctx, "extraction.save_recipe")
+	recipeID, err := w.recipeStore.Save(saveCtx, recipeModel)
+	saveSpan.End()
 	if err != nil {
 		return fmt.Errorf("failed to save recipe: %w", err)
 	}
+
+	logging.Add(ctx, "recipe.id", recipeID)
+	logging.Add(ctx, "recipe.title", recipe.Title)
+	logging.Add(ctx, "recipe.confidence", recipe.Confidence)
 
 	if len(recipe.SuggestedTags) > 0 {
 		if err := w.tagStore.SetRecipeTags(ctx, recipeID, recipe.SuggestedTags); err != nil {

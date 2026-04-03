@@ -170,19 +170,35 @@ func (c *LLMClient) sendRequest(ctx context.Context, request chatRequest) (strin
 	req.Header.Set("HTTP-Referer", "https://recipe-book.app")
 	req.Header.Set("X-Title", "Recipe Book")
 
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return "", fmt.Errorf("request failed: %w", err)
+	retryCount := 0
+	maxRetries := 2
+
+	var resp *http.Response
+	for {
+		var err error
+		resp, err = c.httpClient.Do(req)
+		if err != nil {
+			return "", fmt.Errorf("request failed: %w", err)
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode == http.StatusOK {
+			break
+		}
+
+		if retryCount < maxRetries && (resp.StatusCode == http.StatusTooManyRequests || resp.StatusCode >= 500) {
+			retryCount++
+			time.Sleep(time.Duration(retryCount) * time.Second)
+			continue
+		}
+
+		body, _ := io.ReadAll(resp.Body)
+		return "", fmt.Errorf("OpenRouter API returned status %d: %s", resp.StatusCode, string(body))
 	}
-	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", fmt.Errorf("failed to read response: %w", err)
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("API returned status %d: %s", resp.StatusCode, string(body))
 	}
 
 	var chatResp chatResponse

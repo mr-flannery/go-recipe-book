@@ -99,8 +99,7 @@ func getCaptionTrackURL(videoID string, preferredLangs []string) (string, error)
 
 	pageContent := string(body)
 
-	if strings.Contains(pageContent, "Video unavailable") ||
-		strings.Contains(pageContent, "This video isn't available") {
+	if strings.Contains(pageContent, "This video isn't available") {
 		return "", ErrVideoUnavailable
 	}
 
