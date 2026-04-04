@@ -166,6 +166,9 @@ func (h *Handler) APICreateRecipeHandler(w http.ResponseWriter, r *http.Request)
 	sendJSONResponse(w, "Recipe created successfully", recipeID)
 }
 
+// CommitHash is set at build time via -ldflags "-X github.com/mr-flannery/go-recipe-book/src/handlers.CommitHash=<hash>"
+var CommitHash = "dev"
+
 func APIHealthHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		sendJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -179,6 +182,7 @@ func APIHealthHandler(w http.ResponseWriter, r *http.Request) {
 		"success": true,
 		"message": "API is healthy",
 		"version": "1.0.0",
+		"commit":  CommitHash,
 	}
 
 	json.NewEncoder(w).Encode(response)

@@ -3,7 +3,8 @@ WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
-RUN CGO_ENABLED=0 go build -o recipe-book ./src/main.go
+ARG COMMIT_HASH=unknown
+RUN CGO_ENABLED=0 go build -ldflags="-X github.com/mr-flannery/go-recipe-book/src/handlers.CommitHash=${COMMIT_HASH}" -o recipe-book ./src/main.go
 
 FROM alpine:latest
 WORKDIR /app

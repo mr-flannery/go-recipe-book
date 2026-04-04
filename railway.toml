@@ -1,6 +1,7 @@
 [build]
 builder = "dockerfile"
 dockerfilePath = "Dockerfile"
+buildArgs = { COMMIT_HASH = "${{RAILWAY_GIT_COMMIT_SHA}}" }
 
 [deploy]
 healthcheckPath = "/api/health"
