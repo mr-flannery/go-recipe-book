@@ -116,35 +116,25 @@
     {{template "footer" .UserInfo}}
 
     {{if or (eq .Job.Status "pending") (eq .Job.Status "processing")}}
-    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
-    <script src="https://unpkg.com/htmx.org@1.9.10/dist/ext/ws.js"></script>
     <script>
         (function () {
-            var proto = location.protocol === "https:" ? "wss:" : "ws:";
-            var wsURL = proto + "//" + location.host + "/account/jobs/{{.Job.ID}}/ws";
             var section = document.getElementById("job-status-section");
             if (!section) return;
 
-            var socket = new WebSocket(wsURL);
+            var es = new EventSource("/account/jobs/{{.Job.ID}}/ws");
 
-            socket.onmessage = function (event) {
+            es.onmessage = function (event) {
                 var tmp = document.createElement("div");
                 tmp.innerHTML = event.data;
                 var newSection = tmp.firstElementChild;
                 if (newSection) {
                     section.replaceWith(newSection);
                     section = newSection;
-                    // Re-run htmx on the replaced content so any htmx attrs inside work.
-                    if (window.htmx) { htmx.process(section); }
                 }
             };
 
-            socket.onclose = function () {
-                // Connection closed (job reached terminal state or server restarted).
-            };
-
-            socket.onerror = function () {
-                socket.close();
+            es.onerror = function () {
+                es.close();
             };
         })();
     </script>

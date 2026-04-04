@@ -241,7 +241,7 @@ func main() {
 	mux.Handle("GET /account/jobs/{id}/ws",
 		userContext(
 			requireAuth(
-				http.HandlerFunc(h.GetJobStatusWSHandler))))
+				http.HandlerFunc(h.GetJobStatusSSEHandler))))
 
 	mux.Handle("GET /extract",
 		userContext(
