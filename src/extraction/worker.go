@@ -171,10 +171,22 @@ func (w *Worker) processJob(ctx context.Context, job *store.ExtractionJob) error
 		}
 
 		_, fetchSpan := tracer.Start(ctx, "extraction.fetch_website")
-		content, err = FetchWebsiteContent(*job.InputURL)
+		var usedURL string
+		content, usedURL, err = FetchWebsiteContent(*job.InputURL)
 		fetchSpan.End()
 		if err != nil {
 			return fmt.Errorf("failed to fetch website: %w", err)
+		}
+		if usedURL != *job.InputURL {
+			slog.Info("Used Wayback Machine archive for website extraction",
+				"job_id", job.ID,
+				"original_url", *job.InputURL,
+				"archive_url", usedURL,
+			)
+			logging.AddMany(ctx, map[string]any{
+				"extraction.wayback_fallback": true,
+				"extraction.archive_url":      usedURL,
+			})
 		}
 
 		llmCtx, llmSpan := tracer.Start(ctx, "extraction.llm_extract")
@@ -376,7 +388,7 @@ func (w *Worker) buildVideoContext(ctx context.Context, metadata *VideoMetadata)
 
 	if len(metadata.RecipeLinks) > 0 {
 		for _, link := range metadata.RecipeLinks {
-			html, err := FetchWebsiteContent(link)
+			html, _, err := FetchWebsiteContent(link)
 			if err != nil {
 				slog.Warn("Failed to fetch recipe link", "url", link, "error", err)
 				continue

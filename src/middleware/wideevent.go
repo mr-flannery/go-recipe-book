@@ -24,6 +24,13 @@ func (rr *responseRecorder) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 	return rr.ResponseWriter.(http.Hijacker).Hijack()
 }
 
+// Flush delegates to the underlying ResponseWriter so SSE streaming works.
+func (rr *responseRecorder) Flush() {
+	if flusher, ok := rr.ResponseWriter.(http.Flusher); ok {
+		flusher.Flush()
+	}
+}
+
 func WideEventMiddleware(next http.Handler) http.Handler {
 	envContext := logging.GetEnvContext()
 

@@ -23,6 +23,13 @@ func (g *gzipResponseWriter) Write(b []byte) (int, error) {
 	return g.writer.Write(b)
 }
 
+func (g *gzipResponseWriter) Flush() {
+	g.writer.Flush()
+	if flusher, ok := g.ResponseWriter.(http.Flusher); ok {
+		flusher.Flush()
+	}
+}
+
 func Gzip(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
@@ -30,10 +37,14 @@ func Gzip(next http.Handler) http.Handler {
 			return
 		}
 
-		// WebSocket upgrades require hijacking the raw TCP connection.
-		// Wrapping the ResponseWriter in gzipResponseWriter would hide the
-		// http.Hijacker interface and cause the upgrade to fail.
+		// WebSocket upgrades and SSE streams must not be gzip-wrapped:
+		// WebSocket needs http.Hijacker; SSE needs http.Flusher and cannot
+		// buffer — gzip buffering would delay or drop events entirely.
 		if strings.EqualFold(r.Header.Get("Upgrade"), "websocket") {
+			next.ServeHTTP(w, r)
+			return
+		}
+		if strings.Contains(r.Header.Get("Accept"), "text/event-stream") {
 			next.ServeHTTP(w, r)
 			return
 		}
