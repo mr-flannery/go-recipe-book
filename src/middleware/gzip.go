@@ -30,6 +30,14 @@ func Gzip(next http.Handler) http.Handler {
 			return
 		}
 
+		// WebSocket upgrades require hijacking the raw TCP connection.
+		// Wrapping the ResponseWriter in gzipResponseWriter would hide the
+		// http.Hijacker interface and cause the upgrade to fail.
+		if strings.EqualFold(r.Header.Get("Upgrade"), "websocket") {
+			next.ServeHTTP(w, r)
+			return
+		}
+
 		gz := gzipWriterPool.Get().(*gzip.Writer)
 		defer gzipWriterPool.Put(gz)
 		gz.Reset(w)

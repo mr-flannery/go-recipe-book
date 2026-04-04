@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/mr-flannery/go-recipe-book/src/auth"
 	"github.com/mr-flannery/go-recipe-book/src/logging"
@@ -335,8 +336,8 @@ func (h *Handler) PostJobRetryHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if job.Status != "failed" {
-		http.Redirect(w, r, "/account/jobs/"+jobIDStr+"?error=Only failed jobs can be retried", http.StatusSeeOther)
+	if job.Status != "failed" && !(job.Status == "processing" && time.Since(job.UpdatedAt) > 5*time.Minute) {
+		http.Redirect(w, r, "/account/jobs/"+jobIDStr+"?error=Only failed or stuck processing jobs can be retried", http.StatusSeeOther)
 		return
 	}
 

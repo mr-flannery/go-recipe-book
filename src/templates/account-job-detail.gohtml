@@ -80,18 +80,6 @@
         <div style="max-width: 700px; margin: 0 auto;">
             <div class="card" style="margin-bottom: 30px;">
                 <h2 style="font-size: 1.3rem; margin-bottom: 20px;">Job Details</h2>
-                
-                <div class="detail-row">
-                    <span class="detail-label">Status</span>
-                    <span class="detail-value">
-                        <span class="job-status {{.Job.Status}}">{{.Job.Status}}</span>
-                        {{if eq .Job.Status "pending"}}
-                        <span style="color: var(--muted); font-size: 0.85rem; margin-left: 10px;">Waiting in queue...</span>
-                        {{else if eq .Job.Status "processing"}}
-                        <span style="color: var(--muted); font-size: 0.85rem; margin-left: 10px;">Being processed...</span>
-                        {{end}}
-                    </span>
-                </div>
 
                 <div class="detail-row">
                     <span class="detail-label">Type</span>
@@ -118,108 +106,169 @@
                     <span class="detail-label">Created</span>
                     <span class="detail-value">{{.Job.CreatedAt.Format "Jan 2, 2006 15:04:05"}}</span>
                 </div>
-
-                {{if .Job.CompletedAt}}
-                <div class="detail-row">
-                    <span class="detail-label">Completed</span>
-                    <span class="detail-value">{{.Job.CompletedAt.Format "Jan 2, 2006 15:04:05"}}</span>
-                </div>
-                {{end}}
-
-                {{if eq .Job.Status "completed"}}
-                {{if .Job.RecipeID}}
-                <div class="detail-row" style="border-bottom: none;">
-                    <span class="detail-label">Recipe</span>
-                    <span class="detail-value">
-                        <a href="/recipes/{{.Job.RecipeID}}" class="btn primary" style="display: inline-block;">
-                            {{if .Job.RecipeTitle}}View: {{.Job.RecipeTitle}}{{else}}View Recipe{{end}}
-                        </a>
-                    </span>
-                </div>
-                {{end}}
-                {{end}}
-
-                {{if eq .Job.Status "failed"}}
-                <div class="detail-row" style="border-bottom: none;">
-                    <span class="detail-label">Error</span>
-                    <span class="detail-value" style="color: #c53030;">
-                        {{if .Job.ErrorMessage}}{{.Job.ErrorMessage}}{{else}}Unknown error{{end}}
-                    </span>
-                </div>
-                {{end}}
             </div>
 
-            {{if eq .Job.Status "failed"}}
-            <div class="card" style="margin-bottom: 30px;">
-                <h2 style="font-size: 1.3rem; margin-bottom: 15px;">Retry Job</h2>
-                <p style="line-height: 1.7; margin-bottom: 20px; color: var(--muted);">
-                    This job failed. You can retry it to attempt extraction again.
-                </p>
-                <form method="POST" action="/account/jobs/{{.Job.ID}}/retry">
-                    <button type="submit" class="btn primary">Retry Extraction</button>
-                </form>
-            </div>
-            {{end}}
-
-            {{if eq .Job.Status "completed"}}
-            <div class="card">
-                <h2 style="font-size: 1.3rem; margin-bottom: 15px;">Feedback</h2>
-                {{if .Feedback}}
-                <p style="color: var(--muted); margin-bottom: 15px;">You already submitted feedback for this job.</p>
-                <div class="detail-row">
-                    <span class="detail-label">Rating</span>
-                    <span class="detail-value">{{.Feedback.Rating}}/5</span>
-                </div>
-                <div class="detail-row">
-                    <span class="detail-label">Type</span>
-                    <span class="detail-value">{{.Feedback.FeedbackType}}</span>
-                </div>
-                {{if .Feedback.Comment}}
-                <div class="detail-row" style="border-bottom: none;">
-                    <span class="detail-label">Comment</span>
-                    <span class="detail-value">{{.Feedback.Comment}}</span>
-                </div>
-                {{end}}
-                {{else}}
-                <p style="line-height: 1.7; margin-bottom: 20px; color: var(--muted);">
-                    How did the extraction work? Your feedback helps improve the system.
-                </p>
-                <form method="POST" action="/account/jobs/{{.Job.ID}}/feedback">
-                    <div class="form-group" style="margin-bottom: 20px;">
-                        <label>Rating</label>
-                        <div class="rating-group">
-                            {{range $i := slice 1 2 3 4 5}}
-                            <input type="radio" name="rating" id="rating-{{$i}}" value="{{$i}}" required>
-                            <label for="rating-{{$i}}">{{$i}}</label>
-                            {{end}}
-                        </div>
-                    </div>
-
-                    <div class="form-group" style="margin-bottom: 20px;">
-                        <label for="feedback-type">Feedback Type</label>
-                        <select name="feedback_type" id="feedback-type" required style="height: 44px;">
-                            <option value="">Select...</option>
-                            <option value="good">Good - Extraction was accurate</option>
-                            <option value="missing_info">Missing Info - Some details were missing</option>
-                            <option value="inaccurate">Inaccurate - Information was wrong</option>
-                            <option value="other">Other</option>
-                        </select>
-                    </div>
-
-                    <div class="form-group" style="margin-bottom: 20px;">
-                        <label for="comment">Comment (optional)</label>
-                        <textarea name="comment" id="comment" rows="3" placeholder="Any additional details..."></textarea>
-                    </div>
-
-                    <button type="submit" class="btn primary">Submit Feedback</button>
-                </form>
-                {{end}}
-            </div>
-            {{end}}
+            {{/* Dynamic section: replaced via WebSocket when status changes */}}
+            {{template "job-status-fragment" .}}
         </div>
     </main>
 
     {{template "footer" .UserInfo}}
+
+    {{if or (eq .Job.Status "pending") (eq .Job.Status "processing")}}
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script src="https://unpkg.com/htmx.org@1.9.10/dist/ext/ws.js"></script>
+    <script>
+        (function () {
+            var proto = location.protocol === "https:" ? "wss:" : "ws:";
+            var wsURL = proto + "//" + location.host + "/account/jobs/{{.Job.ID}}/ws";
+            var section = document.getElementById("job-status-section");
+            if (!section) return;
+
+            var socket = new WebSocket(wsURL);
+
+            socket.onmessage = function (event) {
+                var tmp = document.createElement("div");
+                tmp.innerHTML = event.data;
+                var newSection = tmp.firstElementChild;
+                if (newSection) {
+                    section.replaceWith(newSection);
+                    section = newSection;
+                    // Re-run htmx on the replaced content so any htmx attrs inside work.
+                    if (window.htmx) { htmx.process(section); }
+                }
+            };
+
+            socket.onclose = function () {
+                // Connection closed (job reached terminal state or server restarted).
+            };
+
+            socket.onerror = function () {
+                socket.close();
+            };
+        })();
+    </script>
+    {{end}}
 </body>
 </html>
+{{end}}
+
+{{/* ------------------------------------------------------------------ */}}
+{{/* job-status-fragment: rendered both on initial page load and via WS. */}}
+{{/* ------------------------------------------------------------------ */}}
+{{define "job-status-fragment"}}
+<div id="job-status-section">
+    <div class="card" style="margin-bottom: 30px;">
+        <h2 style="font-size: 1.3rem; margin-bottom: 20px;">Status</h2>
+
+        <div class="detail-row">
+            <span class="detail-label">Status</span>
+            <span class="detail-value">
+                <span class="job-status {{.Job.Status}}">{{.Job.Status}}</span>
+                {{if eq .Job.Status "pending"}}
+                <span style="color: var(--muted); font-size: 0.85rem; margin-left: 10px;">Waiting in queue...</span>
+                {{else if eq .Job.Status "processing"}}
+                <span style="color: var(--muted); font-size: 0.85rem; margin-left: 10px;">Being processed...</span>
+                {{end}}
+            </span>
+        </div>
+
+        {{if .Job.CompletedAt}}
+        <div class="detail-row">
+            <span class="detail-label">Completed</span>
+            <span class="detail-value">{{.Job.CompletedAt.Format "Jan 2, 2006 15:04:05"}}</span>
+        </div>
+        {{end}}
+
+        {{if eq .Job.Status "completed"}}
+        {{if .Job.RecipeID}}
+        <div class="detail-row" style="border-bottom: none;">
+            <span class="detail-label">Recipe</span>
+            <span class="detail-value">
+                <a href="/recipes/{{.Job.RecipeID}}" class="btn primary" style="display: inline-block;">
+                    {{if .Job.RecipeTitle}}View: {{.Job.RecipeTitle}}{{else}}View Recipe{{end}}
+                </a>
+            </span>
+        </div>
+        {{end}}
+        {{end}}
+
+        {{if eq .Job.Status "failed"}}
+        <div class="detail-row" style="border-bottom: none;">
+            <span class="detail-label">Error</span>
+            <span class="detail-value" style="color: #c53030;">
+                {{if .Job.ErrorMessage}}{{.Job.ErrorMessage}}{{else}}Unknown error{{end}}
+            </span>
+        </div>
+        {{end}}
+    </div>
+
+    {{if or (eq .Job.Status "failed") (isStuckProcessing .Job.Status .Job.UpdatedAt)}}
+    <div class="card" style="margin-bottom: 30px;">
+        <h2 style="font-size: 1.3rem; margin-bottom: 15px;">Retry Job</h2>
+        <p style="line-height: 1.7; margin-bottom: 20px; color: var(--muted);">
+            {{if eq .Job.Status "processing"}}This job appears to be stuck. You can reset it to pending so it gets picked up again.{{else}}This job failed. You can retry it to attempt extraction again.{{end}}
+        </p>
+        <form method="POST" action="/account/jobs/{{.Job.ID}}/retry">
+            <button type="submit" class="btn primary">Retry Extraction</button>
+        </form>
+    </div>
+    {{end}}
+
+    {{if eq .Job.Status "completed"}}
+    <div class="card">
+        <h2 style="font-size: 1.3rem; margin-bottom: 15px;">Feedback</h2>
+        {{if .Feedback}}
+        <p style="color: var(--muted); margin-bottom: 15px;">You already submitted feedback for this job.</p>
+        <div class="detail-row">
+            <span class="detail-label">Rating</span>
+            <span class="detail-value">{{.Feedback.Rating}}/5</span>
+        </div>
+        <div class="detail-row">
+            <span class="detail-label">Type</span>
+            <span class="detail-value">{{.Feedback.FeedbackType}}</span>
+        </div>
+        {{if .Feedback.Comment}}
+        <div class="detail-row" style="border-bottom: none;">
+            <span class="detail-label">Comment</span>
+            <span class="detail-value">{{.Feedback.Comment}}</span>
+        </div>
+        {{end}}
+        {{else}}
+        <p style="line-height: 1.7; margin-bottom: 20px; color: var(--muted);">
+            How did the extraction work? Your feedback helps improve the system.
+        </p>
+        <form method="POST" action="/account/jobs/{{.Job.ID}}/feedback">
+            <div class="form-group" style="margin-bottom: 20px;">
+                <label>Rating</label>
+                <div class="rating-group">
+                    {{range $i := slice 1 2 3 4 5}}
+                    <input type="radio" name="rating" id="rating-{{$i}}" value="{{$i}}" required>
+                    <label for="rating-{{$i}}">{{$i}}</label>
+                    {{end}}
+                </div>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 20px;">
+                <label for="feedback-type">Feedback Type</label>
+                <select name="feedback_type" id="feedback-type" required style="height: 44px;">
+                    <option value="">Select...</option>
+                    <option value="good">Good - Extraction was accurate</option>
+                    <option value="missing_info">Missing Info - Some details were missing</option>
+                    <option value="inaccurate">Inaccurate - Information was wrong</option>
+                    <option value="other">Other</option>
+                </select>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 20px;">
+                <label for="comment">Comment (optional)</label>
+                <textarea name="comment" id="comment" rows="3" placeholder="Any additional details..."></textarea>
+            </div>
+
+            <button type="submit" class="btn primary">Submit Feedback</button>
+        </form>
+        {{end}}
+    </div>
+    {{end}}
+</div>
 {{end}}

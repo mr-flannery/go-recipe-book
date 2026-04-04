@@ -27,6 +27,8 @@
             background: var(--rule);
             color: var(--muted);
         }
+        tbody tr { cursor: pointer; }
+        tbody tr:hover { background: var(--rule); }
     </style>
 </head>
 <body>
@@ -56,11 +58,12 @@
                             <th style="padding: 12px 16px;">Status</th>
                             <th style="padding: 12px 16px;">Result</th>
                             <th style="padding: 12px 16px;">Created</th>
+                            <th style="padding: 12px 16px;"></th>
                         </tr>
                     </thead>
                     <tbody>
                         {{range .Jobs}}
-                        <tr style="border-bottom: 1px solid var(--rule);">
+                        <tr style="border-bottom: 1px solid var(--rule);" onclick="window.location='/account/jobs/{{.ID}}'">
                             <td style="padding: 12px 16px;">
                                 <span class="job-type">{{.JobType}}</span>
                             </td>
@@ -89,6 +92,13 @@
                             </td>
                             <td style="padding: 12px 16px; color: var(--muted); white-space: nowrap;">
                                 {{.CreatedAt.Format "Jan 2, 2006 15:04"}}
+                            </td>
+                            <td style="padding: 8px 16px;" onclick="event.stopPropagation()">
+                                {{if or (eq .Status "failed") (isStuckProcessing .Status .UpdatedAt)}}
+                                <form method="POST" action="/account/jobs/{{.ID}}/retry">
+                                    <button type="submit" class="btn" style="padding: 4px 10px; font-size: 0.8rem;">Retry</button>
+                                </form>
+                                {{end}}
                             </td>
                         </tr>
                         {{end}}

@@ -16,6 +16,7 @@
 - add websocket connections for notifications and updates to extraction job status and stuff like that
 
 - on the extractions page (both admin and user), it should be possible to retry extractions that have failed
+  - this currently sucks, since it simply shows the job as "pending" again, when it's technically pending, but it should show that there was an error, and also it should show when it's being retried automatically again, and there should be an option to retry it right now
 - ok so regarding ingredient databases:
   - there's the german BLS one, that seems to have the best data, but is German only
   - I can probably just supplement it with English AI translations for now

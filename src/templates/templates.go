@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/mr-flannery/go-recipe-book/src/markdown"
 	"github.com/mr-flannery/go-recipe-book/src/models"
@@ -68,6 +69,9 @@ var funcMap = template.FuncMap{
 	},
 	"subtract": func(a, b int) int {
 		return a - b
+	},
+	"isStuckProcessing": func(status string, updatedAt time.Time) bool {
+		return status == "processing" && time.Since(updatedAt) > 5*time.Minute
 	},
 	"slice": func(items ...any) []any {
 		return items

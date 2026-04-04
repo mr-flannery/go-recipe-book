@@ -238,6 +238,10 @@ func main() {
 		userContext(
 			requireAuth(
 				http.HandlerFunc(h.PostJobRetryHandler))))
+	mux.Handle("GET /account/jobs/{id}/ws",
+		userContext(
+			requireAuth(
+				http.HandlerFunc(h.GetJobStatusWSHandler))))
 
 	mux.Handle("GET /extract",
 		userContext(
