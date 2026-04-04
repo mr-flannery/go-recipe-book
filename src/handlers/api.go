@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/mr-flannery/go-recipe-book/src/auth"
@@ -166,23 +167,25 @@ func (h *Handler) APICreateRecipeHandler(w http.ResponseWriter, r *http.Request)
 	sendJSONResponse(w, "Recipe created successfully", recipeID)
 }
 
-// CommitHash is set at build time via -ldflags "-X github.com/mr-flannery/go-recipe-book/src/handlers.CommitHash=<hash>"
-var CommitHash = "dev"
-
 func APIHealthHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		sendJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
+	commit := os.Getenv("COMMIT_HASH")
+	if commit == "" {
+		commit = "dev"
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 
-	response := map[string]interface{}{
+	response := map[string]any{
 		"success": true,
 		"message": "API is healthy",
 		"version": "1.0.0",
-		"commit":  CommitHash,
+		"commit":  commit,
 	}
 
 	json.NewEncoder(w).Encode(response)
